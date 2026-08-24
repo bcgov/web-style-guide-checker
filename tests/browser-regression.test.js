@@ -1,0 +1,93 @@
+"use strict";
+
+const assert = require("node:assert/strict");
+const path = require("node:path");
+const { chromium } = require("playwright");
+
+async function scan(page, html, options = {}) {
+  await page.setContent(html);
+  await page.addScriptTag({ path: path.join(__dirname, "..", "checker-core.js") });
+  return page.evaluate(scanOptions => globalThis.BCWebStyleGuideChecker.scanPage(document, {
+    scope: "content",
+    profile: "standard",
+    canControlColour: false,
+    ...scanOptions
+  }), options);
+}
+
+(async () => {
+  const browser = await chromium.launch({ headless: true });
+  const page = await browser.newPage();
+
+  const contextualH1 = await scan(page, `
+    <header><nav><a href="/">Home</a></nav><h1>Feral horse management</h1></header>
+    <main><h2 id="overview">Overview</h2><p>This is enough ordinary page content for a scan.</p></main>`);
+  assert.equal(contextualH1.issues.some(issue => issue.ruleId === "h1-count"), false);
+  assert.equal(contextualH1.pageDetails.headings[0].level, 1);
+  assert.equal(contextualH1.pageDetails.headings[0].text, "Feral horse management");
+
+  const namedAnchor = await scan(page, `
+    <main><h1>Hours and breaks</h1><p><a href="#jumplinks-0">Overview</a></p>
+    <a name="jumplinks-0"></a><h2>Overview</h2><p>Published content.</p></main>`);
+  assert.equal(namedAnchor.issues.some(issue => issue.ruleId === "broken-anchor"), false);
+
+  const generatedToc = await scan(page, `
+    <main><h1>Feral horse management</h1>
+      <div class="generated-jump-links"><div>On this page:</div><ul>
+        <li><a href="#overview">Overview</a></li><li><a href="#eligibility">Eligibility</a></li><li><a href="#contact">Contact</a></li>
+      </ul></div>
+      <h2 id="overview">Overview</h2><p>Overview content.</p>
+      <h2 id="eligibility">Eligibility</h2><p>Eligibility content.</p>
+      <h2 id="contact">Contact</h2><p>Contact content.</p>
+    </main>`);
+  assert.equal(generatedToc.issues.some(issue => issue.ruleId === "on-this-page-missing"), false);
+  assert.equal(generatedToc.issues.some(issue => issue.ruleId === "on-this-page-format"), false);
+  assert.equal(generatedToc.issues.some(issue => issue.ruleId === "on-this-page-links"), false);
+
+  const hiddenCharacterToc = await scan(page, `
+    <main><h1>Business records</h1><h2>On this page</h2><ul>
+      <li><a href="#start">Start a business</a></li><li><a href="#records">Maintain business records</a></li><li><a href="#close">Close a business</a></li>
+    </ul><h2 id="start">Start a business</h2><p>Start here.</p><h2 id="records">\u200bMaintain business records</h2><p>Keep records.</p><h2 id="close">Close a business</h2><p>Close it.</p></main>`);
+  assert.equal(hiddenCharacterToc.issues.some(issue => issue.ruleId === "on-this-page-links"), false);
+
+  const authoredTocLabel = await scan(page, `
+    <main><h1>Service information</h1><p>On this page:</p><ul>
+      <li><a href="#overview">Overview</a></li><li><a href="#eligibility">Eligibility</a></li><li><a href="#contact">Contact</a></li>
+    </ul><h2 id="overview">Overview</h2><p>Overview content.</p><h2 id="eligibility">Eligibility</h2><p>Eligibility content.</p><h2 id="contact">Contact</h2><p>Contact content.</p></main>`);
+  assert.equal(authoredTocLabel.issues.some(issue => issue.ruleId === "on-this-page-format"), true);
+
+  const assetSpacing = await scan(page, `
+    <main><h1>Employment guidance</h1><p><a href="/guide.pdf">Code of employment practice [PDF, 271 KB]</a></p></main>`);
+  assert.equal(assetSpacing.issues.some(issue => issue.ruleId === "file-link-size-spacing"), true);
+  assert.equal(assetSpacing.issues.some(issue => issue.ruleId === "file-link-label"), false);
+  assert.equal(assetSpacing.issues.find(issue => issue.ruleId === "file-link-size-spacing").replacement, "271KB");
+
+  const editorialChecks = await scan(page, `
+    <main><h1>Business taxes</h1><p>PST applies to some purchases.</p><p>APPLY FOR SUPPORT</p><img src="decorative.png" alt=""></main>`);
+  assert.equal(editorialChecks.issues.some(issue => issue.ruleId === "undefined-acronym" && issue.flaggedToken === "PST"), false);
+  assert.equal(editorialChecks.issues.some(issue => issue.ruleId === "all-caps"), true);
+  assert.equal(editorialChecks.issues.some(issue => issue.ruleId === "image-alt-empty"), true);
+
+  const allowedAcronym = await scan(page, `
+    <main><h1>Emergency information</h1><p>TV broadcasts may carry emergency alerts. This paragraph provides enough context for the checker.</p></main>`, {
+      exceptions: [{ id: "tv", ruleId: "undefined-acronym", phrase: "TV", domain: "" }]
+    });
+  assert.equal(allowedAcronym.issues.some(issue => issue.ruleId === "undefined-acronym" && issue.flaggedToken === "TV" && issue.automaticStatus === "ignored"), true);
+
+  const orderedFindings = await scan(page, `
+    <main><h1>Page order example</h1><p>Start here; then continue.</p><p>Apply and/or contact the program.</p></main>`);
+  const semicolon = orderedFindings.issues.find(issue => issue.ruleId === "semicolon");
+  const slash = orderedFindings.issues.find(issue => issue.ruleId === "slash");
+  assert.equal(Number.isFinite(semicolon.pageOrder), true);
+  assert.equal(semicolon.pageOrder < slash.pageOrder, true);
+
+  await browser.close();
+  console.log("Browser regression tests passed");
+})().catch(error => {
+  if (/Executable doesn't exist/i.test(String(error && error.message))) {
+    console.log("Browser regression tests skipped: Playwright Chromium is not installed.");
+    return;
+  }
+  console.error(error);
+  process.exitCode = 1;
+});

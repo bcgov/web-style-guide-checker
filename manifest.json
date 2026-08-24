@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "B.C. Web Style Guide Checker 3.3",
+  "version": "3.3.0",
+  "description": "Reviews web content against the B.C. Web Style Guide in a focused, accessible review workflow.",
+  "minimum_chrome_version": "116",
+  "permissions": ["activeTab", "scripting", "storage", "sidePanel", "tabs"],
+  "optional_host_permissions": ["http://*/*", "https://*/*", "file:///*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "action": {
+    "default_title": "Open B.C. Web Style Guide Checker",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png"
+    }
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  }
+}
