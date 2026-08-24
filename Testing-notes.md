@@ -28,6 +28,8 @@ CMS Lite uses separate CKEditor iframes for the Intro and Body fields. Authored 
 
 **Idea:** Investigate whether the extension can detect CMS Lite editing mode and scan these editable areas specifically, while retaining the existing scanning behaviour for QA and published pages.
 
+**August 24** CMS Lite editor investigation: Confirmed Topic editing mode contains two accessible CKEditor iframes corresponding to Intro and Body. Both can be accessed from the outer document. Next step: test accessing these frames from the extension execution context, then investigate scanning the iframe contents rather than the outer CMS Lite interface.
+
 ## Ideas / enhancements
 
 ### B.C. Design System integration
