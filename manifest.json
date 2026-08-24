@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "B.C. Web Style Guide Checker 3.3",
-  "version": "3.3.0",
+  "name": "B.C. Web Style Guide Checker",
+  "version": "1.0.0",
   "description": "Reviews web content against the B.C. Web Style Guide in a focused, accessible review workflow.",
   "minimum_chrome_version": "116",
   "permissions": ["activeTab", "scripting", "storage", "sidePanel", "tabs"],

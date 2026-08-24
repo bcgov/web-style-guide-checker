@@ -142,6 +142,9 @@ p { margin-bottom: 12px; }
 .app-identity strong { font-size: 13px; }
 .app-identity span { color: #d6e6f5; font-size: 11px; }
 .header-action { min-height: 30px; padding: 4px 8px; color: var(--white); background: transparent; border: 1px solid rgba(255,255,255,.55); border-radius: var(--radius-sm); }
+.feedback-header-button { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+.feedback-header-button:hover { background: var(--navy-hover); }
+.header-count { display: inline-grid; min-width: 19px; height: 19px; padding: 0 5px; place-items: center; color: var(--navy); background: var(--gold); border-radius: 999px; font-size: 10px; }
 .app-header .header-menu-button { min-width: 32px; min-height: 30px; color: var(--white); background: transparent; border-color: rgba(255,255,255,.55); }
 .app-header .header-menu-button:hover { background: var(--navy-hover); }
 
@@ -394,6 +397,7 @@ mark { padding: 0 2px; color: var(--ink); background: #ffe19b; }
 }
 .finding-actions .locate-button { grid-column: 1 / -1; color: var(--white); background: var(--navy); border-color: var(--navy); font-weight: 700; }
 .finding-actions .note-button, .finding-actions .exception-button { border-color: var(--line-strong); }
+.finding-feedback-action { display: inline-block; margin-top: 10px; font-size: 13px; }
 .action-confirmation { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; padding: 9px 10px; background: var(--success-bg); border-left: 4px solid var(--success); }
 .undo-decision { min-height: 32px; color: var(--navy); background: var(--white); border: 1px solid var(--navy); border-radius: var(--radius-sm); }
 .reference-guidance { margin-top: 14px; padding-top: 11px; border-top: 1px solid var(--line); font-size: 13px; }
@@ -582,6 +586,43 @@ textarea { resize: vertical; }
 
 .toast { position: fixed; z-index: 100; right: 12px; bottom: 14px; left: 12px; padding: 11px 12px; color: var(--white); background: var(--navy-dark); border-left: 4px solid var(--gold); border-radius: var(--radius-sm); box-shadow: var(--shadow-overlay); }
 
+.feedback-view { max-width: 760px; margin: 0 auto; padding: 18px 12px 48px; }
+.feedback-heading { padding: 4px 4px 16px; border-bottom: 1px solid var(--line); }
+.feedback-heading > p { color: var(--muted); }
+.feedback-title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-top: 10px; }
+.feedback-title-row h1 { margin-bottom: 4px; }
+.feedback-list { display: grid; gap: 10px; margin-top: 14px; }
+.feedback-page-group { border: 1px solid var(--line); border-radius: var(--radius-sm); overflow: hidden; }
+.feedback-page-heading { padding: 10px 12px; background: var(--blue-light); border-bottom: 1px solid var(--line); }
+.feedback-page-heading strong, .feedback-page-heading span { display: block; }
+.feedback-page-heading span { margin-top: 2px; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+.feedback-note-card { padding: 12px; background: var(--white); border-left: 4px solid var(--blue); }
+.feedback-note-card + .feedback-note-card { border-top: 1px solid var(--line); }
+.feedback-note-card.is-important { border-left-color: var(--gold); }
+.feedback-note-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.feedback-note-type { color: var(--navy); font-weight: 700; }
+.feedback-important { color: #6b4700; background: var(--check-bg); }
+.feedback-note-card > p { margin: 7px 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.feedback-context-status { color: var(--muted); font-size: 12px; }
+.feedback-note-actions { display: flex; gap: 12px; margin-top: 8px; }
+.feedback-note-actions .text-button { font-size: 13px; }
+.feedback-send-panel { margin-top: 18px; padding: 16px; background: var(--blue-light); border: 1px solid var(--blue-soft); border-left: 4px solid var(--gold); border-radius: var(--radius-sm); }
+.feedback-send-panel h2 { margin-bottom: 8px; }
+.feedback-send-panel .button.primary { width: 100%; }
+.feedback-export-actions { display: flex; justify-content: center; gap: 20px; margin-top: 10px; }
+.feedback-reminder { margin: 12px 0 0; padding-top: 10px; color: var(--muted); border-top: 1px solid var(--blue-soft); font-size: 12px; }
+.archived-feedback { margin-top: 16px; border: 1px solid var(--line); border-radius: var(--radius-sm); }
+.archived-feedback > summary { padding: 11px 12px; color: var(--navy); font-weight: 700; cursor: pointer; }
+.archived-feedback > p { margin: 0; padding: 0 12px; color: var(--muted); font-size: 12px; }
+.archived-feedback .feedback-list { margin: 10px 12px 12px; }
+.feedback-text-label { margin-top: 14px; }
+.feedback-important-row { margin-top: 12px; }
+.feedback-context-section { margin-top: 14px; padding: 11px; background: var(--surface-soft); border: 1px solid var(--line); }
+.feedback-context-section details { margin-top: 9px; }
+.feedback-context-section summary { color: var(--navy); font-weight: 700; cursor: pointer; }
+.feedback-context-section .metadata-list { padding-right: 0; padding-bottom: 0; padding-left: 0; }
+.email-confirm-actions { display: grid; gap: 8px; margin-top: 16px; }
+
 body[data-surface="workspace"] { min-width: 760px; background: var(--surface-soft); }
 body[data-surface="workspace"] .mode-tabs { display: flex; }
 body[data-surface="workspace"] .app-view#current-view { max-width: 1200px; margin: 0 auto; padding: 24px; }
@@ -592,6 +633,7 @@ body[data-surface="workspace"] .review-sticky { top: 95px; }
 body[data-surface="workspace"] .finding-navigation { position: sticky; right: auto; bottom: 0; left: auto; }
 body[data-surface="workspace"] .finding-review-panel { max-width: 780px; margin: 0 auto; }
 body[data-surface="workspace"] .details-panel { max-width: 920px; margin: 0 auto; }
+body[data-surface="workspace"] .feedback-view { max-width: 780px; padding-top: 28px; }
 body[data-surface="workspace"] dialog { margin: auto; }
 
 @media (min-width: 980px) {
@@ -606,6 +648,7 @@ body[data-surface="workspace"] dialog { margin: auto; }
   body { font-size: 14px; }
   .app-header { padding-right: 8px; padding-left: 8px; }
   .app-identity strong { font-size: 12px; }
+  .feedback-header-button { padding-right: 6px; padding-left: 6px; }
   .page-context { align-items: flex-start; }
   .page-context-actions { gap: 4px; }
   .severity-filter strong { font-size: 13px; }

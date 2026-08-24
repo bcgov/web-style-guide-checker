@@ -9,7 +9,7 @@ const read = name => fs.readFileSync(path.join(root, name), "utf8");
 
 const manifest = JSON.parse(read("manifest.json"));
 assert.equal(manifest.manifest_version, 3);
-assert.equal(manifest.version, "3.3.0");
+assert.equal(manifest.version, "1.0.0");
 assert.ok(manifest.optional_host_permissions.includes("http://*/*"));
 assert.ok(manifest.optional_host_permissions.includes("https://*/*"));
 
@@ -43,7 +43,14 @@ const idSet = new Set(ids);
   "batch-export-links",
   "sort-order",
   "follow-page",
-  "manual-review"
+  "manual-review",
+  "feedback-header-button",
+  "feedback-view",
+  "feedback-dialog",
+  "feedback-list",
+  "create-feedback-email",
+  "copy-feedback-report",
+  "export-feedback-csv"
 ].forEach(id => assert.ok(ids.includes(id), `Missing required control: ${id}`));
 
 const reviewTabs = [...html.matchAll(/data-review-view="([^"]+)"/g)].map(match => match[1]);
@@ -68,6 +75,13 @@ assert.match(script, /function jumpIssueType\(/, "Issue-type navigation must be 
 assert.match(script, /items\.findIndex\(\(finding, index\) => index > state\.guidedIndex && finding\.ruleId !== current\.ruleId\)/, "Skipping must continue with the next issue type in the review sequence");
 assert.match(script, /function handleTablistKeys\(/, "Tab lists must support keyboard navigation");
 assert.match(script, /auditNotesV1/, "Audit notes must use local extension storage");
+assert.match(script, /feedbackNotesV1/, "Feedback notes must use local extension storage");
+assert.match(script, /function captureFeedbackContext\(/, "Feedback must capture diagnostic and page context");
+assert.match(script, /function feedbackReportText\(/, "Feedback must provide a readable bulk report");
+assert.match(script, /function createFeedbackEmail\(/, "Feedback must provide an explicit email-draft action");
+assert.match(script, /julia\.ready@gov\.bc\.ca/, "Julia must receive prepared feedback emails");
+assert.match(script, /karmen\.abrahams-munroe@gov\.bc\.ca/, "Karmen must receive prepared feedback emails");
+assert.match(script, /Web Style Guide Checker feedback — v/, "Feedback email subjects must use the agreed syntax");
 assert.match(script, /document\.body\.dataset\.surface = workspaceSurface/, "Panel and workspace layouts must be explicit");
 const decisionFunction = script.match(/async function setDecision\([\s\S]*?\n\}/);
 assert.ok(decisionFunction, "Review decision handler must exist");
@@ -87,7 +101,7 @@ assert.doesNotMatch(script, /<summary>More actions<\/summary>/, "Exact-term acti
 assert.match(script, /"Where on the page", "Category", "Issue", "Why it matters", "Recommended action"/, "Action reports must use plain-language columns");
 
 const core = read("checker-core.js");
-assert.match(core, /const RULE_VERSION = "3\.3\.0"/);
+assert.match(core, /const RULE_VERSION = "1\.0\.0"/);
 assert.match(core, /‘BC’ by itself cannot be allowed/, "Bare BC must be rejected as an allowed term");
 assert.match(core, /function isCmsLiteTemplateImage\(/, "CMS Lite template images must be identifiable");
 assert.match(core, /pageOrder:/, "Findings must retain document order");

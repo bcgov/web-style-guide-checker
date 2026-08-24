@@ -7,6 +7,7 @@ const STORAGE_KEYS = {
   domains: "domainSettingsV2",
   batch: "lastBatchV2",
   notes: "auditNotesV1",
+  feedback: "feedbackNotesV1",
   reviewContexts: "reviewContextsV1",
   navigation: "reviewNavigationV1"
 };
@@ -14,6 +15,15 @@ const STORAGE_KEYS = {
 const MAX_REPORTS = 20;
 const MAX_BATCH_URLS = 100;
 const BATCH_TIMEOUT_MS = 45000;
+const FEEDBACK_RECIPIENTS = ["julia.ready@gov.bc.ca", "karmen.abrahams-munroe@gov.bc.ca"];
+const FEEDBACK_TYPES = {
+  incorrect: "Incorrect or confusing finding",
+  missed: "Missed issue",
+  problem: "Extension problem",
+  suggestion: "Suggestion",
+  other: "Other"
+};
+const MAILTO_REPORT_LIMIT = 6000;
 const surfaceParams = new URLSearchParams(location.search);
 const workspaceSurface = surfaceParams.get("workspace") === "1";
 
@@ -24,6 +34,7 @@ const state = {
   decisions: {},
   exceptions: [],
   notes: {},
+  feedbackNotes: [],
   reviewContexts: {},
   domainSettings: {},
   currentView: "current",
@@ -59,7 +70,13 @@ const state = {
     tempTabId: null
   },
   pendingExceptionFinding: null,
-  pendingNoteFinding: null
+  pendingNoteFinding: null,
+  pendingFeedbackId: "",
+  pendingFeedbackContext: null,
+  preparedFeedbackIds: [],
+  feedbackPreviousView: "current",
+  feedbackPreviousScroll: 0,
+  feedbackReturnFocus: null
 };
 
 const elements = {};
@@ -68,7 +85,7 @@ function $(id) { return document.getElementById(id); }
 
 function cacheElements() {
   [
-    "active-page-label", "return-review-button", "profile-badge", "colour-control-row", "colour-control", "scope-note", "scan-button", "scan-permission-button", "cache-note",
+    "active-page-label", "return-review-button", "feedback-header-button", "feedback-header-count", "profile-badge", "colour-control-row", "colour-control", "scope-note", "scan-button", "scan-permission-button", "cache-note",
     "scan-settings", "cancel-settings-button", "scan-context-title", "scan-context-details", "change-scan-button", "stale-report-banner",
     "cms-lite-settings", "cms-whole-scan", "standard-scope-settings", "choose-section-button", "clear-section-button", "section-scope-label",
     "current-loading", "current-error", "current-error-message", "current-results", "copy-button", "csv-button",
@@ -88,7 +105,12 @@ function cacheElements() {
     "exception-rule-name", "exception-phrase", "exception-validation", "exception-cancel", "section-dialog", "section-list", "section-cancel",
     "permission-dialog", "permission-close", "permission-linked", "permission-all", "permission-revoke", "permission-status", "settings-permission-button",
     "note-dialog", "note-form", "note-finding-name", "note-important", "note-text", "note-cancel", "toast",
-    "more-dialog", "more-menu-button", "more-close", "open-workspace-button", "open-batch-button", "open-settings-button",
+    "feedback-view", "feedback-back-button", "feedback-ready-count", "add-feedback-button", "feedback-empty", "feedback-list", "feedback-send-panel", "feedback-send-status",
+    "create-feedback-email", "copy-feedback-report", "export-feedback-csv", "archived-feedback", "archived-feedback-count", "archived-feedback-list",
+    "feedback-dialog", "feedback-form", "feedback-dialog-heading", "feedback-dialog-close", "feedback-type", "feedback-text", "feedback-important",
+    "feedback-context-section", "feedback-include-context", "feedback-context-preview", "feedback-cancel", "feedback-email-dialog", "feedback-email-close",
+    "archive-prepared-feedback", "keep-prepared-feedback",
+    "more-dialog", "more-menu-button", "more-close", "open-workspace-button", "open-feedback-button", "open-batch-button", "open-settings-button",
     "export-dialog", "export-close"
   ].forEach(id => { elements[id] = $(id); });
 }
@@ -151,6 +173,7 @@ async function loadState() {
   state.exceptions = savedExceptions.filter(item => !(item.ruleId === "bc-abbreviation" && normalizeSpace(item.phrase) === "BC"));
   if (state.exceptions.length !== savedExceptions.length) await saveKey(STORAGE_KEYS.exceptions, state.exceptions);
   state.notes = stored[STORAGE_KEYS.notes] || {};
+  state.feedbackNotes = Array.isArray(stored[STORAGE_KEYS.feedback]) ? stored[STORAGE_KEYS.feedback] : [];
   state.reviewContexts = stored[STORAGE_KEYS.reviewContexts] || {};
   state.domainSettings = stored[STORAGE_KEYS.domains] || {};
   const navigation = stored[STORAGE_KEYS.navigation] || {};
@@ -1162,6 +1185,7 @@ function renderFinding(finding) {
   const status = effectiveStatus(finding);
   const canReview = status === "open";
   const note = auditNote(finding);
+  const feedbackCount = feedbackNotesForFinding(finding).length;
   const showResponsibility = !state.activeReport || state.activeReport.settings.profile !== "cms-lite" || state.activeReport.settings.scope === "whole";
   return `
     <article class="finding ${escapeHtml(finding.severity)} ${escapeHtml(status)}${note.important ? " is-important" : ""}" data-fingerprint="${escapeHtml(finding.fingerprint)}" tabindex="-1">
@@ -1191,6 +1215,7 @@ function renderFinding(finding) {
           <button class="small-button note-button" type="button">${note.text || note.important ? "Edit note or importance" : "Add note or importance"}</button>
         </div>
         <details class="reference-guidance"><summary>Reference guidance</summary><a href="${escapeHtml(finding.sourceUrl)}" target="_blank" rel="noreferrer">${escapeHtml(finding.sourceLabel)} — B.C. Web Style Guide</a></details>
+        <button class="text-button finding-feedback-action" type="button">${feedbackCount ? "Edit feedback about this result" : "Add feedback about this result"}</button>
       </div>
     </article>`;
 }
@@ -1675,6 +1700,380 @@ async function saveAuditNote(event) {
   elements["note-dialog"].close();
   renderReviewView();
   showToast(textValue || important ? "Audit note saved." : "Audit note removed.");
+}
+
+function readyFeedbackNotes() {
+  return state.feedbackNotes.filter(note => !note.archivedAt);
+}
+
+function archivedFeedbackNotes() {
+  return state.feedbackNotes.filter(note => Boolean(note.archivedAt));
+}
+
+function feedbackTypeLabel(value) {
+  return FEEDBACK_TYPES[value] || FEEDBACK_TYPES.other;
+}
+
+function feedbackNotesForFinding(finding) {
+  if (!finding) return [];
+  return readyFeedbackNotes().filter(note => note.context && note.context.finding && note.context.finding.fingerprint === finding.fingerprint);
+}
+
+function browserLabel() {
+  const userAgent = navigator.userAgent || "";
+  const browser = userAgent.match(/Edg\/([\d.]+)/) || userAgent.match(/Chrome\/([\d.]+)/);
+  const name = /Edg\//.test(userAgent) ? "Microsoft Edge" : "Google Chrome";
+  const platform = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || "";
+  return `${browser ? `${name} ${browser[1]}` : "Chromium browser"}${platform ? ` · ${platform}` : ""}`;
+}
+
+function reportScopeLabel(report) {
+  if (!report || !report.settings) return "";
+  if (report.settings.sectionLabel) return `Section: ${report.settings.sectionLabel}`;
+  if (report.settings.scope === "whole") return "Whole website";
+  return report.settings.profile === "cms-lite" ? "Editable CMS Lite content" : "Page content";
+}
+
+async function captureLiveFeedbackContext() {
+  const tab = await currentReviewTab().catch(() => null);
+  if (!tab || !tab.id || !isScannableUrl(tab.url || "")) return { tab, selection: null };
+  try {
+    const results = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: () => {
+        const selection = window.getSelection();
+        const selectedText = selection ? selection.toString().trim().replace(/\s+/g, " ").slice(0, 1000) : "";
+        const anchor = selection && selection.anchorNode ? (selection.anchorNode.nodeType === 1 ? selection.anchorNode : selection.anchorNode.parentElement) : null;
+        let nearestHeading = "";
+        if (anchor) {
+          const headings = Array.from(document.querySelectorAll("h1,h2,h3,h4,h5,h6"));
+          headings.forEach(heading => {
+            if (heading === anchor || heading.contains(anchor) || (heading.compareDocumentPosition(anchor) & Node.DOCUMENT_POSITION_FOLLOWING)) {
+              const text = (heading.innerText || heading.textContent || "").trim().replace(/\s+/g, " ");
+              if (text) nearestHeading = text;
+            }
+          });
+        }
+        return { selectedText, nearestHeading, documentTitle: document.title || "" };
+      }
+    });
+    return { tab, selection: (results[0] && results[0].result) || null };
+  } catch (_) {
+    return { tab, selection: null };
+  }
+}
+
+async function captureFeedbackContext(finding = null) {
+  const live = await captureLiveFeedbackContext();
+  const report = state.activeReport;
+  const tab = live.tab || state.activeTab;
+  const pageUrl = (report && report.page && report.page.url) || (tab && tab.url) || "";
+  const detectedProfile = report && report.settings
+    ? report.settings.profileLabel
+    : pageUrl ? (detectProfile(pageUrl) === "cms-lite" ? "CMS Lite" : "Standard website") : "";
+  const findingContext = finding ? {
+    fingerprint: finding.fingerprint || "",
+    title: finding.title || "",
+    ruleId: finding.ruleId || "",
+    category: finding.category || "",
+    severity: sentenceLabel(finding.severity),
+    responsibility: finding.responsibility || "",
+    location: finding.location || "",
+    evidence: String(finding.evidence || "").slice(0, 1500),
+    flaggedWording: finding.matchText || finding.flaggedToken || "",
+    selector: finding.selector || ""
+  } : null;
+  return {
+    pageTitle: (report && report.page && report.page.title) || (live.selection && live.selection.documentTitle) || (tab && tab.title) || "",
+    pageUrl,
+    domain: hostnameFor(pageUrl),
+    detectedProfile,
+    scanScope: reportScopeLabel(report),
+    pageSection: (findingContext && findingContext.location) || (live.selection && live.selection.nearestHeading) || (report && report.settings && report.settings.sectionLabel) || "",
+    selectedText: (live.selection && live.selection.selectedText) || "",
+    finding: findingContext,
+    extensionVersion: chrome.runtime.getManifest().version,
+    rulesVersion: globalThis.BCWebStyleGuideChecker.ruleVersion,
+    browser: browserLabel(),
+    capturedAt: new Date().toISOString()
+  };
+}
+
+function feedbackContextPreview(context) {
+  const finding = context && context.finding;
+  return [
+    metadataDefinition("Page", context && context.pageTitle),
+    metadataDefinition("Address", context && context.pageUrl),
+    metadataDefinition("Detected site profile", context && context.detectedProfile),
+    metadataDefinition("Scan scope", context && context.scanScope),
+    metadataDefinition("Page section", context && context.pageSection),
+    context && context.selectedText ? metadataDefinition("Selected page text", context.selectedText) : "",
+    finding ? metadataDefinition("Finding", finding.title) : "",
+    finding ? metadataDefinition("Rule ID", finding.ruleId) : "",
+    finding && finding.evidence ? metadataDefinition("Finding evidence", finding.evidence) : "",
+    metadataDefinition("Extension version", context && context.extensionVersion),
+    metadataDefinition("Rules version", context && context.rulesVersion),
+    metadataDefinition("Browser", context && context.browser)
+  ].join("");
+}
+
+async function openFeedbackDialog(finding = null, existingNote = null) {
+  state.feedbackReturnFocus = document.activeElement;
+  state.pendingFeedbackId = existingNote ? existingNote.id : "";
+  state.pendingFeedbackContext = existingNote ? existingNote.context : await captureFeedbackContext(finding);
+  elements["feedback-dialog-heading"].textContent = existingNote ? "Edit feedback" : "Add feedback";
+  elements["feedback-type"].value = existingNote ? existingNote.type : (finding ? "incorrect" : "");
+  elements["feedback-text"].value = existingNote ? existingNote.text : "";
+  elements["feedback-important"].checked = Boolean(existingNote && existingNote.important);
+  const hasPageContext = Boolean(state.pendingFeedbackContext && state.pendingFeedbackContext.pageUrl);
+  elements["feedback-context-section"].hidden = !hasPageContext;
+  elements["feedback-include-context"].checked = existingNote ? existingNote.includeContext !== false : hasPageContext;
+  elements["feedback-context-preview"].innerHTML = feedbackContextPreview(state.pendingFeedbackContext || {});
+  elements["feedback-dialog"].showModal();
+  requestAnimationFrame(() => elements["feedback-type"].focus());
+}
+
+function closeFeedbackDialog() {
+  elements["feedback-dialog"].close();
+  const target = state.feedbackReturnFocus;
+  state.feedbackReturnFocus = null;
+  if (target && target.isConnected) requestAnimationFrame(() => target.focus());
+}
+
+async function saveFeedbackNote(event) {
+  event.preventDefault();
+  const type = elements["feedback-type"].value;
+  const textValue = String(elements["feedback-text"].value || "").trim().slice(0, 2000);
+  if (!type || !textValue) return;
+  const existing = state.feedbackNotes.find(note => note.id === state.pendingFeedbackId);
+  const now = new Date().toISOString();
+  const note = {
+    id: existing ? existing.id : `feedback-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+    type,
+    text: textValue,
+    important: elements["feedback-important"].checked,
+    includeContext: !elements["feedback-context-section"].hidden && elements["feedback-include-context"].checked,
+    context: state.pendingFeedbackContext || {},
+    createdAt: existing ? existing.createdAt : now,
+    updatedAt: now,
+    archivedAt: existing ? existing.archivedAt || "" : ""
+  };
+  if (existing) state.feedbackNotes = state.feedbackNotes.map(item => item.id === note.id ? note : item);
+  else state.feedbackNotes.push(note);
+  await saveKey(STORAGE_KEYS.feedback, state.feedbackNotes);
+  state.pendingFeedbackId = "";
+  state.pendingFeedbackContext = null;
+  closeFeedbackDialog();
+  renderFeedback();
+  if (state.reviewMode === "detail") renderReviewView();
+  showToast(`Feedback note saved. ${readyFeedbackNotes().length} ready to email.`);
+}
+
+function feedbackCard(note, archived = false) {
+  const context = note.context || {};
+  return `<article class="feedback-note-card${note.important ? " is-important" : ""}" data-feedback-id="${escapeHtml(note.id)}">
+    <div class="feedback-note-top"><span class="feedback-note-type">${escapeHtml(feedbackTypeLabel(note.type))}</span>${note.important ? `<span class="profile-badge feedback-important">Important</span>` : ""}</div>
+    <p>${escapeHtml(note.text)}</p>
+    <span class="feedback-context-status">${note.includeContext ? "Page context included" : context.pageUrl ? "Page context excluded from email and export" : "No page context captured"}</span>
+    <div class="feedback-note-actions">
+      ${archived ? `<button class="text-button restore-feedback" type="button">Restore</button>` : `<button class="text-button edit-feedback" type="button">Edit</button>`}
+      <button class="text-button delete-feedback" type="button">Delete</button>
+    </div>
+  </article>`;
+}
+
+function feedbackGroups(notes, archived = false) {
+  const groups = new Map();
+  notes.forEach(note => {
+    const context = note.context || {};
+    const key = context.pageUrl || "__general__";
+    if (!groups.has(key)) groups.set(key, { title: context.pageTitle || "General feedback", detail: context.domain || "No page address captured", notes: [] });
+    groups.get(key).notes.push(note);
+  });
+  return Array.from(groups.values()).map(group => `<section class="feedback-page-group">
+    <div class="feedback-page-heading"><strong>${escapeHtml(group.title)}</strong><span>${escapeHtml(group.detail)}</span></div>
+    ${group.notes.map(note => feedbackCard(note, archived)).join("")}
+  </section>`).join("");
+}
+
+function renderFeedback() {
+  const ready = readyFeedbackNotes();
+  const archived = archivedFeedbackNotes();
+  const readyCount = ready.length;
+  elements["feedback-header-count"].textContent = String(readyCount);
+  elements["feedback-header-count"].hidden = readyCount === 0;
+  elements["feedback-ready-count"].textContent = `${readyCount} saved`;
+  elements["feedback-empty"].hidden = readyCount > 0;
+  elements["feedback-list"].innerHTML = feedbackGroups(ready);
+  elements["feedback-send-status"].innerHTML = `<strong>${readyCount} feedback note${readyCount === 1 ? " is" : "s are"} saved on this device.</strong> ${readyCount === 1 ? "It has" : "They have"} not been sent.`;
+  elements["create-feedback-email"].disabled = readyCount === 0;
+  elements["copy-feedback-report"].disabled = readyCount === 0;
+  elements["export-feedback-csv"].disabled = readyCount === 0;
+  elements["archived-feedback"].hidden = archived.length === 0;
+  elements["archived-feedback-count"].textContent = archived.length ? `(${archived.length})` : "";
+  elements["archived-feedback-list"].innerHTML = feedbackGroups(archived, true);
+}
+
+function feedbackReportDate(value = new Date()) {
+  const date = value instanceof Date ? value : new Date(value);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function feedbackSubject(notes) {
+  const version = chrome.runtime.getManifest().version;
+  return `Web Style Guide Checker feedback — v${version} — ${feedbackReportDate()} — ${notes.length} note${notes.length === 1 ? "" : "s"}`;
+}
+
+function feedbackReportText(notes = readyFeedbackNotes()) {
+  const includedPages = new Set(notes.filter(note => note.includeContext && note.context && note.context.pageUrl).map(note => canonicalUrl(note.context.pageUrl)));
+  const version = chrome.runtime.getManifest().version;
+  const lines = [
+    "Web Style Guide Checker feedback",
+    "",
+    `Created: ${formatDate(new Date().toISOString())}`,
+    `Extension version: ${version}`,
+    `Rules version: ${globalThis.BCWebStyleGuideChecker.ruleVersion}`,
+    `Browser: ${browserLabel()}`,
+    `Notes included: ${notes.length}`,
+    `Pages represented: ${includedPages.size}`,
+    "",
+    "This report was created from feedback notes saved in the extension."
+  ];
+  notes.forEach((note, index) => {
+    const context = note.context || {};
+    const finding = context.finding || null;
+    lines.push("", `${index + 1}. ${feedbackTypeLabel(note.type)}${note.important ? " — Important" : ""}`, "", note.text, "", "Reported from:");
+    if (!note.includeContext) {
+      lines.push("Page context excluded by the tester.");
+    } else if (!context.pageUrl) {
+      lines.push("No page context was available.");
+    } else {
+      if (context.pageTitle) lines.push(`Page: ${context.pageTitle}`);
+      lines.push(`Address: ${context.pageUrl}`);
+      if (context.detectedProfile) lines.push(`Detected site profile: ${context.detectedProfile}`);
+      if (context.scanScope) lines.push(`Scan scope: ${context.scanScope}`);
+      if (context.pageSection) lines.push(`Page section: ${context.pageSection}`);
+      if (context.selectedText) lines.push(`Selected page text: ${context.selectedText}`);
+      if (finding) {
+        if (finding.title) lines.push(`Finding: ${finding.title}`);
+        if (finding.ruleId) lines.push(`Rule ID: ${finding.ruleId}`);
+        if (finding.category) lines.push(`Category: ${finding.category}`);
+        if (finding.severity) lines.push(`Review level: ${finding.severity}`);
+        if (finding.flaggedWording) lines.push(`Flagged wording: ${finding.flaggedWording}`);
+        if (finding.evidence) lines.push(`Finding evidence: ${finding.evidence}`);
+      }
+    }
+    lines.push(`Captured: ${formatDate(context.capturedAt || note.createdAt)}`, `Captured with extension v${context.extensionVersion || version} · rules v${context.rulesVersion || globalThis.BCWebStyleGuideChecker.ruleVersion}`);
+  });
+  return lines.join("\n");
+}
+
+async function copyFeedbackReport() {
+  const notes = readyFeedbackNotes();
+  if (!notes.length) return;
+  await navigator.clipboard.writeText(feedbackReportText(notes));
+  showToast(`${notes.length} feedback note${notes.length === 1 ? "" : "s"} copied.`);
+}
+
+const FEEDBACK_CSV_HEADER = [
+  "Note ID", "Created", "Feedback type", "Important", "Feedback note", "Include page context", "Page title", "Page URL", "Domain", "Detected site profile", "Scan scope", "Page section",
+  "Selected page text", "Finding", "Rule ID", "Category", "Review level", "Flagged wording", "Finding evidence", "Extension version", "Rules version", "Browser"
+];
+
+function feedbackCsvRows(notes = readyFeedbackNotes()) {
+  return notes.map(note => {
+    const context = note.context || {};
+    const finding = context.finding || {};
+    const included = note.includeContext;
+    return [
+      note.id, note.createdAt, feedbackTypeLabel(note.type), note.important ? "Yes" : "No", note.text, included ? "Yes" : "No",
+      included ? context.pageTitle || "" : "", included ? context.pageUrl || "" : "", included ? context.domain || "" : "", included ? context.detectedProfile || "" : "",
+      included ? context.scanScope || "" : "", included ? context.pageSection || "" : "", included ? context.selectedText || "" : "", included ? finding.title || "" : "",
+      included ? finding.ruleId || "" : "", included ? finding.category || "" : "", included ? finding.severity || "" : "", included ? finding.flaggedWording || "" : "",
+      included ? finding.evidence || "" : "", context.extensionVersion || chrome.runtime.getManifest().version, context.rulesVersion || globalThis.BCWebStyleGuideChecker.ruleVersion, context.browser || ""
+    ];
+  });
+}
+
+function exportFeedbackCsv() {
+  const notes = readyFeedbackNotes();
+  if (!notes.length) return;
+  downloadCsvRows(feedbackCsvRows(notes), `web-style-guide-checker-feedback-${feedbackReportDate()}.csv`, FEEDBACK_CSV_HEADER);
+}
+
+async function createFeedbackEmail() {
+  const notes = readyFeedbackNotes();
+  if (!notes.length) return;
+  const report = feedbackReportText(notes);
+  try {
+    await navigator.clipboard.writeText(report);
+  } catch (_) {
+    if (report.length > MAILTO_REPORT_LIMIT) {
+      showToast("The report could not be copied. Use Copy report before creating the email.");
+      return;
+    }
+  }
+  const subject = feedbackSubject(notes);
+  const body = report.length <= MAILTO_REPORT_LIMIT
+    ? report
+    : `Web Style Guide Checker feedback\n\n${notes.length} notes are ready. The complete report has been copied to the clipboard. Paste it into this email before sending.\n\nExtension version: ${chrome.runtime.getManifest().version}\nCreated: ${feedbackReportDate()}`;
+  const anchor = document.createElement("a");
+  anchor.href = `mailto:${FEEDBACK_RECIPIENTS.join(",")}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  anchor.hidden = true;
+  document.body.append(anchor);
+  anchor.click();
+  anchor.remove();
+  state.preparedFeedbackIds = notes.map(note => note.id);
+  elements["feedback-email-dialog"].showModal();
+}
+
+async function archivePreparedFeedback() {
+  const prepared = new Set(state.preparedFeedbackIds);
+  const now = new Date().toISOString();
+  state.feedbackNotes = state.feedbackNotes.map(note => prepared.has(note.id) ? { ...note, archivedAt: now } : note);
+  await saveKey(STORAGE_KEYS.feedback, state.feedbackNotes);
+  state.preparedFeedbackIds = [];
+  elements["feedback-email-dialog"].close();
+  renderFeedback();
+  showToast("Prepared feedback notes archived.");
+}
+
+async function restoreFeedbackNote(id) {
+  state.feedbackNotes = state.feedbackNotes.map(note => note.id === id ? { ...note, archivedAt: "" } : note);
+  await saveKey(STORAGE_KEYS.feedback, state.feedbackNotes);
+  renderFeedback();
+  showToast("Feedback note restored.");
+}
+
+async function deleteFeedbackNote(id) {
+  const note = state.feedbackNotes.find(item => item.id === id);
+  if (!note || !confirm("Delete this feedback note? This cannot be undone.")) return;
+  state.feedbackNotes = state.feedbackNotes.filter(item => item.id !== id);
+  await saveKey(STORAGE_KEYS.feedback, state.feedbackNotes);
+  renderFeedback();
+  if (state.reviewMode === "detail") renderReviewView();
+  showToast("Feedback note deleted.");
+}
+
+function openFeedbackView() {
+  if (state.currentView !== "feedback") {
+    state.feedbackPreviousView = state.currentView;
+    state.feedbackPreviousScroll = document.scrollingElement ? document.scrollingElement.scrollTop : 0;
+  }
+  switchView("feedback");
+  if (document.scrollingElement) document.scrollingElement.scrollTop = 0;
+}
+
+function closeFeedbackView() {
+  const destination = ["current", "batch", "terms"].includes(state.feedbackPreviousView) ? state.feedbackPreviousView : "current";
+  switchView(destination);
+  requestAnimationFrame(() => {
+    if (document.scrollingElement) document.scrollingElement.scrollTop = state.feedbackPreviousScroll || 0;
+    elements["feedback-header-button"].focus();
+  });
 }
 
 async function saveException(event) {
@@ -2246,6 +2645,8 @@ function downloadBatchCsv() {
 
 function switchView(name) {
   state.currentView = name;
+  const modeTabs = document.querySelector(".mode-tabs");
+  if (modeTabs) modeTabs.hidden = name === "feedback";
   document.querySelectorAll(".mode-tab").forEach(button => {
     const selected = button.dataset.view === name;
     button.classList.toggle("is-active", selected);
@@ -2254,6 +2655,8 @@ function switchView(name) {
   });
   document.querySelectorAll(".app-view").forEach(view => { view.hidden = view.id !== `${name}-view`; });
   if (name === "terms") renderTerms();
+  if (name === "feedback") renderFeedback();
+  elements["feedback-header-button"].hidden = name === "feedback";
 }
 
 function handleTablistKeys(event) {
@@ -2282,6 +2685,7 @@ function handleFindingAction(event) {
   else if (button.classList.contains("manage-term-button")) openWorkspace("terms");
   else if (button.classList.contains("exception-button")) openExceptionDialog(finding);
   else if (button.classList.contains("note-button")) openNoteDialog(finding);
+  else if (button.classList.contains("finding-feedback-action")) openFeedbackDialog(finding, feedbackNotesForFinding(finding)[0] || null);
 }
 
 async function openWorkspace(view = "current") {
@@ -2317,6 +2721,9 @@ function bindEvents() {
     elements["more-dialog"].showModal();
   });
   elements["more-close"].addEventListener("click", () => elements["more-dialog"].close());
+  elements["feedback-header-button"].addEventListener("click", openFeedbackView);
+  elements["feedback-back-button"].addEventListener("click", closeFeedbackView);
+  elements["open-feedback-button"].addEventListener("click", () => { elements["more-dialog"].close(); openFeedbackView(); });
   elements["open-workspace-button"].addEventListener("click", () => { elements["more-dialog"].close(); openWorkspace("current"); });
   elements["open-batch-button"].addEventListener("click", () => { elements["more-dialog"].close(); workspaceSurface ? switchView("batch") : openWorkspace("batch"); });
   elements["open-settings-button"].addEventListener("click", () => { elements["more-dialog"].close(); workspaceSurface ? switchView("terms") : openWorkspace("terms"); });
@@ -2414,6 +2821,27 @@ function bindEvents() {
   elements["return-review-button"].addEventListener("click", returnToReview);
   elements["note-form"].addEventListener("submit", saveAuditNote);
   elements["note-cancel"].addEventListener("click", () => elements["note-dialog"].close());
+  elements["add-feedback-button"].addEventListener("click", () => openFeedbackDialog());
+  elements["feedback-form"].addEventListener("submit", saveFeedbackNote);
+  elements["feedback-dialog-close"].addEventListener("click", closeFeedbackDialog);
+  elements["feedback-cancel"].addEventListener("click", closeFeedbackDialog);
+  elements["copy-feedback-report"].addEventListener("click", copyFeedbackReport);
+  elements["export-feedback-csv"].addEventListener("click", exportFeedbackCsv);
+  elements["create-feedback-email"].addEventListener("click", createFeedbackEmail);
+  elements["feedback-email-close"].addEventListener("click", () => elements["feedback-email-dialog"].close());
+  elements["keep-prepared-feedback"].addEventListener("click", () => elements["feedback-email-dialog"].close());
+  elements["archive-prepared-feedback"].addEventListener("click", archivePreparedFeedback);
+  const handleFeedbackListClick = event => {
+    const card = event.target.closest("[data-feedback-id]");
+    if (!card) return;
+    const id = card.dataset.feedbackId;
+    const note = state.feedbackNotes.find(item => item.id === id);
+    if (event.target.closest(".edit-feedback") && note) openFeedbackDialog(null, note);
+    else if (event.target.closest(".restore-feedback")) restoreFeedbackNote(id);
+    else if (event.target.closest(".delete-feedback")) deleteFeedbackNote(id);
+  };
+  elements["feedback-list"].addEventListener("click", handleFeedbackListClick);
+  elements["archived-feedback-list"].addEventListener("click", handleFeedbackListClick);
   elements["section-list"].addEventListener("click", event => {
     const button = event.target.closest(".section-choice");
     if (button) chooseSection(Number(button.dataset.index));
@@ -2462,6 +2890,7 @@ async function init() {
   }
   bindEvents();
   await loadState();
+  renderFeedback();
   renderTerms();
   if (state.batch.records.length) renderBatchProgress();
   renderBatchValidation();

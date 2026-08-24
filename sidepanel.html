@@ -13,6 +13,9 @@
         <strong>B.C. Web Style Guide Checker</strong>
         <span id="active-page-label">Ready to review a page</span>
       </div>
+      <button id="feedback-header-button" class="header-action feedback-header-button" type="button">
+        <span>Feedback</span><span id="feedback-header-count" class="header-count" hidden></span>
+      </button>
       <button id="return-review-button" class="header-action" type="button" hidden>Return</button>
       <button id="more-menu-button" class="icon-button header-menu-button" type="button" aria-label="Open extension menu" aria-haspopup="dialog">•••</button>
     </header>
@@ -165,6 +168,42 @@
         </section>
       </section>
 
+      <section id="feedback-view" class="app-view feedback-view" hidden aria-labelledby="feedback-heading">
+        <header class="feedback-heading">
+          <button id="feedback-back-button" class="text-button back-button" type="button">← Back</button>
+          <div class="feedback-title-row">
+            <div><p class="eyebrow">Beta testing</p><h1 id="feedback-heading">Feedback notes</h1></div>
+            <span id="feedback-ready-count" class="profile-badge">0 saved</span>
+          </div>
+          <p>Add notes while you test. Notes stay on this device until you copy, export or create an email.</p>
+          <button id="add-feedback-button" class="button secondary" type="button">Add feedback</button>
+        </header>
+
+        <div id="feedback-empty" class="empty-state">
+          <strong>No feedback notes yet.</strong><br>Add a note about a missed issue, an incorrect result, an extension problem or an idea.
+        </div>
+        <div id="feedback-list" class="feedback-list"></div>
+
+        <section id="feedback-send-panel" class="feedback-send-panel" aria-labelledby="send-feedback-heading">
+          <p class="eyebrow">Send your feedback</p>
+          <h2 id="send-feedback-heading">Email your saved notes</h2>
+          <p id="feedback-send-status"><strong>0 notes are saved on this device.</strong> They have not been sent.</p>
+          <p>Create an email containing your notes. Review the email, then select <strong>Send</strong> in your email app.</p>
+          <button id="create-feedback-email" class="button primary" type="button">Create feedback email</button>
+          <div class="feedback-export-actions">
+            <button id="copy-feedback-report" class="text-button" type="button">Copy report</button>
+            <button id="export-feedback-csv" class="text-button" type="button">Export CSV</button>
+          </div>
+          <p class="feedback-reminder">Send feedback after each site review or at the end of your testing day.</p>
+        </section>
+
+        <details id="archived-feedback" class="archived-feedback" hidden>
+          <summary>Previously prepared notes <span id="archived-feedback-count"></span></summary>
+          <p>These notes were archived after an email was prepared. Restore a note if it still needs attention.</p>
+          <div id="archived-feedback-list" class="feedback-list"></div>
+        </details>
+      </section>
+
       <section id="batch-view" class="app-view workspace-view" role="tabpanel" aria-labelledby="batch-mode-tab" hidden>
         <header class="workspace-heading">
           <div><p class="eyebrow">Multiple pages</p><h1>Batch scans</h1><p>Check a list of pages and download one organized report.</p></div>
@@ -263,6 +302,7 @@
           <button id="rescan-button" class="menu-action" type="button"><strong>Rescan page</strong><span>Update the findings using the current scope</span></button>
           <button id="change-scan-button" class="menu-action" type="button"><strong>Change scan scope</strong><span>Review a section, page content or the whole website</span></button>
           <button id="open-workspace-button" class="menu-action" type="button"><strong>Open full-page review</strong><span>Opens this review in a new browser tab</span></button>
+          <button id="open-feedback-button" class="menu-action" type="button"><strong>Feedback notes</strong><span>Collect testing notes and create one feedback email</span></button>
           <button id="open-batch-button" class="menu-action" type="button"><strong>Start a batch scan</strong><span>Check several pages and create one report</span></button>
           <button id="open-settings-button" class="menu-action" type="button"><strong>Settings and allowed terms</strong><span>Manage permissions, privacy and exact-term exceptions</span></button>
         </div>
@@ -338,6 +378,45 @@
         <textarea id="note-text" rows="4" maxlength="500" placeholder="Add useful context for the person reviewing this issue"></textarea>
         <p class="hint">Saved in this browser and included in reports.</p>
         <div class="dialog-actions"><button id="note-cancel" class="button secondary" type="button">Cancel</button><button class="button primary" type="submit">Save note</button></div>
+      </form>
+    </dialog>
+
+    <dialog id="feedback-dialog">
+      <form id="feedback-form" method="dialog">
+        <div class="dialog-heading"><div><p class="eyebrow">Saved on this device</p><h2 id="feedback-dialog-heading">Add feedback</h2></div><button id="feedback-dialog-close" class="icon-button" type="button" aria-label="Close feedback form">×</button></div>
+        <label for="feedback-type" class="field-label">Feedback type</label>
+        <select id="feedback-type" required>
+          <option value="" disabled>Choose a feedback type</option>
+          <option value="incorrect">Incorrect or confusing finding</option>
+          <option value="missed">Missed issue</option>
+          <option value="problem">Extension problem</option>
+          <option value="suggestion">Suggestion</option>
+          <option value="other">Other</option>
+        </select>
+        <label for="feedback-text" class="field-label feedback-text-label">What did you notice?</label>
+        <textarea id="feedback-text" rows="6" maxlength="2000" required placeholder="Describe what happened and what you expected."></textarea>
+        <label class="check-row feedback-important-row"><input id="feedback-important" type="checkbox"> Mark as important</label>
+        <section id="feedback-context-section" class="feedback-context-section">
+          <label class="check-row"><input id="feedback-include-context" type="checkbox" checked> Include captured page context in the email and export</label>
+          <details>
+            <summary>View captured context</summary>
+            <dl id="feedback-context-preview" class="metadata-list"></dl>
+          </details>
+        </section>
+        <p class="hint">Page context can include the title, address, detected site profile, scan scope, page section and related finding. Complete page content and form entries are not captured.</p>
+        <div class="dialog-actions"><button id="feedback-cancel" class="button secondary" type="button">Cancel</button><button class="button primary" type="submit">Save note</button></div>
+      </form>
+    </dialog>
+
+    <dialog id="feedback-email-dialog">
+      <form method="dialog">
+        <div class="dialog-heading"><div><p class="eyebrow">Next step</p><h2>Email draft opened</h2></div><button id="feedback-email-close" class="icon-button" type="button" aria-label="Close email confirmation">×</button></div>
+        <p>The feedback report was also copied. Review the draft in your email app, then select <strong>Send</strong>.</p>
+        <p>Your notes remain saved here until you archive them.</p>
+        <div class="email-confirm-actions">
+          <button id="archive-prepared-feedback" class="button primary" type="button">I sent the email — archive notes</button>
+          <button id="keep-prepared-feedback" class="button secondary" type="button">Keep notes for later</button>
+        </div>
       </form>
     </dialog>
 

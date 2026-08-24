@@ -110,7 +110,7 @@
     "contrast": ["Accessibility", "check", "Check the colour contrast", "Text needs sufficient contrast against its background.", "Adjust the foreground or background colour. Verify overlays and images with a dedicated contrast tool.", "contrast"]
   };
 
-  const RULE_VERSION = "3.3.0";
+  const RULE_VERSION = "1.0.0";
 
   const BUILT_IN_TERMS = [
     "BC Public Service Agency",

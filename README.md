@@ -1,121 +1,106 @@
-# B.C. Web Style Guide Checker 3.3
+# B.C. Web Style Guide Checker
 
-Version 3.3 is a redesigned Chrome and Edge extension for reviewing web pages against the B.C. Web Style Guide. It keeps the side panel focused on the current task and moves batch work, settings and wider reviews into a full-page workspace.
+The B.C. Web Style Guide Checker is a Chrome and Microsoft Edge extension that reviews webpages against selected requirements and recommendations in the B.C. Web Style Guide.
 
-## Install it
+Version 1.0.0 is the first public release of the extension.
 
-1. Unzip the package.
+The checker supports content review. It does not replace editorial, accessibility, legal, policy, service-design or user-research judgement.
+
+## Features
+
+- Reviews one page in a browser side panel
+- Offers a focused, finding-by-finding review
+- Sorts findings by recommended priority or page order
+- Separates editable CMS Lite content from shared templates
+- Checks headings, links, documents, images, formatting, plain language and selected accessibility concerns
+- Shows page structure, published metadata, content statistics and link information
+- Checks HTTP link status when the reviewer grants website access
+- Scans up to 100 pasted page addresses into one workbook
+- Saves exact, rule-specific allowed terms
+- Keeps reports and review position across tabs and browser restarts
+- Collects private beta feedback notes locally and creates one pre-addressed feedback email
+
+## Install the extension
+
+1. Download and unzip the release package.
 2. Open `chrome://extensions` or `edge://extensions`.
 3. Turn on **Developer mode**.
-4. Choose **Load unpacked**.
-5. Select the unzipped `bc-web-style-checker-v3.3` folder.
-6. Pin **B.C. Web Style Guide Checker 3.3**.
+4. Select **Load unpacked**.
+5. Select the unzipped `web-style-guide-checker` folder.
+6. Pin **B.C. Web Style Guide Checker**.
 
-Select the extension to open it in the browser side panel.
+Select the extension icon to open the checker in the browser side panel.
 
-## Review one page
+## Review a page
 
-1. Open the page you want to review.
-2. Select the review scope and choose **Check page**.
-3. Choose recommended order or page order, then select **Review issues** or choose an issue type from the list.
-4. Review one occurrence at a time.
-5. Use **Next** and **Previous** to move through the remaining occurrences.
+1. Open the webpage you want to review.
+2. Choose the review scope and select **Check page**.
+3. Choose recommended order or page order.
+4. Select **Review issues** or choose an issue type.
+5. Review each finding and record decisions as needed.
 
-Ignoring or resolving a finding advances to the next occurrence. A confirmation remains above the new finding and offers **Undo**, so the change is visible without interrupting the review.
+The extension follows the current finding on the webpage during side-panel review. Turn off **Follow findings on page** when you want the page to remain still.
 
-Guided review is one continuous sequence. **Previous** moves back to the exact finding shown before it, including across issue types and after an item was ignored or resolved.
+Use **Open full-page review** for a wider workspace. The larger workspace also contains batch scans and settings.
 
-Guided review follows each finding on the live page by default. It scrolls to and highlights the referenced content while keyboard focus stays in the checker. Turn off **Follow findings on page** when you want the page to remain still.
+## CMS Lite pages
 
-The compact bar at the top of Findings provides one-tap filters for Fix, Check and Review. Review order stays beside the **Review issues** button, while the Filter dialog contains the less common filters. **Skip to next issue type** leaves a repeated pattern quickly. At the end, the navigation changes to **Return to findings** without shifting the buttons above it.
-
-## Page details
-
-The separate **Page details** tab provides focused views for:
-
-- Heading hierarchy, with CMS-generated accordion headings shown separately
-- Images and alt text
-- Links, assets and individual link-check results
-- Published metadata and SEO fields
-- Content statistics
-- Temporary page overlays for headings, alt text and link destinations
-
-The manual review checklist appears once on the Page details overview.
-
-## Larger workspace
-
-Open the extension menu and choose **Open full-page review** to open a wider two-column review in a new browser tab. **View on original page** switches back to the scanned page and highlights the finding. The workspace also contains:
-
-- **Batch scans** for up to 100 pasted web addresses
-- **Settings** for website access and exact allowed terms
-
-The side panel and workspace use the same saved report and review position.
-
-## CMS Lite
-
-These sites are recognized as CMS Lite:
+The extension recognizes these sites as CMS Lite:
 
 - `www2.gov.bc.ca`
 - `www2.qa.gov.bc.ca`
 - `intranet.gov.bc.ca`
 - `intranet.qa.gov.bc.ca`
 
-A CMS Lite content scan checks the page title and editable body. Shared navigation, footer and generated components are excluded. The visible page H1 can be included when it sits immediately outside the editable body. CMS-generated accordion headings are separated from authored headings and excluded from the **On this page** comparison.
-
-CMS Lite template tracking pixels and the generated `/icons/list.svg` image used near **More topics** are excluded from image alt-text findings and image counts.
-
-The delivered template and code can be included from **More scan options**.
+A CMS Lite content scan reviews the page title and editable body. Shared navigation, footer and generated components are excluded. The delivered template and code can be included from **More scan options**.
 
 ## Allowed terms
 
-Allowed terms are exact and rule-specific. For example, `BC Public Service` can be allowed for the **Write B.C. with periods** rule without disabling sentence case, headings, accessibility or other checks.
+Allowed terms are exact and rule-specific. An allowed term can address an approved formal name or familiar acronym without disabling unrelated checks.
 
-The extension proposes a complete nearby formal name when possible. A personal term may contain 1 to 8 words and must include the exact flagged text. Single-word brands such as `StrongerBC` and acronyms such as `TV` are supported. `BC` by itself is rejected for the province-abbreviation rule. The match remains exact, case-sensitive, rule-specific and limited to one website or every website. Matching findings leave the current guided-review queue as soon as the term is saved. Built-in names include BC Public Service, BC Hydro, BC Ferries, Service BC, WorkBC and DataBC.
+For example, `BC Public Service` can be allowed for the **Write B.C. with periods** rule. `BC` by itself cannot be allowed for that rule. Structural, accessibility and sentence-case checks remain active.
 
-Structural, accessibility and sentence-case rules cannot be disabled with an allowed term.
+## Feedback notes
 
-## Reading level
+The Feedback area lets beta testers collect several notes before contacting the maintainers. A note can describe an incorrect result, a missed issue, an extension problem or a suggestion.
 
-The estimated Flesch–Kincaid grade remains visible in Page details. A review finding is raised at Grade 9.0 or higher.
+The extension automatically captures a small context snapshot when a note is created. This can include the page title and address, detected site profile, scan scope, page section, related finding, extension version and browser version. Testers can exclude page context from any note before exporting it.
 
-## Link and asset checks
+Feedback notes stay on the tester's device. **Create feedback email** opens a pre-addressed draft containing the saved notes. The tester must review the draft and select **Send** in their email application. Copy and CSV export are also available.
 
-The link checker processes every unique HTTP and HTTPS destination on the page. Selecting **Check all links** requests access to the linked websites and begins checking after the browser prompt is approved. If access is declined, the results clearly say that no links were checked. It uses four requests at a time and can be paused or stopped. Individual results show the link text, page location, full destination and status.
+## Reports and batch scans
 
-Website access can be allowed for the linked sites on one page or for all websites. Requests omit cookies and browser sign-in details. Some destinations may block automated checks, require a signed-in session or rate-limit requests; those results are labelled separately from broken links.
+The checker can produce:
 
-Document links are checked for file type and size. A label such as `(PDF, 271 KB)` receives the specific instruction to remove the space before `KB`. When website access is available, the declared type and size can also be compared with the server response.
+- A plain-language copied report
+- An action-report CSV
+- An Excel workbook with selected sheets for findings, site-wide issues, page inventory, metadata, links and the scan log
 
-## Reports and exports
+Metadata is recorded once per page. Repeated findings are grouped by issue type.
 
-The copied report and action-report CSV group repeated findings by issue type. They use plain-language columns such as **Where on the page**, **Why it matters** and **Recommended action**.
+## Privacy and permissions
 
-Excel workbooks can include any of these sheets:
+Content checks run locally using fixed JavaScript rules. The extension does not use AI and does not send page text to an analysis service.
 
-- Action report
-- Site-wide issues for multi-page batches
-- Page inventory
-- Metadata
-- Links
-- Scan log
+Reports, decisions, allowed terms, feedback notes, settings and review position are stored in local extension storage. Feedback remains local until the tester copies, exports or creates an email.
 
-Metadata is recorded once per page. It is not repeated on every finding row.
+Link and asset checks contact destination websites directly without browser cookies or sign-in details. The browser asks for website access before those checks run. Batch scans open temporary background tabs in the browser's normal browsing context.
 
-## Privacy
+## Repository structure
 
-Content rules run locally in the browser using fixed JavaScript checks. The extension does not use AI and does not send page text to an analysis service.
+- `manifest.json` — extension metadata and permissions
+- `checker-core.js` — page extraction and review rules
+- `sidepanel.html`, `sidepanel.css`, `sidepanel.js` — side panel and full-page workspace
+- `background.js` — extension startup and side-panel behaviour
+- `fonts/` — bundled BC Sans files and font licence
+- `icons/` — extension icons
+- `docs/` — product and design decisions
+- `tests/` — automated build and rule checks
 
-Reports, review decisions, notes, allowed terms, domain settings and review position are saved in local extension storage. Link and asset checks contact destination websites directly without browser credentials. Batch scans open temporary background tabs in the browser's normal browsing context.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow.
 
-## Testing
+## Licence
 
-Run the local checks from the extension folder:
+The bundled BC Sans font files are distributed under the licence in [`fonts/LICENSE_OFL.txt`](fonts/LICENSE_OFL.txt).
 
-```bash
-node tests/helpers.test.js
-node tests/static-build.test.js
-node tests/workbook.test.js
-node tests/browser-regression.test.js
-```
-
-The browser regression test requires Playwright Chromium. Automated checks support an audit; they do not replace editorial, legal, policy, service-design or user-research judgement.
+A licence for the extension source has not yet been added. Repository owners should choose and add an appropriate source-code licence before inviting reuse outside the project.
