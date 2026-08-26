@@ -75,6 +75,34 @@ assert.equal(blockReading.sentences, 6);
 assert.equal(blockReading.words, 34);
 assert.equal(helpers.shouldFlagReadingGrade(8.9), false);
 assert.equal(helpers.shouldFlagReadingGrade(9), true);
+assert.equal(helpers.isEnglishLanguage("en-CA"), true);
+assert.equal(helpers.isEnglishLanguage(""), true);
+assert.equal(helpers.isEnglishLanguage("fr-CA"), false);
+
+assert.equal(helpers.passiveVoiceParticiple("The decision was made yesterday.").participle, "made");
+assert.equal(helpers.passiveVoiceParticiple("The fee is paid online.").participle, "paid");
+assert.equal(helpers.passiveVoiceParticiple("The office is located downtown."), null);
+assert.equal(helpers.passiveVoiceParticiple("The program is committed to accessibility."), null);
+
+assert.equal(Boolean(helpers.headingStructureDetails("Housing benefits – How to apply").dash), true);
+assert.equal(Boolean(helpers.headingStructureDetails("Long-term planning").dash), false);
+assert.equal(Boolean(helpers.headingStructureDetails("Medical Services Plan (MSP)").parentheses), false);
+assert.equal(Boolean(helpers.headingStructureDetails("Application process (updated)").parentheses), true);
+assert.equal(Boolean(helpers.headingStructureDetails("Housing benefits: how to apply").colon), true);
+assert.equal(Boolean(helpers.headingStructureDetails("Housing benefits: How to apply").colon), false);
+
+assert.deepEqual(helpers.measurementDetails("The route is 100kms long."), { ruleId: "metric-plural", text: "100kms", index: 13, replacement: "100 km" });
+assert.deepEqual(helpers.measurementDetails("Bring a 5L container."), { ruleId: "metric-spacing", text: "5L", index: 8, replacement: "5 L" });
+assert.equal(helpers.measurementDetails("The speed limit is 30 km/h."), null);
+assert.equal(helpers.educationContext("Students enter school in September."), true);
+assert.equal(helpers.educationContext("Grade A beef is available."), false);
+assert.deepEqual(helpers.academicDegreeDetails("She has a Master of Science."), { text: "Master", index: 10, replacement: "master" });
+assert.deepEqual(helpers.academicDegreeDetails("The Master of Science program starts today."), { text: "Master", index: 4, replacement: "master" });
+assert.equal(helpers.academicDegreeDetails("She has a master of English."), null);
+assert.deepEqual(helpers.canadianSpellingContextDetails("Renew your driver license online."), { text: "license", index: 18, replacement: "licence", role: "likely noun" });
+assert.equal(helpers.canadianSpellingContextDetails("The ministry can license an operator."), null);
+assert.deepEqual(helpers.canadianSpellingContextDetails("You can practice before the test."), { text: "practice", index: 8, replacement: "practise", role: "likely verb" });
+assert.equal(helpers.canadianSpellingContextDetails("The medical practice is downtown."), null);
 
 assert.deepEqual(helpers.assetLabel("Application form (PDF, 23KB)"), { valid: true, status: "valid", type: "PDF", size: 23, unit: "KB", raw: "(PDF, 23KB)", sizeText: "23KB", replacement: "23KB" });
 assert.equal(helpers.assetLabel("Application form (PDF)").status, "missing-size");
@@ -84,6 +112,7 @@ assert.equal(helpers.assetLabel("Application form [PDF, 23KB]").valid, true);
 assert.equal(helpers.assetLabel("Application form [PDF, 271 KB]").status, "size-spacing");
 assert.equal(helpers.assetTypeFromUrl("https://example.com/files/form.docx?download=1"), "DOCX");
 assert.equal(helpers.endsStylePunctuation("Learn about B.C."), false);
+assert.equal(helpers.endsStylePunctuation("Services in N.T."), false);
 assert.equal(helpers.endsStylePunctuation("Learn about services."), true);
 assert.equal(helpers.linkPunctuationIssue(","), "punctuation-only");
 assert.equal(helpers.linkPunctuationIssue("B.C."), "none");

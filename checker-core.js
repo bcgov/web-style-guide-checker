@@ -34,8 +34,12 @@
     "heading-deep": ["Headings", "check", "Avoid heading levels 5 and 6", "The guide recommends using H2 to H4 for page sections.", "Simplify the structure or move this heading to H4 or above.", "headings"],
     "heading-empty": ["Headings", "fix", "Add heading text", "Empty headings create confusing navigation for assistive technology.", "Remove the empty heading or give it descriptive text.", "headings"],
     "heading-punctuation": ["Headings", "fix", "Remove punctuation from the heading", "Headings should not end in punctuation unless they are questions.", "Remove the ending punctuation.", "headings"],
+    "heading-dash": ["Headings", "check", "Rewrite the heading without a dash", "The guide says not to use hyphens, en dashes or em dashes to separate ideas in headings and page titles.", "Rewrite the heading as one clear phrase. Keep hyphens that form compound words, such as ‘long-term’.", "headings"],
+    "heading-parentheses": ["Headings", "check", "Check the parentheses in the heading", "Parentheses in headings and page titles are reserved for acronyms.", "Remove the parentheses or confirm they contain an acronym that helps the audience.", "headings"],
+    "heading-colon-case": ["Headings", "check", "Capitalize after the colon", "When a heading uses a colon, the first word after it starts with a capital letter and the rest stays in sentence case.", "Capitalize the first word after the colon and review the rest of the heading for sentence case.", "headings"],
     "heading-formatting": ["Headings", "fix", "Remove formatting from the heading", "Heading tags already provide the required emphasis.", "Remove bold, italic or underline formatting inside the heading.", "headings"],
     "heading-title-case": ["Headings", "review", "Check sentence case", "Headings and page titles should use sentence case, with capitals reserved for proper nouns and defined acronyms.", "Confirm each capitalized word is a proper noun or acronym; otherwise use lower case.", "headings"],
+    "acronym-in-heading": ["Headings", "review", "Check the acronym in the heading", "Acronyms in headings and ‘On this page’ navigation should be familiar to the audience. Public-facing headings need the clearest wording.", "Use the full term when the acronym may be unclear to the intended audience.", "abbreviations"],
     "on-this-page-missing": ["Headings", "review", "Consider an ‘On this page’ section", "Pages with 3 or more H2 headings may be easier to navigate with an ‘On this page’ section.", "Add an H2 called ‘On this page’ with a bulleted list of links to the other H2 headings if it helps people scan.", "headings"],
     "on-this-page-format": ["Headings", "fix", "Fix the ‘On this page’ heading", "‘On this page’ should be an H2 and should not use a colon.", "Use the exact H2 text ‘On this page’.", "headings"],
     "on-this-page-links": ["Headings", "fix", "Match ‘On this page’ links to H2 headings", "The links should match the page’s H2 headings in text and order and should not target H3 or H4 headings.", "Update the link text, target or order to match the H2 headings.", "headings"],
@@ -48,7 +52,18 @@
     "negative-contraction": ["Plain language", "check", "Avoid a negative contraction", "Negative contractions can be misread as their opposite.", "Write out the negative form, such as ‘do not’ or ‘cannot’.", "grammar"],
     "undefined-acronym": ["Plain language", "review", "Define the acronym on first use", "Write a term in full the first time, followed by its abbreviation in parentheses, unless the short form is widely better known.", "Define it on first use or confirm it is better known than the long form.", "abbreviations"],
     "bc-abbreviation": ["Capitalization", "check", "Write B.C. with periods", "The province abbreviation uses periods except in brand and company names.", "Change ‘BC’ to ‘B.C.’ unless it is part of a formal brand such as BC Hydro or BC Ferries.", "abbreviations"],
+    "province-abbreviation": ["Capitalization", "check", "Check the province or territory abbreviation", "N.B., N.L., N.S., N.T. and P.E.I. use periods in B.C. government content.", "Add the required periods when this abbreviation names a province or territory.", "abbreviations"],
+    "government-capitalization": ["Capitalization", "check", "Use lower case for ‘government’", "Use lower case for government in general or descriptive references. Capitalize it only as part of a full formal name.", "Use ‘government’ unless the complete phrase is an official name, such as ‘Government of British Columbia’.", "capitalization"],
+    "government-generic-term": ["Capitalization", "check", "Check the government term’s capitalization", "Generic references such as ‘the ministry’, ‘the cabinet’ and ‘the B.C. legislature’ use lower case.", "Use lower case unless the wording is part of a full formal name.", "capitalization"],
+    "parliament-buildings": ["Capitalization", "check", "Capitalize ‘Parliament Buildings’", "Parliament Buildings is capitalized when it refers to the provincial or federal buildings.", "Write ‘Parliament Buildings’ when this phrase names the official buildings.", "capitalization"],
+    "crown-capitalization": ["Capitalization", "check", "Capitalize ‘Crown’", "Capitalize Crown in terms such as Crown land, Crown counsel and Crown corporation.", "Capitalize ‘Crown’ when the phrase refers to the state.", "capitalization"],
     "latin-abbreviation": ["Plain language", "fix", "Replace the Latin abbreviation", "The guide says not to use ‘e.g.’ or ‘i.e.’.", "Use ‘such as’, ‘like’ or ‘for example’.", "abbreviations"],
+    "canadian-spelling": ["Plain language", "check", "Use Canadian spelling", "B.C. government content uses Canadian spelling.", "Use the suggested Canadian spelling unless the wording is part of an official name or quotation.", "grammar"],
+    "canadian-spelling-context": ["Plain language", "review", "Check the Canadian spelling", "In Canadian usage, ‘licence’ is the noun and ‘license’ is the verb; ‘practice’ is the noun and ‘practise’ is the verb.", "Confirm the word's role in the sentence, then use the Canadian noun or verb form.", "grammar"],
+    "formal-sentence-starter": ["Plain language", "check", "Use a simpler sentence opening", "Formal transitions such as ‘furthermore’, ‘therefore’ and ‘heretofore’ can make web content harder to scan.", "Start the sentence directly or use a simpler connection.", "grammar"],
+    "academic-degree-case": ["Capitalization", "review", "Check the academic degree capitalization", "Academic titles and degree types use lower case in running text, while proper nouns within the name stay capitalized.", "Use lower case for the degree type unless this is an official title that must keep its capitalization.", "capitalization"],
+    "academic-title": ["Capitalization", "review", "Confirm the academic title", "The guide reserves ‘Dr.’ for medical doctors. The checker cannot determine a person’s profession from the page.", "Keep ‘Dr.’ only for a medical doctor or where an official name or quotation must be preserved.", "capitalization"],
+    "grade-capitalization": ["Capitalization", "review", "Capitalize ‘Grade’ in education content", "Capitalize Grade when it comes before a number or letter in education-related content.", "Use ‘Grade’ when this refers to a school grade. Leave other meanings, such as a product grade or road slope, unchanged.", "capitalization"],
     "faq-content": ["Content design", "review", "Restructure FAQ content", "The guide recommends integrating answers under topic-based headings because FAQs are difficult to scan and maintain.", "Group the information by topic and replace question headings with descriptive headings.", "faq"],
     "generic-link": ["Links", "fix", "Write descriptive link text", "Link text needs to make sense without the surrounding sentence.", "Describe the destination or what someone can do there.", "links"],
     "empty-link": ["Links", "fix", "Give the link an accessible name", "A link without a name gives people no information about its destination.", "Add descriptive text or an accessible label.", "links"],
@@ -71,7 +86,9 @@
     "list-depth": ["Lists", "fix", "Reduce the list depth", "The guide says never to use lists with more than 2 levels.", "Flatten or regroup the list.", "lists"],
     "list-punctuation": ["Lists", "fix", "Remove punctuation from the list item", "List items should not end in punctuation.", "Remove the final punctuation mark.", "lists"],
     "list-lowercase": ["Lists", "check", "Capitalize the list item", "The first word of each list item should be capitalized.", "Capitalize the first word unless the item intentionally demonstrates lower-case wording.", "lists"],
-    "list-long": ["Lists", "review", "Consider grouping the list", "Long lists can be hard to follow.", "Group related items under descriptive headings or into shorter lists.", "lists"],
+    "list-long": ["Lists", "review", "Consider grouping the list", "The guide does not set a numeric limit. The checker prompts a review when a list has more than 7 items because longer lists may be harder to follow.", "Group related items under descriptive headings or into shorter lists when that helps people scan.", "lists"],
+    "list-introduction": ["Lists", "check", "Introduce the list with a colon", "The guide says to introduce a list with a colon.", "Add a colon when the preceding sentence introduces this list, or confirm that the paragraph and list are separate.", "lists"],
+    "list-multiple-sentences": ["Lists", "check", "Shorten the list item", "List items are easiest to scan when they contain one sentence. A second sentence may be necessary in some cases.", "Keep one main idea in the item, or confirm that the additional sentence is necessary.", "lists"],
     "list-repetition": ["Lists", "review", "Remove repeated openings", "Repeated words at the start of list items delay the distinguishing information, especially for screen reader users.", "Move the unique information to the beginning of each item.", "lists"],
     "table-headers": ["Tables", "fix", "Add table headers", "Tables need programmatic headers so people can understand the relationships in the data.", "Use th elements for row or column headings.", "tables"],
     "table-caption": ["Tables", "review", "Check the table has a useful caption", "A short caption can make the purpose of tabular data clearer.", "Add a concise caption when the surrounding heading does not already identify the table.", "tables"],
@@ -79,7 +96,9 @@
     "month-abbreviation": ["Numbers and dates", "check", "Write out the month", "Month names should be written in full when space is available.", "Use the full month name in body content.", "numbers"],
     "numeric-date": ["Numbers and dates", "check", "Write out the date", "Numeric dates are reserved for space-limited forms and tables and should use YYYY-MM-DD.", "Use a format such as ‘August 13, 2026’ in body content.", "numbers"],
     "ordinal-date": ["Numbers and dates", "fix", "Remove the ordinal from the date", "Dates should not use ordinals.", "Write ‘January 18, 2003’, not ‘January 18th, 2003’.", "numbers"],
+    "ordinal-word": ["Numbers and dates", "check", "Write out the ordinal", "Ordinal numbers under 10 are written as words in body content.", "Write ‘first’ to ‘ninth’ unless space is limited or the number appears in a chart, table or form.", "numbers"],
     "time-format": ["Numbers and dates", "check", "Fix the time format", "Whole hours should omit :00, and am and pm use lower case without periods.", "Use ‘9 am’ for a whole hour or ‘9:45 pm’ when minutes are needed.", "numbers"],
+    "time-zone": ["Numbers and dates", "check", "Use the general time zone", "Do not use standard or daylight time in web content. Use a general zone name or abbreviation instead.", "Use wording such as ‘Pacific time’ or an abbreviation such as ‘PT’ after a clock time.", "numbers"],
     "noon-midnight": ["Numbers and dates", "fix", "Use ‘noon’ or ‘midnight’", "The guide says to write noon and midnight without the number 12.", "Remove ‘12’ from ‘12 noon’ or ‘12 midnight’.", "numbers"],
     "phone-display-format": ["Numbers and dates", "fix", "Use hyphens in the phone number", "Phone numbers use hyphens between digit groups.", "Use a format such as 250-555-0123 or 1-800-555-0123.", "numbers"],
     "imperial-unit": ["Numbers and dates", "review", "Use a metric measurement", "The guide requires metric measurements.", "Convert the measurement to the appropriate metric unit unless the original unit is required for technical context.", "numbers"],
@@ -88,12 +107,17 @@
     "celsius-format": ["Numbers and dates", "fix", "Fix the Celsius format", "Temperatures use no space and a capital C: 18°C.", "Remove the space and use the °C symbol.", "numbers"],
     "percent-symbol": ["Numbers and dates", "check", "Spell out ‘percent’ in body text", "The % symbol is intended for financial charts, tables, equations and calculations.", "Use ‘percent’ in a sentence unless the content is a calculation or financial data.", "numbers"],
     "fraction-symbol": ["Numbers and dates", "check", "Write out the fraction", "Fractions without a whole number should usually be written in words.", "Use wording such as ‘half’, ‘a quarter’ or ‘two-thirds’.", "numbers"],
+    "currency-cents": ["Numbers and dates", "fix", "Write the amount in cents", "Amounts under one dollar are written as cents rather than as a decimal dollar amount.", "Write the amount as cents, such as ‘75 cents’.", "numbers"],
+    "currency-trailing-zeros": ["Numbers and dates", "check", "Remove unnecessary decimal zeros", "Only include decimals in a monetary amount when precision is required.", "Remove ‘.00’ unless the content needs that precision.", "numbers"],
+    "currency-comma": ["Numbers and dates", "fix", "Add a comma to the monetary amount", "Use commas in monetary amounts over $999.", "Add the thousands separator, such as ‘$15,000’.", "numbers"],
+    "currency-range": ["Numbers and dates", "fix", "Use ‘to’ for the monetary range", "Monetary ranges use the word ‘to’ rather than a hyphen or dash.", "Write the range using ‘to’, such as ‘$200 to $400’.", "numbers"],
     "ampersand": ["Punctuation", "review", "Check the ampersand", "The guide says to write ‘and’ except in business names and citations.", "Replace & with ‘and’ unless it is part of a formal name or citation.", "punctuation"],
     "semicolon": ["Punctuation", "fix", "Replace the semicolon", "The guide recommends 2 sentences instead of a semicolon.", "Split the sentence at the semicolon.", "punctuation"],
     "exclamation": ["Punctuation", "fix", "Remove the exclamation mark", "Government web content should use a calm, direct tone.", "Use a period or rewrite the sentence.", "punctuation"],
     "em-dash": ["Punctuation", "fix", "Replace the em dash", "The guide recommends shorter sentences instead of em dashes.", "Split the sentence or use commas when appropriate.", "punctuation"],
     "range-dash": ["Punctuation", "check", "Use ‘to’ for the range", "Number, date and time ranges should use the word ‘to’ instead of a dash.", "Replace the dash with ‘to’ unless this is a fiscal year.", "punctuation"],
     "slash": ["Punctuation", "check", "Replace the slash", "Slashes should be limited to URLs because forms such as ‘and/or’ can create ambiguity.", "Write the relationship explicitly.", "punctuation"],
+    "apostrophe-plural": ["Punctuation", "review", "Check the apostrophe in the plural", "Apostrophes do not normally form plurals. They may instead show possession or omitted digits.", "Remove the apostrophe when this is a plural. Keep it when it correctly shows possession or omitted digits.", "punctuation"],
     "double-space": ["Formatting", "fix", "Remove the extra space", "Use one space after a sentence.", "Replace consecutive spaces with one space.", "formatting"],
     "text-alignment": ["Formatting", "check", "Left-align the text", "Centred and right-aligned text is harder to read except in special cases such as table captions.", "Use left alignment for body content.", "formatting"],
     "bold-block": ["Formatting", "fix", "Remove unnecessary bold formatting", "Do not bold headings, links or large blocks of text.", "Use the correct heading style or reserve bold for short, selective emphasis.", "formatting"],
@@ -105,12 +129,14 @@
     "underline": ["Formatting", "fix", "Remove underlining from non-link text", "Underlining makes text look like a link.", "Remove the underline or make the text a real link when appropriate.", "formatting"],
     "image-alt-missing": ["Accessibility", "fix", "Add alternative text", "Images need an alt attribute so their purpose is available to assistive technology.", "Add concise alt text, or alt=\"\" when the image is purely decorative.", "graphics"],
     "image-alt-empty": ["Accessibility", "review", "Confirm the image is decorative", "An empty alt attribute hides the image from assistive technology.", "Keep alt=\"\" only for a decorative image; otherwise describe its purpose.", "graphics"],
+    "image-alt-length": ["Accessibility", "review", "Review the alternative text length", "The guide recommends concise alternative text and suggests staying under 15 words.", "Shorten the alternative text when the same purpose or information can be communicated more clearly.", "graphics"],
+    "image-alt-prefix": ["Accessibility", "check", "Remove the redundant alt text opening", "Screen readers already announce an image, so alternative text does not need to begin with ‘image of’ or ‘photo of’.", "Start with the information or purpose communicated by the image.", "graphics"],
     "linked-image-alt": ["Accessibility", "fix", "Describe the linked image destination", "The alt text of a linked image should say where the link goes or what it does.", "Replace empty or filename-based alt text with the destination or action.", "graphics"],
     "form-label": ["Accessibility", "fix", "Label the form control", "People need a programmatic label to understand a form control.", "Associate a visible label or accessible name with the control.", "formatting"],
     "contrast": ["Accessibility", "check", "Check the colour contrast", "Text needs sufficient contrast against its background.", "Adjust the foreground or background colour. Verify overlays and images with a dedicated contrast tool.", "contrast"]
   };
 
-  const RULE_VERSION = "1.0.0";
+  const RULE_VERSION = "1.1.0";
 
   const BUILT_IN_TERMS = [
     "BC Public Service Agency",
@@ -133,13 +159,24 @@
     "HealthLink BC",
     "Destination BC",
     "Creative BC",
-    "BCID"
+    "BCID",
+    "Government Communications and Public Engagement",
+    "Government Agents",
+    "Government House"
   ].sort((first, second) => second.length - first.length);
 
   const EXCEPTION_ELIGIBLE_RULES = new Set([
     "bc-abbreviation",
     "undefined-acronym",
-    "complex-phrase"
+    "complex-phrase",
+    "province-abbreviation",
+    "government-capitalization",
+    "government-generic-term",
+    "canadian-spelling",
+    "canadian-spelling-context",
+    "academic-degree-case",
+    "academic-title",
+    "acronym-in-heading"
   ]);
 
   const TEMPLATE_RULES = new Set([
@@ -176,7 +213,32 @@
   const WELL_KNOWN_ACRONYMS = new Set([
     "PDF", "DNA", "HTML", "CSS", "URL", "SEO", "SMS", "WCAG", "FAQ", "FAQs", "COVID", "BC",
     "ID", "PO", "VSA", "IDIR", "RCMP", "CRC", "PSA", "PIA", "STRA", "CPPM", "BCID", "SIN", "ESS", "ERA", "ICBC",
-    "PST", "GST", "HST", "HRU", "HRUs", "GUID", "GUIDs", "IM", "IT", "MCP", "KB", "MB", "GB"
+    "PST", "GST", "HST", "HRU", "HRUs", "GUID", "GUIDs", "IM", "IT", "MCP", "KB", "MB", "GB",
+    "NB", "NL", "NS", "NT", "PEI", "AB", "MB", "NU", "ON", "QC", "SK", "YT"
+  ]);
+
+  const INTRANET_HEADING_ACRONYMS = new Set(["PSA", "BCGEU"]);
+
+  const PROVINCE_ABBREVIATIONS = {
+    NB: "N.B.", NL: "N.L.", NS: "N.S.", NT: "N.T.", PEI: "P.E.I."
+  };
+
+  const CANADIAN_SPELLINGS = {
+    advisor: "adviser", defense: "defence", fulfill: "fulfil", offense: "offence"
+  };
+
+  const TIME_ZONE_REPLACEMENTS = {
+    PST: "PT", PDT: "PT", MST: "MT", MDT: "MT", CST: "CT", CDT: "CT",
+    EST: "ET", EDT: "ET", AST: "AT", ADT: "AT", NST: "NT", NDT: "NT"
+  };
+
+  const IRREGULAR_PARTICIPLES = new Set([
+    "made", "sent", "built", "held", "paid", "put", "set", "told", "kept", "sold", "found",
+    "brought", "lost", "left", "meant", "dealt", "felt", "read", "shown", "drawn", "known", "given", "taken", "written"
+  ]);
+
+  const ADJECTIVAL_PARTICIPLES = new Set([
+    "based", "located", "committed", "limited", "interested", "involved", "related"
   ]);
 
   function isWellKnownAcronym(value) {
@@ -207,7 +269,9 @@
     ["initiative", "program, project or plan"], ["in the absence of", "without"], ["in the event of", "if or when"],
     ["in relation to", "about"], ["individual", "person"], ["is able to", "can"],
     ["it should be noted", "remember"], ["submit an application", "apply"], ["method", "way"],
-    ["obtain", "get"], ["prior to", "before"], ["subsequently", "after"], ["utilize", "use"]
+    ["obtain", "get"], ["prior to", "before"], ["subsequently", "after"], ["utilize", "use"],
+    ["establish", "create, set up or form"], ["identify", "decide on or know"], ["request", "ask"],
+    ["require", "need or must"], ["result in", "cause, make or lead to"], ["upon", "on"]
   ];
 
   const FILLER_PHRASES = [
@@ -281,6 +345,93 @@
 
   function shouldFlagReadingGrade(value) {
     return Number.isFinite(value) && value >= 9;
+  }
+
+  function isEnglishLanguage(value) {
+    const language = normalizeSpace(value).toLowerCase();
+    return !language || language === "en" || language.startsWith("en-");
+  }
+
+  function passiveVoiceParticiple(value) {
+    const expression = /\b(?:is|are|was|were|be|been|being)\s+(?:\w+ly\s+)?([a-z]+)\b/gi;
+    let match;
+    while ((match = expression.exec(String(value || "")))) {
+      const participle = match[1].toLowerCase();
+      if (ADJECTIVAL_PARTICIPLES.has(participle)) continue;
+      if (IRREGULAR_PARTICIPLES.has(participle) || /(?:ed|en)$/.test(participle)) return { text: match[0], index: match.index, participle };
+    }
+    return null;
+  }
+
+  function isSentenceInitial(value, index) {
+    const before = String(value || "").slice(0, index);
+    return !normalizeSpace(before) || /[.!?]\s*[“”‘’'"(\[]*\s*$/.test(before);
+  }
+
+  function headingStructureDetails(value) {
+    const text = normalizeSpace(value);
+    const parentheses = [...text.matchAll(/\(([^()]*)\)/g)].find(match => !/^[A-Z][A-Z0-9.-]{1,9}s?$/.test(normalizeSpace(match[1])));
+    const dash = /[–—]|\s-\s/.exec(text);
+    const colon = /:\s*([a-zà-öø-ÿ])/.exec(text);
+    return { dash, parentheses, colon };
+  }
+
+  function measurementDetails(value) {
+    const text = String(value || "");
+    const plural = /\b(\d+(?:\.\d+)?)\s*(kms|kgs|mLs|Ls|mms|cms|hs|ts)\b/g.exec(text);
+    if (plural) {
+      const base = plural[2].slice(0, -1);
+      return { ruleId: "metric-plural", text: plural[0], index: plural.index, replacement: `${plural[1]} ${base}` };
+    }
+    const spacing = /\b(\d+(?:\.\d+)?)(km|kg|mL|L|mm|cm|h|t)\b/g.exec(text);
+    if (spacing) return { ruleId: "metric-spacing", text: spacing[0], index: spacing.index, replacement: `${spacing[1]} ${spacing[2]}` };
+    return null;
+  }
+
+  function educationContext(value) {
+    return /\b(?:student|school|class(?:room)?|curricul\w*|educat\w*|teacher|learning|course|university|college|kindergarten|enrol\w*|graduate|academic)\b/i.test(String(value || ""));
+  }
+
+  function academicDegreeDetails(value) {
+    const match = /\b(Master|Bachelor|Doctorate)(?=\s+of\b)/g.exec(String(value || ""));
+    if (!match) return null;
+    return {
+      text: match[1],
+      index: match.index,
+      replacement: match[1].toLowerCase()
+    };
+  }
+
+  function canadianSpellingContextDetails(value) {
+    const text = String(value || "");
+    const expression = /\b(?:license|practice)\b/gi;
+    let match;
+    while ((match = expression.exec(text))) {
+      const lower = match[0].toLowerCase();
+      const before = text.slice(Math.max(0, match.index - 50), match.index);
+      const after = text.slice(match.index + match[0].length, match.index + match[0].length + 40);
+      if (lower === "license") {
+        const likelyVerb = /\b(?:to|can|could|may|might|must|shall|should|will|would|we|you|they|people|government|ministry)\s+$/i.test(before);
+        const likelyNoun = /\b(?:a|an|the|your|their|driver|business|fishing|hunting|liquor|marriage|vehicle|professional|occupational|software)\s+$/i.test(before)
+          || /^\s+(?:application|fee|holder|number|renewal|requirement)\b/i.test(after);
+        if (likelyNoun && !likelyVerb) return { text: match[0], index: match.index, replacement: "licence", role: "likely noun" };
+      } else {
+        const likelyVerb = isSentenceInitial(text, match.index)
+          || /\b(?:to|can|could|may|might|must|shall|should|will|would|we|you|they|people|applicants|students)\s+$/i.test(before);
+        if (likelyVerb) return { text: match[0], index: match.index, replacement: "practise", role: "likely verb" };
+      }
+    }
+    return null;
+  }
+
+  function isLikelyStreetAbbreviation(value, titleIndex, parent) {
+    if (parent && parent.closest && parent.closest("address,[class*='address' i]")) return true;
+    const before = String(value || "").slice(0, titleIndex);
+    return /\b\d+[A-Za-z]?(?:[-–]\d+[A-Za-z]?)?\s+(?:[NSEW]\.?\s+)?(?:[A-ZÀ-ÖØ-Þ0-9][A-Za-zÀ-ÖØ-öø-ÿ0-9’'.-]*\s+){1,5}$/u.test(before);
+  }
+
+  function formattedCurrency(value) {
+    return Number(value).toLocaleString("en-CA", { maximumFractionDigits: 0, useGrouping: true });
   }
 
   function excerpt(value, maximum) {
@@ -603,7 +754,7 @@
   function endsStylePunctuation(value) {
     const text = normalizeSpace(value);
     if (!text || /\?$/.test(text)) return false;
-    if (/(?:B\.C\.|N\.[BLS]\.|P\.E\.I\.)$/.test(text)) return false;
+    if (/(?:B\.C\.|N\.[BLST]\.|P\.E\.I\.)$/.test(text)) return false;
     return /[.!:;]$/.test(text);
   }
 
@@ -944,6 +1095,9 @@
     const hostname = (() => { try { return new URL(pageUrl).hostname.toLowerCase(); } catch (_) { return ""; } })();
     const scope = options.scope === "whole" ? "whole" : "content";
     const profile = detectProfile(pageUrl, options.profile || "auto");
+    const documentLanguage = normalizeSpace(doc.documentElement && doc.documentElement.getAttribute("lang"));
+    const englishLanguage = isEnglishLanguage(documentLanguage);
+    const intranetProfile = ["intranet.gov.bc.ca", "intranet.qa.gov.bc.ca"].includes(hostname);
     let root;
     if (scope === "whole") root = doc.body;
     else if (options.contentRootSelector) {
@@ -1042,6 +1196,37 @@
       else issues.push(finding);
     }
 
+    function inspectHeadingText(element, text) {
+      if (!englishLanguage || !text) return;
+      const structure = headingStructureDetails(text);
+      if (structure.dash) add("heading-dash", element, text, null, {
+        matchText: structure.dash[0].trim(),
+        matchIndex: structure.dash.index
+      });
+      if (structure.parentheses) add("heading-parentheses", element, text, null, {
+        matchText: structure.parentheses[0],
+        matchIndex: structure.parentheses.index
+      });
+      if (structure.colon) add("heading-colon-case", element, text, null, {
+        matchText: structure.colon[0],
+        replacement: structure.colon[0].replace(structure.colon[1], structure.colon[1].toUpperCase()),
+        matchIndex: structure.colon.index
+      });
+
+      const headingAcronyms = [...text.matchAll(/\b[A-Z][A-Z0-9]{1,5}\b/g)]
+        .filter(match => !isWellKnownAcronym(match[0]))
+        .filter(match => !(intranetProfile && INTRANET_HEADING_ACRONYMS.has(match[0])))
+        .filter(match => !/^[A-Z]\d[A-Z]$/.test(match[0]));
+      headingAcronyms.forEach(match => add("acronym-in-heading", element, text, null, {
+        flaggedToken: match[0],
+        matchText: match[0],
+        proposedPhrase: proposeExactPhrase(text, match.index, match[0]),
+        contextText: text,
+        matchIndex: match.index,
+        matchedException: exceptionAtIndex(savedExceptions, "acronym-in-heading", text, match.index, hostname)
+      }));
+    }
+
     const authoredTitleElement = root.querySelector("h1") || contextualPageH1(doc, root) || doc.querySelector("h1");
     const metadataTitle = normalizeSpace((doc.querySelector("meta[name='title']") || {}).content);
     const title = scope === "content"
@@ -1050,9 +1235,10 @@
     const titleTarget = scope === "content" ? (authoredTitleElement || root) : (doc.querySelector("title") || doc.documentElement);
     if (!sectionHeading) {
       if (!title) add("page-title-missing", titleTarget, "No page title found");
-      if (title.length > 70) add("page-title-long", titleTarget, title + " (" + title.length + " characters)");
-      if (title && endsStylePunctuation(title)) add("page-title-punctuation", titleTarget, title);
-      if (title && isLikelyTitleCase(title)) add("heading-title-case", titleTarget, title);
+      if (title.length >= 70) add("page-title-long", titleTarget, title + " (" + title.length + " characters)");
+      if (englishLanguage && title && endsStylePunctuation(title)) add("page-title-punctuation", titleTarget, title);
+      if (englishLanguage && title && isLikelyTitleCase(title)) add("heading-title-case", titleTarget, title);
+      inspectHeadingText(titleTarget, title);
       if (profile !== "cms-lite" && !doc.querySelector("meta[name='description'][content]:not([content=''])")) add("meta-description", doc.documentElement, "No metadata description found");
       if (scope === "whole" && !normalizeSpace(doc.documentElement.getAttribute("lang"))) add("document-language", doc.documentElement, "The html element has no lang attribute");
     }
@@ -1072,9 +1258,10 @@
       if (!text) add("heading-empty", heading, "Empty " + heading.tagName);
       if (previousLevel && level > previousLevel + 1) add("heading-skip", heading, heading.tagName + ": " + text, "Change this heading so it follows H" + previousLevel + " without skipping a level.");
       if (level >= 5) add("heading-deep", heading, heading.tagName + ": " + text);
-      if (text && endsStylePunctuation(text)) add("heading-punctuation", heading, text);
+      if (englishLanguage && text && endsStylePunctuation(text)) add("heading-punctuation", heading, text);
       if (heading.querySelector("strong,b,em,i,u")) add("heading-formatting", heading, text);
-      if (isLikelyTitleCase(text)) add("heading-title-case", heading, text);
+      if (englishLanguage && isLikelyTitleCase(text)) add("heading-title-case", heading, text);
+      inspectHeadingText(heading, text);
       previousLevel = level;
     });
 
@@ -1125,12 +1312,22 @@
 
     const elementTexts = textElements(root, inScanArea);
     elementTexts.filter(item => item.tagName === "P").forEach(paragraph => {
+      if (!englishLanguage) return;
       const sentenceList = sentences(paragraph.textContent);
       if (sentenceList.length > 5) add("paragraph-long", paragraph, sentenceList.length + " sentences: " + paragraph.textContent);
       sentenceList.forEach(sentence => {
         const count = words(sentence).length;
         if (count > 20) add("sentence-long", paragraph, count + " words: " + sentence);
-        if (/\b(?:is|are|was|were|be|been|being)\s+(?:\w+ly\s+)?[a-z]+(?:ed|en)\b/i.test(sentence)) add("passive-voice", paragraph, sentence);
+        const passive = passiveVoiceParticiple(sentence);
+        if (passive) add("passive-voice", paragraph, sentence, null, {
+          matchText: passive.text,
+          matchIndex: passive.index
+        });
+        const formalOpening = /^[\s“”‘’'"(\[]*(furthermore|therefore|heretofore)\b/i.exec(sentence);
+        if (formalOpening) add("formal-sentence-starter", paragraph, sentence, null, {
+          matchText: formalOpening[1],
+          matchIndex: formalOpening.index
+        });
       });
     });
 
@@ -1143,7 +1340,7 @@
       })
       .map(element => element.textContent)
       .map(normalizeSpace);
-    const gradeResult = readingGradeFromBlocks(proseBlocks);
+    const gradeResult = englishLanguage ? readingGradeFromBlocks(proseBlocks) : { grade: null, words: 0, sentences: 0 };
     const grade = gradeResult.grade;
     if (shouldFlagReadingGrade(grade)) add("reading-level", root, "Estimated Flesch–Kincaid grade: " + grade.toFixed(1));
 
@@ -1162,13 +1359,16 @@
         });
       });
     };
-    scanPhrases(SIMPLE_PHRASES, "complex-phrase");
-    scanPhrases(FILLER_PHRASES, "filler-phrase");
+    if (englishLanguage) {
+      scanPhrases(SIMPLE_PHRASES, "complex-phrase");
+      scanPhrases(FILLER_PHRASES, "filler-phrase");
+    }
 
     nodes.forEach(node => {
       const value = node.nodeValue;
       const parent = node.parentElement;
-      if (/\b(?:shouldn['’]t|can['’]t|don['’]t|doesn['’]t|isn['’]t|aren['’]t|won['’]t|wouldn['’]t|couldn['’]t|mustn['’]t)\b/i.test(value)) add("negative-contraction", parent, value);
+      if (!englishLanguage) return;
+      if (/\b(?:ain|aren|can|couldn|daren|didn|doesn|don|hadn|hasn|haven|isn|mightn|mustn|needn|shan|shouldn|wasn|weren|won|wouldn)['’]t\b/i.test(value)) add("negative-contraction", parent, value);
       if (/\b(?:e\.g\.|i\.e\.)/i.test(value)) add("latin-abbreviation", parent, value);
       const approvedRanges = approvedTermRanges(value);
       const bcExpression = /\bBC\b/g;
@@ -1186,19 +1386,151 @@
           matchedException: exceptionAtIndex(savedExceptions, "bc-abbreviation", value, bcMatch.index, hostname)
         });
       }
+
+      const provinceExpression = /\b(?:NB|NL|NS|NT|PEI)\b/g;
+      let provinceMatch;
+      while ((provinceMatch = provinceExpression.exec(value))) {
+        const precedingProvinceContext = value.slice(Math.max(0, provinceMatch.index - 20), provinceMatch.index);
+        if (provinceMatch[0] === "NT" && /\b\d{1,2}(?::\d{2})?\s*(?:am|pm)\s*$/i.test(precedingProvinceContext)) continue;
+        const replacement = PROVINCE_ABBREVIATIONS[provinceMatch[0]];
+        add("province-abbreviation", parent, value, null, {
+          flaggedToken: provinceMatch[0],
+          matchText: provinceMatch[0],
+          replacement,
+          proposedPhrase: proposeExactPhrase(value, provinceMatch.index, provinceMatch[0]),
+          contextText: value,
+          matchIndex: provinceMatch.index,
+          matchedException: exceptionAtIndex(savedExceptions, "province-abbreviation", value, provinceMatch.index, hostname)
+        });
+      }
+
+      const approvedGovernmentRanges = approvedTermRanges(value);
+      const governmentExpression = /\bGovernment\b/g;
+      let governmentMatch;
+      while ((governmentMatch = governmentExpression.exec(value))) {
+        if (isSentenceInitial(value, governmentMatch.index)) continue;
+        if (isInsideRange(governmentMatch.index, approvedGovernmentRanges)) continue;
+        const after = value.slice(governmentMatch.index + governmentMatch[0].length);
+        if (/^\s+of\s+(?:the\s+)?[A-ZÀ-ÖØ-Þ]/.test(after)) continue;
+        if (/^\s+(?:Street|St\.?|Road|Rd\.?|Avenue|Ave\.?|Boulevard|Blvd\.?|Drive|Dr\.?|Lane|Way)\b/.test(after)) continue;
+        add("government-capitalization", parent, value, null, {
+          flaggedToken: governmentMatch[0],
+          matchText: governmentMatch[0],
+          replacement: "government",
+          proposedPhrase: proposeExactPhrase(value, governmentMatch.index, governmentMatch[0]),
+          contextText: value,
+          matchIndex: governmentMatch.index,
+          matchedException: exceptionAtIndex(savedExceptions, "government-capitalization", value, governmentMatch.index, hostname)
+        });
+      }
+
+      const genericGovernmentPatterns = [
+        /\b(?:[Tt]he|[Aa])\s+(Cabinet|B\.C\. Legislature|Provincial Parliament|Ministry)\b/g,
+        /\b(Ministry [Dd]epartments?)\b/g,
+        /\b(?:[Aa]\s+)?(Speech from the [Tt]hrone|Throne [Ss]peech)\b/g
+      ];
+      genericGovernmentPatterns.forEach(expression => {
+        let match;
+        while ((match = expression.exec(value))) {
+          const term = match[1];
+          if (/^Ministry$/.test(term) && /^\s+of\s+[A-ZÀ-ÖØ-Þ]/.test(value.slice(match.index + match[0].length))) continue;
+          const termIndex = match.index + match[0].indexOf(term);
+          add("government-generic-term", parent, value, null, {
+            flaggedToken: term,
+            matchText: term,
+            replacement: term.toLowerCase(),
+            proposedPhrase: proposeExactPhrase(value, termIndex, term),
+            contextText: value,
+            matchIndex: termIndex,
+            matchedException: exceptionAtIndex(savedExceptions, "government-generic-term", value, termIndex, hostname)
+          });
+        }
+      });
+
+      const parliamentBuildings = /\b[Pp]arliament buildings\b/g.exec(value);
+      if (parliamentBuildings) add("parliament-buildings", parent, value, null, {
+        matchText: parliamentBuildings[0], replacement: "Parliament Buildings", matchIndex: parliamentBuildings.index
+      });
+      const crownTerm = /\bcrown\s+(?:land|counsel|corporation)\b/g.exec(value);
+      if (crownTerm) add("crown-capitalization", parent, value, null, {
+        matchText: crownTerm[0], replacement: crownTerm[0].replace(/^crown/, "Crown"), matchIndex: crownTerm.index
+      });
+
+      const canadianExpression = /\b(?:advisor|defense|fulfill|offense)\b/gi;
+      let canadianMatch;
+      while ((canadianMatch = canadianExpression.exec(value))) {
+        const replacementBase = CANADIAN_SPELLINGS[canadianMatch[0].toLowerCase()];
+        const replacement = /^[A-Z]/.test(canadianMatch[0]) ? replacementBase[0].toUpperCase() + replacementBase.slice(1) : replacementBase;
+        add("canadian-spelling", parent, value, null, {
+          flaggedToken: canadianMatch[0],
+          matchText: canadianMatch[0],
+          replacement,
+          proposedPhrase: proposeExactPhrase(value, canadianMatch.index, canadianMatch[0]),
+          contextText: value,
+          matchIndex: canadianMatch.index,
+          matchedException: exceptionAtIndex(savedExceptions, "canadian-spelling", value, canadianMatch.index, hostname)
+        });
+      }
+
+      const contextualCanadianMatch = canadianSpellingContextDetails(value);
+      if (contextualCanadianMatch) {
+        add("canadian-spelling-context", parent, value, null, {
+          flaggedToken: contextualCanadianMatch.text,
+          matchText: contextualCanadianMatch.text,
+          replacement: contextualCanadianMatch.replacement,
+          diagnostics: [`This use appears to be a ${contextualCanadianMatch.role}; confirm it from the full sentence.`],
+          proposedPhrase: proposeExactPhrase(value, contextualCanadianMatch.index, contextualCanadianMatch.text),
+          contextText: value,
+          matchIndex: contextualCanadianMatch.index,
+          matchedException: exceptionAtIndex(savedExceptions, "canadian-spelling-context", value, contextualCanadianMatch.index, hostname)
+        });
+      }
+
+      const gradeMatch = /\bgrade\s+(?:\d+|[A-K])\b/g.exec(value);
+      if (gradeMatch && educationContext(parent.textContent || value)) add("grade-capitalization", parent, value, null, {
+        matchText: gradeMatch[0], replacement: gradeMatch[0].replace(/^grade/, "Grade"), matchIndex: gradeMatch.index
+      });
+      const degreeMatch = academicDegreeDetails(value);
+      if (degreeMatch && parent.closest("p,li,dd,dt,blockquote")) add("academic-degree-case", parent, value, null, {
+        flaggedToken: degreeMatch.text,
+        matchText: degreeMatch.text,
+        replacement: degreeMatch.replacement,
+        proposedPhrase: degreeMatch.text,
+        contextText: value,
+        matchIndex: degreeMatch.index,
+        matchedException: exceptionAtIndex(savedExceptions, "academic-degree-case", value, degreeMatch.index, hostname)
+      });
+      const doctorMatch = /\bDr\.\s+[A-ZÀ-ÖØ-Þ][A-Za-zÀ-ÖØ-öø-ÿ’'-]+(?:\s+[A-ZÀ-ÖØ-Þ][A-Za-zÀ-ÖØ-öø-ÿ’'-]+){0,2}/g.exec(value);
+      if (doctorMatch && !isLikelyStreetAbbreviation(value, doctorMatch.index, parent)) add("academic-title", parent, value, null, {
+        flaggedToken: doctorMatch[0],
+        matchText: doctorMatch[0],
+        proposedPhrase: doctorMatch[0],
+        contextText: value,
+        matchIndex: doctorMatch.index,
+        matchedException: exceptionAtIndex(savedExceptions, "academic-title", value, doctorMatch.index, hostname)
+      });
       if (/[!?;]/.test(value)) {
         if (value.includes("!")) add("exclamation", parent, value);
-        if (value.includes(";")) add("semicolon", parent, value);
+        if (value.includes(";")) {
+          const semanticContainer = parent.closest("li,h1,h2,h3,h4,h5,h6");
+          const terminalSemicolonHandledElsewhere = semanticContainer && /;\s*$/.test(normalizeSpace(semanticContainer.textContent));
+          if (!terminalSemicolonHandledElsewhere) add("semicolon", parent, value);
+        }
       }
-      if (value.includes("—")) add("em-dash", parent, value);
-      if (/\b\d+(?:[:.]\d+)?\s*[–—]\s*\d+(?:[:.]\d+)?\b/.test(value) && !/\b\d{4}[–—-]\d{2}\b/.test(value)) add("range-dash", parent, value);
+      if (value.includes("—") && !parent.closest("h1,h2,h3,h4,h5,h6")) add("em-dash", parent, value);
+      const numericRange = /\b\d+(?:[:.]\d+)?\s*[–—]\s*\d+(?:[:.]\d+)?\b/.test(value);
+      const monthRange = /\b(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2}\s*[–—-]\s*(?:January|February|March|April|May|June|July|August|September|October|November|December)?\s*\d{1,2}\b/i.test(value);
+      const fiscalYear = /\b\d{4}[–—-]\d{2}\b/.test(value);
+      const currencyRangePresent = /(?:US)?\$\d[\d,.]*\s*[-–—]\s*(?:US)?\$?\d/.test(value);
+      if ((numericRange || monthRange) && !fiscalYear && !currencyRangePresent) add("range-dash", parent, value);
       const doubleSpace = doubleSpaceDetails(value);
       if (doubleSpace) add("double-space", parent, doubleSpace.evidence, null, {
         matchText: `⟦${doubleSpace.count} spaces⟧`,
         matchIndex: doubleSpace.evidence.indexOf("⟦"),
         diagnostics: ["Browsers normally collapse consecutive spaces on screen; this marker reports the spacing in the published source."]
       });
-      if (/\b(?:and\/or|he\/she|she\/he|s\/he|\w+\/\w+)\b/i.test(value) && !/https?:\/\//i.test(value)) add("slash", parent, value);
+      const slashMatch = /\b(?:and\/or|he\/she|she\/he|his\/her|her\/his|he\/him|she\/her|s\/he)\b/i.exec(value);
+      if (slashMatch) add("slash", parent, value, null, { matchText: slashMatch[0], matchIndex: slashMatch.index });
       if (value.includes("&") && !parent.closest("code,pre")) add("ampersand", parent, value);
       const nonEmailAtText = value
         .replace(/\b[^\s@]+@[^\s@]+\.[^\s@]+\b/g, "")
@@ -1209,17 +1541,60 @@
         matchText: capitals[0],
         matchIndex: capitals.index
       });
-      if (/\b(?:Jan|Feb|Aug|Sept?|Oct|Nov|Dec)\.?\s+\d{1,2}\b/i.test(value) && !parent.closest("table,form")) add("month-abbreviation", parent, value);
-      if (/\b(?:0?[1-9]|1[0-2])[\/.-](?:0?[1-9]|[12]\d|3[01])[\/.-](?:\d{2}|\d{4})\b/.test(value) && !parent.closest("table,form")) add("numeric-date", parent, value);
+      const septemberAbbreviation = /\bSept\.?\s+\d{1,2}\b/i.test(value);
+      const otherMonthAbbreviation = /\b(?:Jan|Feb|Aug|Sep|Oct|Nov|Dec)\.?\s+\d{1,2}\b/i.test(value);
+      if (septemberAbbreviation || (otherMonthAbbreviation && !parent.closest("table,form"))) add("month-abbreviation", parent, value);
+      const ambiguousNumericDate = /\b(?:0?[1-9]|1[0-2])[\/.-](?:0?[1-9]|[12]\d|3[01])[\/.-](?:\d{2}|\d{4})\b/.test(value)
+        || /\b(?:1[3-9]|2\d|3[01])[\/.-](?:0?[1-9]|1[0-2])[\/.-](?:\d{2}|\d{4})\b/.test(value);
+      const isoDate = /\b\d{4}-\d{2}-\d{2}\b/.test(value);
+      if ((ambiguousNumericDate || isoDate) && !parent.closest("table,form")) add("numeric-date", parent, value);
       if (/\b(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2}(?:st|nd|rd|th)\b/i.test(value)) add("ordinal-date", parent, value);
-      if (/\b(?:1[0-2]|0?[1-9]):00\s*(?:a\.?m\.?|p\.?m\.?)\b/i.test(value) || /\b\d{1,2}(?::\d{2})?\s*(?:A\.?M\.?|P\.?M\.?)\b/.test(value) || /\b\d{1,2}(?::\d{2})?\s*(?:a\.m\.|p\.m\.)\b/i.test(value)) add("time-format", parent, value);
+      const ordinalWord = /\b[1-9](?:st|nd|rd|th)\b/i.exec(value);
+      const ordinalIsDate = ordinalWord && /(?:January|February|March|April|May|June|July|August|September|October|November|December)\s*$/i.test(value.slice(Math.max(0, ordinalWord.index - 14), ordinalWord.index));
+      if (ordinalWord && !ordinalIsDate && !parent.closest("table,form")) add("ordinal-word", parent, value, null, {
+        matchText: ordinalWord[0], matchIndex: ordinalWord.index
+      });
+      if (/\b(?:1[0-2]|0?[1-9]):00\s*(?:a\.?m\.?|p\.?m\.?)\b/i.test(value)
+        || /\b\d{1,2}(?::\d{2})?\s*(?:A\.?M\.?|P\.?M\.?)\b/.test(value)
+        || /\b\d{1,2}(?::\d{2})?\s*(?:a\.m\.|p\.m\.)\b/i.test(value)
+        || /\b\d{1,2}(?::\d{2})?(?:am|pm)\b/i.test(value)) add("time-format", parent, value);
+      const clockZone = /\b\d{1,2}(?::\d{2})?\s*(?:am|pm)\s+(PST|PDT|MST|MDT|CST|CDT|EST|EDT|AST|ADT|NST|NDT)\b/i.exec(value);
+      const writtenZone = /\b(?:(?:Pacific|mountain|central|eastern|Atlantic|Newfoundland)\s+)?(?:standard|daylight)\s+time\b/i.exec(value);
+      if (clockZone) add("time-zone", parent, value, null, {
+        matchText: clockZone[1], replacement: TIME_ZONE_REPLACEMENTS[clockZone[1].toUpperCase()] || "general time zone", matchIndex: clockZone.index + clockZone[0].lastIndexOf(clockZone[1])
+      });
+      else if (writtenZone) add("time-zone", parent, value, null, { matchText: writtenZone[0], matchIndex: writtenZone.index });
       if (/\b12\s+(?:noon|midnight)\b/i.test(value)) add("noon-midnight", parent, value);
       if (/\b\d+(?:\.\d+)?\s*(?:inches?|feet|foot|yards?|miles?|pounds?|ounces?|fahrenheit|°F)\b/i.test(value)) add("imperial-unit", parent, value);
-      if (/\b\d+(?:\.\d+)?(?:km|kg|mL|mm|cm)\b/.test(value)) add("metric-spacing", parent, value);
-      if (/\b\d+(?:\.\d+)?\s+(?:kms|kgs|cms|mms)\b/i.test(value)) add("metric-plural", parent, value);
+      const measurement = measurementDetails(value);
+      if (measurement) add(measurement.ruleId, parent, value, null, {
+        matchText: measurement.text, replacement: measurement.replacement, matchIndex: measurement.index
+      });
       if (/\b\d+(?:\.\d+)?\s+°[cC]\b/.test(value) || /\b\d+(?:\.\d+)?°c\b/.test(value)) add("celsius-format", parent, value);
       if (/\b\d+(?:\.\d+)?%/.test(value) && !parent.closest("table,figure")) add("percent-symbol", parent, value);
       if (/[¼½¾⅓⅔⅛⅜⅝⅞]/.test(value)) add("fraction-symbol", parent, value);
+
+      const cents = /\$(0\.\d{2})\b/.exec(value);
+      if (cents) add("currency-cents", parent, value, null, {
+        matchText: `$${cents[1]}`, replacement: `${Math.round(Number(cents[1]) * 100)} cents`, matchIndex: cents.index
+      });
+      const trailingZeros = /(?:US)?\$([1-9]\d*)\.00\b/.exec(value);
+      if (trailingZeros) add("currency-trailing-zeros", parent, value, null, {
+        matchText: trailingZeros[0], replacement: trailingZeros[0].replace(/\.00$/, ""), matchIndex: trailingZeros.index
+      });
+      const missingCurrencyComma = /((?:US)?\$)(\d{4,})(\.\d+)?(?![\d,])/.exec(value);
+      if (missingCurrencyComma) add("currency-comma", parent, value, null, {
+        matchText: missingCurrencyComma[0], replacement: `${missingCurrencyComma[1]}${formattedCurrency(missingCurrencyComma[2])}${missingCurrencyComma[3] || ""}`, matchIndex: missingCurrencyComma.index
+      });
+      const currencyRange = /(?:US)?\$\d[\d,.]*\s*[-–—]\s*(?:US)?\$?\d[\d,.]*/.exec(value);
+      if (currencyRange) add("currency-range", parent, value, null, {
+        matchText: currencyRange[0], replacement: currencyRange[0].replace(/\s*[-–—]\s*/, " to "), matchIndex: currencyRange.index
+      });
+
+      const apostrophePlural = /\b(?:\d{3,4}|[A-Z]{2,6})['’]s\b/.exec(value);
+      if (apostrophePlural) add("apostrophe-plural", parent, value, null, {
+        matchText: apostrophePlural[0], matchIndex: apostrophePlural.index
+      });
     });
 
     const firstAcronymOccurrences = new Map();
@@ -1232,6 +1607,7 @@
       }
     });
     firstAcronymOccurrences.forEach((occurrence, acronym) => {
+      if (!englishLanguage) return;
       if (isWellKnownAcronym(acronym)) return;
       if (/^[A-Z]\d[A-Z]$/.test(acronym)) return;
       const parent = occurrence.node.parentElement;
@@ -1318,22 +1694,33 @@
 
     const lists = Array.from(root.querySelectorAll("ul,ol")).filter(inScanArea);
     lists.forEach(list => {
+      const navigationalList = Boolean(list.closest("nav,[role='navigation']"));
       let depth = 1;
       let ancestor = list.parentElement && list.parentElement.closest("ul,ol");
       while (ancestor) { depth += 1; ancestor = ancestor.parentElement && ancestor.parentElement.closest("ul,ol"); }
-      if (depth > 2) add("list-depth", list, "List depth: " + depth);
+      if (depth > 2 && !navigationalList) add("list-depth", list, "List depth: " + depth);
       const items = Array.from(list.children).filter(item => item.tagName === "LI");
-      if (items.length > 7) add("list-long", list, items.length + " items");
+      if (items.length > 7 && !navigationalList) add("list-long", list, items.length + " items");
+      const precedingParagraph = list.previousElementSibling && list.previousElementSibling.tagName === "P" ? list.previousElementSibling : null;
+      const precedingText = precedingParagraph ? normalizeSpace(precedingParagraph.textContent) : "";
+      const onThisPageList = /^on this page:?$/i.test(precedingText) || Boolean(list.closest("[class*='jump' i],[class*='on-this-page' i]"));
+      if (englishLanguage && !navigationalList && !onThisPageList && precedingParagraph && precedingText && !/:$/.test(precedingText)) {
+        add("list-introduction", precedingParagraph, precedingText);
+      }
       items.forEach(item => {
         const ownText = normalizeSpace(Array.from(item.childNodes).filter(node => node.nodeType === 3 || !/^(UL|OL)$/.test(node.tagName || "")).map(node => node.textContent).join(" "));
-        if (listEndingNeedsRemoval(ownText)) add("list-punctuation", item, ownText);
+        if (!englishLanguage || navigationalList) return;
+        if (listEndingNeedsRemoval(ownText)) add("list-punctuation", item, ownText, null,
+          /;$/.test(ownText) ? { diagnostics: ["The final semicolon is also unnecessary sentence punctuation."] } : null);
         if (/^[a-zà-öø-ÿ]/.test(ownText)) add("list-lowercase", item, ownText);
+        const itemSentences = sentences(ownText);
+        if (itemSentences.length > 1) add("list-multiple-sentences", item, `${itemSentences.length} sentences: ${ownText}`);
       });
       const linkDirectory = items.length > 0 && items.every(item => {
         const itemLinks = item.querySelectorAll("a");
         return itemLinks.length === 1 && normalizeSpace(item.textContent) === normalizeSpace(itemLinks[0].textContent);
       });
-      if (!linkDirectory) {
+      if (englishLanguage && !navigationalList && !linkDirectory) {
         const openings = items.map(item => firstWords(item.textContent, 2)).filter(Boolean);
         const repeated = openings.find((opening, index) => openings.indexOf(opening) !== index);
         if (repeated && items.length >= 2) add("list-repetition", list, "Repeated opening: ‘" + repeated + "’");
@@ -1349,7 +1736,11 @@
     Array.from(root.querySelectorAll("strong,b")).filter(inScanArea).forEach(element => {
       if (element.parentElement && element.parentElement.closest("strong,b")) return;
       if (element.closest("figure,figcaption,[class*='chart' i],[role='img']")) return;
-      if (element.closest("a")) { add("bold-link", element, element.textContent); return; }
+      if (element.closest("a")) {
+        add("bold-link", element, element.textContent, null,
+          element.closest("h1,h2,h3,h4,h5,h6") ? { diagnostics: ["The bold link is also inside a heading. Removing the bold resolves both formatting concerns."] } : null);
+        return;
+      }
       let nearby = element.parentElement;
       let levels = 0;
       while (nearby && levels < 4 && !nearby.querySelector("figure")) { nearby = nearby.parentElement; levels += 1; }
@@ -1376,6 +1767,13 @@
     Array.from(root.querySelectorAll("img")).filter(inScanArea).filter(image => !isCmsLiteTemplateImage(image, profile)).forEach(image => {
       if (!image.hasAttribute("alt")) add("image-alt-missing", image, image.currentSrc || image.src || "Image");
       else if (image.alt === "") add("image-alt-empty", image, image.currentSrc || image.src || "Image with empty alt text");
+      else {
+        if (englishLanguage && /^\s*(?:image|photo)\s+of\b/i.test(image.alt)) add("image-alt-prefix", image, image.alt, null, {
+          matchText: image.alt.match(/^\s*(?:image|photo)\s+of\b/i)[0].trim(),
+          matchIndex: 0
+        });
+        if (words(image.alt).length > 15) add("image-alt-length", image, `${words(image.alt).length} words: ${image.alt}`);
+      }
       if (image.complete && image.naturalWidth === 0 && (image.currentSrc || image.src)) add("broken-image", image, image.currentSrc || image.src);
       const imageLink = image.closest("a");
       if (imageLink && !accessibleName(imageLink)) add("linked-image-alt", image, image.alt || image.currentSrc || image.src);
@@ -1484,6 +1882,13 @@
       readingGrade,
       readingGradeFromBlocks,
       shouldFlagReadingGrade,
+      isEnglishLanguage,
+      passiveVoiceParticiple,
+      headingStructureDetails,
+      measurementDetails,
+      educationContext,
+      academicDegreeDetails,
+      canadianSpellingContextDetails,
       assetLabel,
       assetTypeFromUrl,
       endsStylePunctuation,

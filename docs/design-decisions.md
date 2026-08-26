@@ -36,6 +36,20 @@ Help a reviewer understand a webpage, decide what needs attention and finish an 
 - Identify the full-page review as a separate browser tab.
 - Reflect what CMS Lite editors can change.
 
+## Rule confidence and context
+
+- Use **Fix** only when the checker can identify a clear problem and a safe correction.
+- Use **Check** when a pattern probably conflicts with the guide but may have a valid exception.
+- Use **Review** when meaning, audience knowledge or professional context requires human judgement.
+- Show the complete surrounding evidence and highlight the exact wording under review.
+- Keep allowed terms exact, rule-specific and unable to disable unrelated checks.
+- Gate English writing and readability rules to English-language pages.
+- Preserve proper names, quotations, addresses, technical notation and space-limited formats where the available context identifies them.
+- Treat a finding as overlapping when one edit resolves every contributing rule. Keep separate findings when the remedies or decisions can differ.
+- Keep the more specific finding and add the secondary reason as a diagnostic when findings share one remedy.
+
+The checker leaves meaning-heavy decisions—such as whether an image is decorative, whether an acronym is familiar or whether `Dr.` identifies a medical doctor—to the reviewer.
+
 ## Visual system
 
 - BC Sans for interface text

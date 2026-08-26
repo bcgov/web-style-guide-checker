@@ -9,7 +9,7 @@ const read = name => fs.readFileSync(path.join(root, name), "utf8");
 
 const manifest = JSON.parse(read("manifest.json"));
 assert.equal(manifest.manifest_version, 3);
-assert.equal(manifest.version, "1.0.0");
+assert.equal(manifest.version, "1.1.0");
 assert.ok(manifest.optional_host_permissions.includes("http://*/*"));
 assert.ok(manifest.optional_host_permissions.includes("https://*/*"));
 
@@ -101,12 +101,13 @@ assert.doesNotMatch(script, /<summary>More actions<\/summary>/, "Exact-term acti
 assert.match(script, /"Where on the page", "Category", "Issue", "Why it matters", "Recommended action"/, "Action reports must use plain-language columns");
 
 const core = read("checker-core.js");
-assert.match(core, /const RULE_VERSION = "1\.0\.0"/);
+assert.match(core, /const RULE_VERSION = "1\.1\.0"/);
 assert.match(core, /‘BC’ by itself cannot be allowed/, "Bare BC must be rejected as an allowed term");
 assert.match(core, /function isCmsLiteTemplateImage\(/, "CMS Lite template images must be identifiable");
 assert.match(core, /pageOrder:/, "Findings must retain document order");
 assert.match(core, /shouldFlagReadingGrade\(grade\)/, "Reading-level findings must use the Grade 9 threshold helper");
 assert.doesNotMatch(core, /querySelectorAll\("a\[href\]"\)\)\.filter\(isVisible\)\.slice\(/, "Page audit must retain every visible link");
+assert.doesNotMatch(core + script, /cke_wysiwyg_frame|cke_editable/, "CMS Lite draft-editor support is intentionally outside this release");
 [
   "file-link-size-spacing",
   "bold-link",
@@ -114,6 +115,9 @@ assert.doesNotMatch(core, /querySelectorAll\("a\[href\]"\)\)\.filter\(isVisible\
   "at-symbol",
   "image-alt-empty"
 ].forEach(rule => assert.match(core, new RegExp(`"${rule}"`), `Missing rule: ${rule}`));
+["government-capitalization", "heading-dash", "heading-parentheses", "heading-colon-case", "image-alt-length", "image-alt-prefix", "time-zone", "currency-cents", "canadian-spelling", "canadian-spelling-context", "list-introduction"].forEach(rule => {
+  assert.match(core, new RegExp(`"${rule}"`), `Missing updated-guide rule: ${rule}`);
+});
 assert.match(core, /function comparisonText\(/, "Hidden formatting characters must be ignored during exact heading comparison");
 ["main-landmark", "skip-link-target", "disclosure-state", "broken-image", "staging-url"].forEach(rule => assert.match(core, new RegExp(`"${rule}"`), `Missing structural rule: ${rule}`));
 

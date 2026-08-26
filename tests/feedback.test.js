@@ -25,8 +25,8 @@ const context = {
     userAgent: "Mozilla/5.0 Chrome/151.0.0.0 Safari/537.36",
     platform: "Win32"
   },
-  chrome: { runtime: { getManifest: () => ({ version: "1.0.0" }) } },
-  BCWebStyleGuideChecker: { ruleVersion: "1.0.0" },
+  chrome: { runtime: { getManifest: () => ({ version: "1.1.0" }) } },
+  BCWebStyleGuideChecker: { ruleVersion: "1.1.0" },
   canonicalUrl: value => String(value).split("#")[0],
   formatDate: value => new Date(value).toISOString(),
   readyFeedbackNotes: () => []
@@ -50,8 +50,8 @@ const included = {
     pageSection: "Details",
     selectedText: "Programs & services",
     finding: null,
-    extensionVersion: "1.0.0",
-    rulesVersion: "1.0.0",
+    extensionVersion: "1.1.0",
+    rulesVersion: "1.1.0",
     capturedAt: "2026-08-24T18:00:00.000Z"
   }
 };
@@ -73,6 +73,6 @@ assert.match(report, /Page context excluded by the tester/);
 assert.equal((report.match(/Address:/g) || []).length, 1, "Excluded page context must not be repeated in the report");
 
 const subject = context.feedbackTest.feedbackSubject([included, excluded]);
-assert.match(subject, /^Web Style Guide Checker feedback — v1\.0\.0 — \d{4}-\d{2}-\d{2} — 2 notes$/);
+assert.match(subject, /^Web Style Guide Checker feedback — v1\.1\.0 — \d{4}-\d{2}-\d{2} — 2 notes$/);
 
 console.log("Feedback tests passed");

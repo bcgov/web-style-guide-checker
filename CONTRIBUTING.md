@@ -17,13 +17,14 @@ From the repository folder:
 
 ```bash
 node tests/helpers.test.js
+node tests/rules.test.js
 node tests/static-build.test.js
 node tests/workbook.test.js
 node tests/feedback.test.js
 node tests/browser-regression.test.js
 ```
 
-The browser regression check uses Playwright Chromium when it is installed. The other checks use Node.js built-in modules.
+The browser regression and style-guide rule checks use Playwright Chromium when it is installed. The other checks use Node.js built-in modules.
 
 ## Test the extension manually
 
