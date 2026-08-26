@@ -196,7 +196,7 @@ async function currentTab() {
 
 async function currentReviewTab() {
   if (workspaceSurface && state.lastReviewTabId) {
-    try { return await chrome.tabs.get(state.lastReviewTabId); } catch (_) {}
+    try { return await chrome.tabs.get(state.lastReviewTabId); } catch (_) { }
   }
   return currentTab();
 }
@@ -349,7 +349,7 @@ async function returnToReview() {
   } catch (_) {
     state.lastReviewTabId = null;
     state.lastReviewPageKey = "";
-    await saveNavigation().catch(() => {});
+    await saveNavigation().catch(() => { });
     showToast("The reviewed page is no longer open.");
   }
 }
@@ -402,7 +402,7 @@ async function syncActiveTab() {
   if (workspaceSurface) {
     let tab = null;
     if (state.lastReviewTabId) {
-      try { tab = await chrome.tabs.get(state.lastReviewTabId); } catch (_) {}
+      try { tab = await chrome.tabs.get(state.lastReviewTabId); } catch (_) { }
     }
     const cached = state.lastReviewPageKey ? state.reports[state.lastReviewPageKey] : null;
     state.activeTab = tab;
@@ -432,7 +432,7 @@ async function syncActiveTab() {
   const tab = await currentTab();
   const nextPageKey = tab ? reportKey(tab.url || "") : "";
   if (nextPageKey !== state.activePageKey) {
-    if (state.activePageKey && state.activeReport) await persistReviewContext(state.activePageKey).catch(() => {});
+    if (state.activePageKey && state.activeReport) await persistReviewContext(state.activePageKey).catch(() => { });
     state.selectedSection = null;
     state.guidedIndex = 0;
     state.guidedFingerprint = "";
@@ -486,15 +486,221 @@ async function syncActiveTab() {
 }
 
 async function injectScanner(tabId, options) {
-  await chrome.scripting.executeScript({ target: { tabId }, files: ["checker-core.js"] });
+  await chrome.scripting.executeScript({
+    target: { tabId },
+    files: ["checker-core.js"]
+  });
+
   const results = await chrome.scripting.executeScript({
     target: { tabId },
-    func: optionsValue => globalThis.BCWebStyleGuideChecker.scanPage(document, optionsValue),
+    func: optionsValue => {
+      const hostname = location.hostname.toLowerCase();
+      const editorFrames = Array.from(
+        document.querySelectorAll("iframe.cke_wysiwyg_frame")
+      );
+
+      const isCmsLiteEditor =
+        hostname === "cmslite.gov.bc.ca" &&
+        editorFrames.length > 0;
+
+      // Normal websites and CMS Lite QA continue using the existing scan.
+      if (!isCmsLiteEditor) {
+        return globalThis.BCWebStyleGuideChecker.scanPage(
+          document,
+          optionsValue
+        );
+      }
+
+      // CMS Lite Topic/editor mode:
+      // scan each non-empty CKEditor document instead of the CMS interface.
+      const frameReports = editorFrames
+        .map((frame, index) => {
+          const frameDocument = frame.contentDocument;
+          const frameBody = frameDocument?.querySelector("body.cke_editable");
+
+          if (!frameDocument || !frameBody) return null;
+
+          const text = frameBody.innerText?.trim() || "";
+
+          // Ignore completely empty editor regions.
+          if (!text && !frameBody.querySelector("img,a,table,ul,ol")) {
+            return null;
+          }
+
+          const report =
+            globalThis.BCWebStyleGuideChecker.scanPage(
+              frameDocument,
+              {
+                ...optionsValue,
+                profile: "cms-lite",
+                scope: "content"
+              }
+            );
+
+          report.editorRegion = index + 1;
+
+          return report;
+        })
+        .filter(Boolean);
+
+      if (!frameReports.length) {
+        return {
+          error: "No editable CMS Lite content was found."
+        };
+      }
+
+      /*
+       * These checks describe an entire rendered page rather than an
+       * individual editor region. Running them once per CKEditor frame
+       * would create misleading findings.
+       */
+      const editorExcludedRules = new Set([
+        "page-title-missing",
+        "page-title-long",
+        "page-title-punctuation",
+        "meta-description",
+        "document-language",
+        "main-landmark",
+        "skip-link-target",
+        "h1-count"
+      ]);
+
+      const issues = frameReports.flatMap(report =>
+        report.issues
+          .filter(finding => {
+            if (editorExcludedRules.has(finding.ruleId)) return false;
+
+            if (
+              String(finding.evidence || "").startsWith("Rich Text Editor,")
+            ) {
+              return false;
+            }
+
+            return true;
+          })
+          .map(finding => ({
+            ...finding,
+            editorRegion: report.editorRegion,
+            location:
+              `Editor region ${report.editorRegion}` +
+              (finding.location && finding.location !== "Page"
+                ? ` · ${finding.location}`
+                : "")
+          }))
+      );
+
+      const severityCounts = {
+        fix: 0,
+        check: 0,
+        review: 0
+      };
+
+      issues
+        .filter(issue => issue.automaticStatus === "open")
+        .forEach(issue => {
+          severityCounts[issue.severity] += issue.occurrenceCount || 1;
+        });
+
+      const combinedDetails = {
+        headings: [],
+        images: [],
+        links: [],
+        metadata: {},
+        counts: {
+          headings: 0,
+          images: 0,
+          imagesMissingAlt: 0,
+          imagesEmptyAlt: 0,
+          links: 0,
+          assets: 0,
+          lists: 0,
+          tables: 0,
+          forms: 0,
+          accordions: 0
+        }
+      };
+
+      frameReports.forEach(report => {
+        const details = report.pageDetails;
+
+        combinedDetails.headings.push(...(details.headings || []));
+        combinedDetails.images.push(...(details.images || []));
+        combinedDetails.links.push(...(details.links || []));
+
+        Object.keys(combinedDetails.counts).forEach(key => {
+          combinedDetails.counts[key] += details.counts?.[key] || 0;
+        });
+      });
+
+      const totalStats = frameReports.reduce(
+        (totals, report) => {
+          totals.words += report.stats.words || 0;
+          totals.sentences += report.stats.sentences || 0;
+          totals.readingWords += report.stats.readingWords || 0;
+          totals.headings += report.stats.headings || 0;
+          totals.links += report.stats.links || 0;
+          totals.images += report.stats.images || 0;
+          return totals;
+        },
+        {
+          words: 0,
+          sentences: 0,
+          readingWords: 0,
+          headings: 0,
+          links: 0,
+          images: 0
+        }
+      );
+
+      return {
+        ...frameReports[0],
+
+        page: {
+          ...frameReports[0].page,
+          title: document.title || "CMS Lite editable content",
+          url: location.href,
+          hostname
+        },
+
+        settings: {
+          ...frameReports[0].settings,
+          profile: "cms-lite",
+          profileLabel: "CMS Lite",
+          scope: "content",
+          rootSelector: "CMS Lite editor regions"
+        },
+
+        stats: {
+          ...frameReports[0].stats,
+          ...totalStats,
+          readingGrade: null,
+          root: "CKEditor regions"
+        },
+
+        severityCounts,
+        issues,
+        assets: frameReports.flatMap(report => report.assets || []),
+        pageDetails: combinedDetails,
+
+        notes:
+          `Scanned ${frameReports.length} CMS Lite editor region` +
+          `${frameReports.length === 1 ? "" : "s"}.`
+      };
+    },
+
     args: [options]
   });
+
   const report = results && results[0] && results[0].result;
-  if (!report) throw new Error("The page returned no scan results.");
-  if (report.error) throw new Error(report.error);
+
+  if (!report) {
+    throw new Error("The page returned no scan results.");
+  }
+
+  if (report.error) {
+    throw new Error(report.error);
+  }
+
   return report;
 }
 
@@ -542,7 +748,7 @@ function appendUniqueFinding(report, finding) {
 async function verifyOneAsset(report, asset) {
   if (!/^https?:/i.test(asset.href || "")) { asset.verificationStatus = "unsupported"; return; }
   let hasPermission = false;
-  try { hasPermission = await chrome.permissions.contains({ origins: [originPattern(asset.href)] }); } catch (_) {}
+  try { hasPermission = await chrome.permissions.contains({ origins: [originPattern(asset.href)] }); } catch (_) { }
   if (!hasPermission) { asset.verificationStatus = "permission-unavailable"; return; }
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 8000);
@@ -610,7 +816,7 @@ async function scanTab(tabId, options) {
 
 async function checkOneHttpLink(report, link) {
   let permitted = false;
-  try { permitted = await chrome.permissions.contains({ origins: [originPattern(link.href)] }); } catch (_) {}
+  try { permitted = await chrome.permissions.contains({ origins: [originPattern(link.href)] }); } catch (_) { }
   if (!permitted) return { status: "permission", link };
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 10000);
@@ -625,7 +831,7 @@ async function checkOneHttpLink(report, link) {
         signal: controller.signal,
         cache: "no-store"
       });
-      if (response.body && response.body.cancel) response.body.cancel().catch(() => {});
+      if (response.body && response.body.cancel) response.body.cancel().catch(() => { });
     }
     if (response.status === 404 || response.status === 410) return { status: "broken", code: response.status, link, finalUrl: response.url || link.href };
     if (response.status >= 500) return { status: "server", code: response.status, link, finalUrl: response.url || link.href };
@@ -714,7 +920,7 @@ async function checkHttpLinks() {
       ...summarizeLinkCheck(links.length, []),
       permissionRequired: links.length
     };
-    await storeReport(report).catch(() => {});
+    await storeReport(report).catch(() => { });
     renderPageDetails("links");
     showToast(`Website access was declined. ${links.length} link${links.length === 1 ? " was" : "s were"} not checked.`);
     return;
@@ -748,7 +954,7 @@ async function checkHttpLinks() {
       if (results.length % 5 === 0 || results.length === links.length) {
         if (state.activeReport === report && state.reviewView === "details") renderPageDetails("links");
       }
-      if (results.length % 20 === 0) await storeReport(report).catch(() => {});
+      if (results.length % 20 === 0) await storeReport(report).catch(() => { });
     }
   };
   await Promise.all(Array.from({ length: Math.min(4, links.length) }, worker));
@@ -765,7 +971,7 @@ async function checkHttpLinks() {
   const wasStopped = state.linkCheckCancelled;
   state.linkCheckCancelled = false;
   state.linkCheckWaiters = [];
-  await storeReport(report).catch(() => {});
+  await storeReport(report).catch(() => { });
   if (state.activeReport === report) renderCurrentReport();
   showToast(wasStopped
     ? `Link check stopped after ${report.linkCheck.completed} of ${report.linkCheck.totalFound}.`
@@ -925,7 +1131,7 @@ async function scanCurrentPage(suppliedOptions) {
     state.lastReviewTabId = state.activeTab.id;
     state.lastReviewPageKey = reportKey(report.page.url, report.settings && report.settings.sectionSelector);
     state.activePageKey = state.lastReviewPageKey;
-    await saveNavigation().catch(() => {});
+    await saveNavigation().catch(() => { });
     updateReturnButton();
     elements["status-filter"].value = preserved ? preserved.status : "open";
     elements["severity-filter"].value = preserved ? preserved.severity : "all";
@@ -1045,16 +1251,16 @@ function groupedFindingTypes(items = filteredFindings()) {
   }).sort((first, second) => pageSort
     ? first.pageOrder - second.pageOrder || first.title.localeCompare(second.title)
     : (severityOrder[first.severity] ?? 9) - (severityOrder[second.severity] ?? 9)
-      || first.category.localeCompare(second.category)
-      || first.title.localeCompare(second.title));
+    || first.category.localeCompare(second.category)
+    || first.title.localeCompare(second.title));
 }
 
 function orderedReviewFindings(items = filteredFindings()) {
   const pageSort = elements["sort-order"] && elements["sort-order"].value === "page";
   if (pageSort) return items.slice().sort((first, second) =>
     (first.pageOrder ?? Number.MAX_SAFE_INTEGER) - (second.pageOrder ?? Number.MAX_SAFE_INTEGER)
-      || (first.matchIndex ?? Number.MAX_SAFE_INTEGER) - (second.matchIndex ?? Number.MAX_SAFE_INTEGER)
-      || first.title.localeCompare(second.title));
+    || (first.matchIndex ?? Number.MAX_SAFE_INTEGER) - (second.matchIndex ?? Number.MAX_SAFE_INTEGER)
+    || first.title.localeCompare(second.title));
   return groupedFindingTypes(items).flatMap(group => group.findings);
 }
 
@@ -1173,7 +1379,7 @@ function jumpIssueType(amount) {
   state.pendingDecision = null;
   state.locateOnNextRender = true;
   renderReviewView();
-  persistReviewContext(state.activePageKey).catch(() => {});
+  persistReviewContext(state.activePageKey).catch(() => { });
 }
 
 function openRuleGroup(ruleId, fingerprint = "", options = {}) {
@@ -1195,7 +1401,7 @@ function openRuleGroup(ruleId, fingerprint = "", options = {}) {
   state.reviewView = "review";
   state.reviewMode = "detail";
   renderReviewView();
-  persistReviewContext(state.activePageKey).catch(() => {});
+  persistReviewContext(state.activePageKey).catch(() => { });
   requestAnimationFrame(() => elements["review-back-button"].focus());
 }
 
@@ -1204,7 +1410,7 @@ function closeFindingReview() {
   state.decisionMessage = "";
   clearFindingHighlight();
   renderReviewView();
-  persistReviewContext(state.activePageKey).catch(() => {});
+  persistReviewContext(state.activePageKey).catch(() => { });
   requestAnimationFrame(() => {
     const row = elements.findings.querySelector(`[data-rule-id="${CSS.escape(state.selectedRuleId)}"]`);
     if (row) row.focus();
@@ -1251,7 +1457,13 @@ function renderFinding(finding) {
       ${note.text ? `<div class="audit-note"><strong>Audit note</strong><p>${escapeHtml(note.text)}</p></div>` : ""}
       <div class="finding-footer">
         <div class="finding-actions">
-          ${finding.selector ? `<button class="small-button locate-button" type="button" data-selector="${escapeHtml(finding.selector)}">${workspaceSurface ? "Show in source tab" : "Show again on page"}</button>` : ""}
+          ${finding.selector ? `<button
+            class="small-button locate-button"
+             type="button"
+             data-selector="${escapeHtml(finding.selector)}"
+             data-editor-region="${finding.editorRegion || ""}">
+             ${workspaceSurface ? "Show in source tab" : "Show again on page"}
+</button>` : ""}
           ${canReview ? `<button class="small-button decision-button resolve-button" type="button" data-status="resolved">Mark resolved</button><button class="small-button decision-button" type="button" data-status="ignored">Ignore finding</button>` : `<button class="small-button reopen-button" type="button">Reopen finding</button>`}
           ${canReview && finding.exceptionEligible ? `<button class="small-button exception-button" type="button">Always allow exact term</button>` : ""}
           <button class="small-button note-button" type="button">${note.text || note.important ? "Edit note or importance" : "Add note or importance"}</button>
@@ -1300,7 +1512,7 @@ async function setDecision(finding, status) {
     if (nextGroup) openRuleGroup(nextGroup.ruleId, "", { preserveFeedback: true });
     else renderReviewView();
   }
-  persistReviewContext(state.activePageKey).catch(() => {});
+  persistReviewContext(state.activePageKey).catch(() => { });
   requestAnimationFrame(() => {
     const activeFinding = elements["guided-finding"].querySelector(".finding");
     if (activeFinding) activeFinding.focus({ preventScroll: true });
@@ -1340,13 +1552,13 @@ function renderReviewView() {
 function switchReviewView(name) {
   state.reviewView = name;
   renderReviewView();
-  persistReviewContext(state.activePageKey).catch(() => {});
+  persistReviewContext(state.activePageKey).catch(() => { });
 }
 
 function switchReviewMode(name) {
   state.reviewMode = ["guided", "detail"].includes(name) ? "detail" : "list";
   renderReviewView();
-  persistReviewContext(state.activePageKey).catch(() => {});
+  persistReviewContext(state.activePageKey).catch(() => { });
 }
 
 function guidedFindings() {
@@ -1419,7 +1631,7 @@ function moveGuided(amount) {
   state.pendingDecision = null;
   state.locateOnNextRender = true;
   renderReviewView();
-  persistReviewContext(state.activePageKey).catch(() => {});
+  persistReviewContext(state.activePageKey).catch(() => { });
 }
 
 function metadataDefinition(label, value) {
@@ -1521,52 +1733,137 @@ function renderPageDetails(section = "overview") {
   elements["page-details"].innerHTML = `${back}<h2>Page overlays</h2><p class="hint">Use these temporary labels to understand the live page. Clear them when you finish.</p><div class="audit-tools"><button type="button" data-overlay="headings">Heading levels</button><button type="button" data-overlay="alts">Image alt text</button><button type="button" data-overlay="links">Link destinations</button><button type="button" data-overlay="clear">Clear overlays</button></div>`;
 }
 
-async function highlightSelector(selector, requireReport, activateTab = false) {
+async function highlightSelector(
+  selector,
+  requireReport,
+  activateTab = false,
+  editorRegion = null
+) {
   try {
     const tab = await currentReviewTab();
-    if (!tab || !tab.id || (requireReport && (!state.activeReport || canonicalUrl(tab.url) !== canonicalUrl(state.activeReport.page.url)))) {
+
+    if (
+      !tab ||
+      !tab.id ||
+      (
+        requireReport &&
+        (
+          !state.activeReport ||
+          canonicalUrl(tab.url) !== canonicalUrl(state.activeReport.page.url)
+        )
+      )
+    ) {
       showToast("Open the scanned page to show this finding.");
       return;
     }
+
     await chrome.scripting.executeScript({
       target: { tabId: tab.id },
-      args: [selector],
-      func: selected => {
-        const old = document.querySelector("[data-bc-style-checker-highlight]");
-        if (old) {
-          old.style.outline = old.dataset.bcStyleCheckerOutline || "";
-          old.style.outlineOffset = old.dataset.bcStyleCheckerOffset || "";
+      args: [selector, editorRegion],
+
+      func: (selected, region) => {
+        console.log("Show on page:", {
+          selector: selected,
+          editorRegion: region
+        });
+        const editorFrames = Array.from(
+          document.querySelectorAll("iframe.cke_wysiwyg_frame")
+        );
+
+        let targetDocument = document;
+
+        if (region && editorFrames[region - 1]) {
+          targetDocument =
+            editorFrames[region - 1].contentDocument || document;
+        }
+
+        // Clear any existing highlight in the outer page.
+        const oldOuter = document.querySelector(
+          "[data-bc-style-checker-highlight]"
+        );
+
+        if (oldOuter) {
+          oldOuter.style.outline =
+            oldOuter.dataset.bcStyleCheckerOutline || "";
+
+          oldOuter.style.outlineOffset =
+            oldOuter.dataset.bcStyleCheckerOffset || "";
+
+          delete oldOuter.dataset.bcStyleCheckerHighlight;
+          delete oldOuter.dataset.bcStyleCheckerOutline;
+          delete oldOuter.dataset.bcStyleCheckerOffset;
+        }
+
+        // Clear existing highlights inside CMS Lite editor frames.
+        editorFrames.forEach(frame => {
+          const frameDocument = frame.contentDocument;
+
+          const old = frameDocument?.querySelector(
+            "[data-bc-style-checker-highlight]"
+          );
+
+          if (!old) return;
+
+          old.style.outline =
+            old.dataset.bcStyleCheckerOutline || "";
+
+          old.style.outlineOffset =
+            old.dataset.bcStyleCheckerOffset || "";
+
           delete old.dataset.bcStyleCheckerHighlight;
           delete old.dataset.bcStyleCheckerOutline;
           delete old.dataset.bcStyleCheckerOffset;
+        });
+
+        let element;
+
+        try {
+          element = targetDocument.querySelector(selected);
+        } catch (_) {
+          element = null;
         }
-        const element = document.querySelector(selected);
+
+        console.log("Highlight target found:", element);
+
         if (!element) return;
+
         const details = element.closest("details");
         if (details) details.open = true;
-        const collapsed = element.closest(".collapse,[class*='collapse' i],[class*='accordion' i],.panel");
-        if (collapsed) {
-          const id = collapsed.id;
-          const trigger = id
-            ? document.querySelector(`[aria-controls="${globalThis.CSS && CSS.escape ? CSS.escape(id) : id}"]`)
-            : collapsed.querySelector("[aria-expanded='false'],.collapsed");
-          if (trigger && trigger.getAttribute("aria-expanded") !== "true") trigger.click();
-        }
-        element.dataset.bcStyleCheckerOutline = element.style.outline;
-        element.dataset.bcStyleCheckerOffset = element.style.outlineOffset;
+
+        element.dataset.bcStyleCheckerOutline =
+          element.style.outline;
+
+        element.dataset.bcStyleCheckerOffset =
+          element.style.outlineOffset;
+
         element.dataset.bcStyleCheckerHighlight = "true";
+
         element.style.outline = "4px solid #fcba19";
         element.style.outlineOffset = "3px";
-        element.scrollIntoView({ behavior: "smooth", block: "center" });
+
+        element.scrollIntoView({
+          behavior: "smooth",
+          block: "center"
+        });
       }
     });
-    if (activateTab) await chrome.tabs.update(tab.id, { active: true });
+
+    if (activateTab) {
+      await chrome.tabs.update(tab.id, { active: true });
+    }
   } catch (_) {
     showToast("The page changed. Rescan it to refresh locations.");
   }
 }
 
-function locateFinding(selector) { return highlightSelector(selector, true, workspaceSurface); }
+function locateFinding(selector, editorRegion) {
+  return highlightSelector(
+    selector,
+    true,
+    workspaceSurface,
+    editorRegion
+  );
+}
 
 async function clearFindingHighlight() {
   try {
@@ -1584,7 +1881,7 @@ async function clearFindingHighlight() {
         delete element.dataset.bcStyleCheckerOffset;
       }
     });
-  } catch (_) {}
+  } catch (_) { }
 }
 
 async function clearPageOverlays() {
@@ -1596,7 +1893,7 @@ async function clearPageOverlays() {
       target: { tabId },
       func: () => { if (typeof globalThis.__bcWsgOverlayCleanup === "function") globalThis.__bcWsgOverlayCleanup(); }
     });
-  } catch (_) {}
+  } catch (_) { }
   state.overlayMode = "";
   state.overlayTabId = null;
 }
@@ -2109,7 +2406,7 @@ async function createFeedbackEmail() {
   if (!completeInEmail) downloadTextFile(report, filename);
   try {
     await navigator.clipboard.writeText(report);
-  } catch (_) {}
+  } catch (_) { }
   const subject = feedbackSubject(notes);
   const body = completeInEmail ? report : feedbackEmailSummary(notes, filename);
   const anchor = document.createElement("a");
@@ -2380,14 +2677,14 @@ function zipStore(files) {
     const name = encoder.encode(file.name);
     const data = typeof file.data === "string" ? encoder.encode(file.data) : file.data;
     const crc = crc32(data);
-    const local = new Uint8Array([0x50,0x4b,0x03,0x04,...u16(20),...u16(0x0800),...u16(0),...u16(0),...u16(0),...u32(crc),...u32(data.length),...u32(data.length),...u16(name.length),...u16(0)]);
+    const local = new Uint8Array([0x50, 0x4b, 0x03, 0x04, ...u16(20), ...u16(0x0800), ...u16(0), ...u16(0), ...u16(0), ...u32(crc), ...u32(data.length), ...u32(data.length), ...u16(name.length), ...u16(0)]);
     parts.push(local, name, data);
-    const header = new Uint8Array([0x50,0x4b,0x01,0x02,...u16(20),...u16(20),...u16(0x0800),...u16(0),...u16(0),...u16(0),...u32(crc),...u32(data.length),...u32(data.length),...u16(name.length),...u16(0),...u16(0),...u16(0),...u16(0),...u32(0),...u32(offset)]);
+    const header = new Uint8Array([0x50, 0x4b, 0x01, 0x02, ...u16(20), ...u16(20), ...u16(0x0800), ...u16(0), ...u16(0), ...u16(0), ...u32(crc), ...u32(data.length), ...u32(data.length), ...u16(name.length), ...u16(0), ...u16(0), ...u16(0), ...u16(0), ...u32(0), ...u32(offset)]);
     central.push(header, name);
     offset += local.length + name.length + data.length;
   });
   const centralSize = central.reduce((total, part) => total + part.length, 0);
-  const end = new Uint8Array([0x50,0x4b,0x05,0x06,...u16(0),...u16(0),...u16(files.length),...u16(files.length),...u32(centralSize),...u32(offset),...u16(0)]);
+  const end = new Uint8Array([0x50, 0x4b, 0x05, 0x06, ...u16(0), ...u16(0), ...u16(files.length), ...u16(files.length), ...u32(centralSize), ...u32(offset), ...u16(0)]);
   return new Blob([...parts, ...central, end], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
 }
 
@@ -2472,7 +2769,7 @@ function metadataRow(report, submittedUrl) {
 
 function pageInventoryRow(report, submittedUrl) {
   return [report.page.title, submittedUrl || report.page.url, report.page.url, report.page.hostname, report.scannedAt,
-    report.settings.scope === "whole" ? "Whole website" : "Page content", report.settings.profileLabel, ...batchStatsValues(report)];
+  report.settings.scope === "whole" ? "Whole website" : "Page content", report.settings.profileLabel, ...batchStatsValues(report)];
 }
 
 function linkRows(report) {
@@ -2605,7 +2902,7 @@ async function scanBatchUrl(url, settings) {
     return { submittedUrl: url, status: "error", error: readableScanError(error), scannedAt: new Date().toISOString() };
   } finally {
     if (tab && tab.id) {
-      try { await chrome.tabs.remove(tab.id); } catch (_) {}
+      try { await chrome.tabs.remove(tab.id); } catch (_) { }
     }
     state.batch.tempTabId = null;
   }
@@ -2683,7 +2980,7 @@ async function startBatchScan() {
     renderBatchProgress();
     const record = await scanBatchUrl(state.batch.urls[index], settings);
     state.batch.records.push(record);
-    await saveKey(STORAGE_KEYS.batch, { urls: state.batch.urls, records: state.batch.records, savedAt: new Date().toISOString() }).catch(() => {});
+    await saveKey(STORAGE_KEYS.batch, { urls: state.batch.urls, records: state.batch.records, savedAt: new Date().toISOString() }).catch(() => { });
     renderBatchProgress();
   }
   state.batch.running = false;
@@ -2700,7 +2997,7 @@ async function cancelBatch() {
   state.batch.cancelled = true;
   state.batch.paused = false;
   if (state.batch.tempTabId) {
-    try { await chrome.tabs.remove(state.batch.tempTabId); } catch (_) {}
+    try { await chrome.tabs.remove(state.batch.tempTabId); } catch (_) { }
   }
   updateBatchControls();
 }
@@ -2784,7 +3081,12 @@ function handleFindingAction(event) {
   if (!button) return;
   const finding = findingFromButton(button);
   if (button.classList.contains("undo-decision")) undoDecision(button.dataset.fingerprint || (button.closest("[data-fingerprint]") || {}).dataset?.fingerprint);
-  else if (button.classList.contains("locate-button")) locateFinding(button.dataset.selector);
+  else if (button.classList.contains("locate-button")) {
+    locateFinding(
+      button.dataset.selector,
+      Number(button.dataset.editorRegion) || null
+    );
+  }
   else if (button.classList.contains("decision-button")) setDecision(finding, button.dataset.status);
   else if (button.classList.contains("reopen-button")) setDecision(finding, "open");
   else if (button.classList.contains("manage-term-button")) openWorkspace("terms");
@@ -2799,7 +3101,7 @@ async function openWorkspace(view = "current") {
     if (tab && tab.id && isScannableUrl(tab.url || "")) {
       state.lastReviewTabId = tab.id;
       state.lastReviewPageKey = state.activeReport ? state.activePageKey : reportKey(tab.url || "");
-      await saveNavigation().catch(() => {});
+      await saveNavigation().catch(() => { });
     }
   }
   const destination = chrome.runtime.getURL(`sidepanel.html?workspace=1&view=${encodeURIComponent(view)}`);
@@ -2844,7 +3146,7 @@ function bindEvents() {
   elements["category-filter"].addEventListener("change", renderFindings);
   elements["sort-order"].addEventListener("change", () => {
     renderReviewView();
-    persistReviewContext(state.activePageKey).catch(() => {});
+    persistReviewContext(state.activePageKey).catch(() => { });
   });
   elements["important-filter"].addEventListener("change", renderFindings);
   elements["clear-filters"].addEventListener("click", clearFilters);
@@ -2878,7 +3180,7 @@ function bindEvents() {
     state.reviewView = "details";
     state.pageDetailSection = "links";
     renderReviewView();
-    persistReviewContext(state.activePageKey).catch(() => {});
+    persistReviewContext(state.activePageKey).catch(() => { });
   });
   elements["view-reviewed-button"].addEventListener("click", () => {
     elements["status-filter"].value = "reviewed";
@@ -2902,13 +3204,13 @@ function bindEvents() {
       const finding = guidedFindings()[state.guidedIndex];
       if (finding && finding.selector) highlightSelector(finding.selector, true, false);
     } else if (!elements["follow-page"].checked) clearFindingHighlight();
-    persistReviewContext(state.activePageKey).catch(() => {});
+    persistReviewContext(state.activePageKey).catch(() => { });
   });
 
   const handlePageAuditClick = event => {
     const button = event.target.closest("button");
     if (!button) return;
-    if (button.dataset.detailSection) { renderPageDetails(button.dataset.detailSection); persistReviewContext(state.activePageKey).catch(() => {}); }
+    if (button.dataset.detailSection) { renderPageDetails(button.dataset.detailSection); persistReviewContext(state.activePageKey).catch(() => { }); }
     else if (button.dataset.overlay) runPageOverlay(button.dataset.overlay);
     else if (button.classList.contains("link-check-button")) checkHttpLinks(false);
     else if (button.classList.contains("link-check-pause")) toggleLinkCheckPause();
@@ -2916,7 +3218,7 @@ function bindEvents() {
     else if (button.classList.contains("manage-permissions-button")) openPermissionDialog();
     else if (button.classList.contains("detail-jump")) locateFinding(button.dataset.selector);
     else if (button.classList.contains("open-background-link")) {
-      persistReviewContext(state.activePageKey).catch(() => {});
+      persistReviewContext(state.activePageKey).catch(() => { });
       chrome.tabs.create({ url: button.dataset.url, active: false }).then(() => showToast("Destination opened in the background.")).catch(() => showToast("The destination could not be opened."));
     }
   };
@@ -2983,7 +3285,7 @@ function bindEvents() {
   let scrollTimer;
   document.addEventListener("scroll", () => {
     clearTimeout(scrollTimer);
-    scrollTimer = setTimeout(() => persistReviewContext(state.activePageKey).catch(() => {}), 250);
+    scrollTimer = setTimeout(() => persistReviewContext(state.activePageKey).catch(() => { }), 250);
   }, { passive: true });
 
   if (!workspaceSurface) chrome.tabs.onActivated.addListener(() => { if (!state.batch.running) clearPageOverlays().finally(syncActiveTab); });

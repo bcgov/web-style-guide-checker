@@ -501,13 +501,30 @@
     }
   }
 
-  function detectProfile(url, requestedProfile) {
-    let hostname = "";
-    try { hostname = new URL(url).hostname.toLowerCase(); } catch (_) { hostname = ""; }
-    if (requestedProfile && requestedProfile !== "auto") return requestedProfile;
-    if (["www2.gov.bc.ca", "www2.qa.gov.bc.ca", "intranet.gov.bc.ca", "intranet.qa.gov.bc.ca"].includes(hostname)) return "cms-lite";
-    return "standard";
+function detectProfile(url, requestedProfile) {
+  let hostname = "";
+  try {
+    hostname = new URL(url).hostname.toLowerCase();
+  } catch (_) {
+    hostname = "";
   }
+
+  if (requestedProfile && requestedProfile !== "auto") {
+    return requestedProfile;
+  }
+
+  if ([
+    "www2.gov.bc.ca",
+    "www2.qa.gov.bc.ca",
+    "intranet.gov.bc.ca",
+    "intranet.qa.gov.bc.ca",
+    "cmslite.gov.bc.ca"
+  ].includes(hostname)) {
+    return "cms-lite";
+  }
+
+  return "standard";
+}
 
   function profileLabel(profile) {
     return profile === "cms-lite" ? "CMS Lite" : "Standard website";
@@ -890,14 +907,48 @@
     return previous ? (previous.id || (previous.tagName === "A" ? previous.getAttribute("name") : "") || "") : "";
   }
 
-  function fragmentTarget(doc, href) {
-    if (!href || href.charAt(0) !== "#" || href.length < 2) return null;
-    let value = href.slice(1);
-    try { value = decodeURIComponent(value); } catch (_) {}
-    const byId = doc.getElementById(value);
-    if (byId) return byId;
-    return Array.from(doc.querySelectorAll("a[name],[name]")).find(element => element.getAttribute("name") === value) || null;
-  }
+function fragmentTarget(doc, href) {
+  if (!href || href.charAt(0) !== "#" || href.length < 2) return null;
+
+  let value = href.slice(1);
+  try {
+    value = decodeURIComponent(value);
+  } catch (_) {}
+
+  // Normal published-page anchor
+  const byId = doc.getElementById(value);
+  if (byId) return byId;
+
+  const byName = Array.from(doc.querySelectorAll("a[name],[name]"))
+    .find(element => element.getAttribute("name") === value);
+
+  if (byName) return byName;
+
+  // CKEditor represents anchors as fake image elements while editing.
+  const ckeAnchors = Array.from(
+    doc.querySelectorAll(
+      "img.cke_anchor[data-cke-real-element-type='anchor'][data-cke-realelement]"
+    )
+  );
+
+  return ckeAnchors.find(anchor => {
+    try {
+      const realElement = decodeURIComponent(
+        anchor.getAttribute("data-cke-realelement") || ""
+      );
+
+      const idMatch = realElement.match(/\bid=["']([^"']+)["']/i);
+      const nameMatch = realElement.match(/\bname=["']([^"']+)["']/i);
+
+      return (
+        (idMatch && idMatch[1] === value) ||
+        (nameMatch && nameMatch[1] === value)
+      );
+    } catch (_) {
+      return false;
+    }
+  }) || null;
+}
 
   function headingForFragmentTarget(target) {
     if (!target) return null;
@@ -1035,12 +1086,29 @@
   }
 
   function headingHasStableAnchor(heading) {
-    if (!heading) return false;
-    if (heading.id) return true;
-    if (heading.querySelector("[id],a[name]")) return true;
-    const previous = heading.previousElementSibling;
-    return Boolean(previous && (previous.id || (previous.tagName === "A" && previous.getAttribute("name"))));
-  }
+  if (!heading) return false;
+
+  // Standard published-page anchors
+  if (heading.id) return true;
+  if (heading.querySelector("[id],a[name]")) return true;
+
+  // CKEditor represents anchors as fake image elements in editing mode
+  const ckeAnchor = heading.querySelector(
+    "img.cke_anchor[data-cke-real-element-type='anchor']"
+  );
+
+  if (ckeAnchor) return true;
+
+  const previous = heading.previousElementSibling;
+
+  return Boolean(
+    previous &&
+    (
+      previous.id ||
+      (previous.tagName === "A" && previous.getAttribute("name"))
+    )
+  );
+}
 
   function metadataDetails(doc) {
     const metaValue = (attribute, value) => {
