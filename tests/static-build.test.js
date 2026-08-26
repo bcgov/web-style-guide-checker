@@ -9,7 +9,7 @@ const read = name => fs.readFileSync(path.join(root, name), "utf8");
 
 const manifest = JSON.parse(read("manifest.json"));
 assert.equal(manifest.manifest_version, 3);
-assert.equal(manifest.version, "1.1.1");
+assert.equal(manifest.version, "1.2.0");
 assert.ok(manifest.optional_host_permissions.includes("http://*/*"));
 assert.ok(manifest.optional_host_permissions.includes("https://*/*"));
 
@@ -48,6 +48,10 @@ const idSet = new Set(ids);
   "feedback-view",
   "feedback-dialog",
   "feedback-list",
+  "link-check-shortcut",
+  "link-check-shortcut-status",
+  "stale-report-title",
+  "stale-report-message",
   "create-feedback-email",
   "copy-feedback-report",
   "export-feedback-csv"
@@ -92,17 +96,23 @@ assert.match(script, /highlightSelector\(finding\.selector, true, false\)/, "Aut
 assert.match(script, /elements\["manual-review"\]\.hidden = section !== "overview"/, "The manual checklist must appear only on the Page details overview");
 assert.match(script, /elements\["sort-order"\]\.value === "page"/, "Findings must support page-order sorting");
 assert.match(script, /continueAfterAllowedTerm/, "Allowed terms must rebase the active review queue");
-assert.match(script, /groups\.flatMap\(item => item\.findings\.map/, "Guided review must use one continuous cross-type sequence");
+assert.match(script, /function orderedReviewFindings\(/, "Guided review must use an explicit continuous review sequence");
+assert.match(script, /items\.slice\(\)\.sort\(\(first, second\) =>[\s\S]*first\.pageOrder/, "Page-order review must sort individual findings by document order");
+assert.match(html, /<option value="type">By issue type<\/option>/, "The issue-type order label must describe its behaviour");
+assert.match(html, /<option value="page">In page order<\/option>/, "The page-order label must describe its behaviour");
 assert.match(script, /state\.guidedIndex === 0/, "Previous must remain available until the start of the continuous sequence");
 assert.match(script, /chrome\.permissions\.request\(\{ origins \}\)/, "Link checking must request access to linked sites");
 assert.match(script, /state:\s*"permission-denied"/, "Declined link access must be reported clearly");
 assert.match(script, /savedExceptions\.filter/, "Unsafe saved exceptions must be removed during migration");
-assert.match(script, /classList\.toggle\("is-placeholder", atLastInType\)/, "Finding navigation must retain its layout at the end of an issue type");
+assert.match(script, /classList\.toggle\("is-placeholder", hideIssueTypeShortcut\)/, "Finding navigation must retain its layout when the issue-type shortcut is unavailable");
 assert.doesNotMatch(script, /<summary>More actions<\/summary>/, "Exact-term actions must remain visible");
 assert.match(script, /"Where on the page", "Category", "Issue", "Why it matters", "Recommended action"/, "Action reports must use plain-language columns");
+assert.match(script, /function showStaleState\(/, "Saved reports must explain when the source page has been reloaded");
+assert.match(script, /performance\.timeOrigin/, "Page reload detection must compare document instances");
+assert.doesNotMatch(script, /setTimeout\([\s\S]{0,200}data-bc-style-checker-highlight/, "Finding highlights must remain until the reviewer moves or clears them");
 
 const core = read("checker-core.js");
-assert.match(core, /const RULE_VERSION = "1\.1\.1"/);
+assert.match(core, /const RULE_VERSION = "1\.2\.0"/);
 assert.match(core, /‘BC’ by itself cannot be allowed/, "Bare BC must be rejected as an allowed term");
 assert.match(core, /function isCmsLiteTemplateImage\(/, "CMS Lite template images must be identifiable");
 assert.match(core, /pageOrder:/, "Findings must retain document order");
@@ -123,6 +133,11 @@ assert.doesNotMatch(core + script, /cke_wysiwyg_frame|cke_editable/, "CMS Lite d
   assert.match(core, new RegExp(`"${rule}"`), `Missing updated-guide rule: ${rule}`);
 });
 assert.match(core, /function comparisonText\(/, "Hidden formatting characters must be ignored during exact heading comparison");
+assert.match(core, /function acronymBase\(/, "Plural acronyms must normalize to their base form");
+assert.match(core, /function exactTokenIndex\(/, "Flagged acronym positions must use exact token boundaries");
+assert.match(core, /contentSignature:/, "Saved reports must retain a source-content signature");
+assert.match(core, /instanceId:/, "Saved reports must retain the source document instance");
+assert.doesNotMatch(core, /\["accommodation",|\["individual",|\["request",/, "Context-sensitive words must not use unconditional simple-word replacements");
 ["main-landmark", "skip-link-target", "disclosure-state", "broken-image", "staging-url"].forEach(rule => assert.match(core, new RegExp(`"${rule}"`), `Missing structural rule: ${rule}`));
 
 const css = read("sidepanel.css");

@@ -10,6 +10,7 @@ Help a reviewer understand a webpage, decide what needs attention and finish an 
 - Present Findings and Page details as the two primary choices after a scan.
 - Group repeated findings by issue type.
 - Review one occurrence at a time in one continuous sequence.
+- Offer a type-by-type sequence and a true page-order sequence. Page order may split repeated issue types.
 - Preserve review position across pages, tabs and the larger workspace.
 - Keep common filters visible and place detailed filters in a dialog.
 - Use the larger workspace for batch scans, settings and wider reviews.
@@ -30,6 +31,8 @@ Help a reviewer understand a webpage, decide what needs attention and finish an 
 - Advance after Ignore or Resolve and provide Undo.
 - Keep Previous available across issue types.
 - Follow the active finding on the webpage during side-panel review.
+- Keep the active page highlight until the reviewer moves, closes the review or clears it.
+- Warn when a saved review belongs to an earlier page load.
 - Preserve navigation layout at the end of an issue type.
 - Keep exact-term exceptions rule-specific and case-sensitive.
 - Keep the manual checklist on the Page details overview.

@@ -2,7 +2,7 @@
 
 The B.C. Web Style Guide Checker is a Chrome and Microsoft Edge extension that reviews webpages against selected requirements and recommendations in the B.C. Web Style Guide.
 
-Version 1.1.1 is a maintenance release that improves finding accuracy, guidance and beta-feedback handling.
+Version 1.2.0 is a reliability release focused on accurate findings, dependable page-order review and clearer CMS Lite coverage.
 
 The checker supports content review. It does not replace editorial, accessibility, legal, policy, service-design or user-research judgement.
 
@@ -10,8 +10,8 @@ The checker supports content review. It does not replace editorial, accessibilit
 
 - Reviews one page in a browser side panel
 - Offers a focused, finding-by-finding review
-- Sorts findings by recommended priority or page order
-- Separates editable CMS Lite content from shared templates
+- Reviews findings by issue type or in the order they appear on the page
+- Separates authored CMS Lite content, including supported accordions and supplemental components, from shared templates
 - Checks headings, links, documents, images, formatting, plain language and selected accessibility concerns
 - Reviews updated guidance for government names, headings, alt text, dates, times, measurements, currency, education terms and Canadian spelling
 - Shows page structure, published metadata, content statistics and link information
@@ -19,6 +19,7 @@ The checker supports content review. It does not replace editorial, accessibilit
 - Scans up to 100 pasted page addresses into one workbook
 - Saves exact, rule-specific allowed terms
 - Keeps reports and review position across tabs and browser restarts
+- Warns when a saved review belongs to an earlier page load
 - Collects private beta feedback notes locally and creates one pre-addressed feedback email
 
 ## Install the extension
@@ -36,11 +37,11 @@ Select the extension icon to open the checker in the browser side panel.
 
 1. Open the webpage you want to review.
 2. Choose the review scope and select **Check page**.
-3. Choose recommended order or page order.
+3. Choose **By issue type** or **In page order**.
 4. Select **Review issues** or choose an issue type.
 5. Review each finding and record decisions as needed.
 
-The extension follows the current finding on the webpage during side-panel review. Turn off **Follow findings on page** when you want the page to remain still.
+The extension follows the current finding on the webpage during side-panel review and keeps that highlight visible until you move to another finding or leave the review. Turn off **Follow findings on page** when you want the page to remain still.
 
 Use **Open full-page review** for a wider workspace. The larger workspace also contains batch scans and settings.
 
@@ -53,7 +54,9 @@ The extension recognizes these sites as CMS Lite:
 - `intranet.gov.bc.ca`
 - `intranet.qa.gov.bc.ca`
 
-A CMS Lite content scan reviews the page title and editable body. Shared navigation, footer and generated components are excluded. The delivered template and code can be included from **More scan options**.
+A CMS Lite content scan reviews the page title and authored page content. It also includes supported authored accordions, alerts, right-column and supplemental components that are present in the published page markup, including collapsed accordion content. Shared navigation, footer, breadcrumbs and generated template components are excluded. The delivered template and code can be included from **More scan options**.
+
+CMS Lite editing screens are outside this release. Review the published or QA page for the complete page check.
 
 ## Allowed terms
 

@@ -139,7 +139,7 @@
     "contrast": ["Accessibility", "check", "Check the colour contrast", "Text needs sufficient contrast against its background.", "Adjust the foreground or background colour. Verify overlays and images with a dedicated contrast tool.", "contrast"]
   };
 
-  const RULE_VERSION = "1.1.1";
+  const RULE_VERSION = "1.2.0";
 
   const BUILT_IN_TERMS = [
     "BC Public Service Agency",
@@ -192,9 +192,13 @@
 
   const CMS_LITE_EXCLUDED_SELECTORS = [
     ".last_Updated_Text",
-    "#cmf-ui-supplementary-content",
     "[data-elastic-exclude]",
-    "[class*='feedback' i]"
+    "[class*='feedback' i]",
+    "nav",
+    "footer",
+    "[role='navigation']",
+    "[class*='breadcrumb' i]",
+    "[class*='more-topics' i]"
   ].join(",");
 
   const CMS_LITE_COMPONENT_SELECTORS = [
@@ -284,16 +288,16 @@
   ];
 
   const SIMPLE_PHRASES = [
-    ["accommodation", "housing"], ["a number of", "some, many or few"], ["approximately", "about"],
+    ["a number of", "some, many or few"], ["approximately", "about"],
     ["aggregate", "total"], ["amongst", "among"], ["as a consequence of", "because"], ["assist", "help"],
     ["collaborate", "work with"], ["concerning", "about"], ["disburse", "pay"], ["discontinue", "stop"],
     ["dispatch", "send"], ["documentation", "documents"], ["due to the fact", "because"],
     ["give consideration to", "think about or consider"], ["in accordance with", "in line with"],
     ["initiative", "program, project or plan"], ["in the absence of", "without"], ["in the event of", "if or when"],
-    ["in relation to", "about"], ["individual", "person"], ["is able to", "can"],
+    ["in relation to", "about"], ["is able to", "can"],
     ["it should be noted", "remember"], ["submit an application", "apply"], ["method", "way"],
     ["obtain", "get"], ["prior to", "before"], ["subsequently", "after"], ["utilize", "use"],
-    ["establish", "create, set up or form"], ["identify", "decide on or know"], ["request", "ask"],
+    ["establish", "create, set up or form"], ["identify", "decide on or know"],
     ["require", "need or must"], ["result in", "cause, make or lead to"], ["upon", "on"]
   ];
 
@@ -321,9 +325,19 @@
     if (!clean) return [];
     const placeholder = "\ue000";
     const commonSentenceStarters = new Set([
-      "apply", "check", "choose", "contact", "find", "get", "government", "if", "it", "learn", "people", "read", "the", "these", "they", "this", "those", "to", "use", "we", "when", "you"
+      "apply", "check", "choose", "contact", "find", "get", "government", "however", "if", "it", "learn", "next", "people", "read", "the", "these", "they", "this", "those", "to", "use", "we", "when", "you"
     ]);
-    const protectedText = clean.replace(/\b(?:[A-Za-z]\.){2,}/g, (initialism, offset, source) => {
+    const protectPeriods = value => value.replace(/\./g, placeholder);
+    let protectedText = clean
+      .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, protectPeriods)
+      .replace(/\b(?:https?:\/\/|www\.)[^\s<>"'“”‘’]+/gi, match => {
+        const trailing = (match.match(/[.!?]+$/) || [""])[0];
+        const address = trailing ? match.slice(0, -trailing.length) : match;
+        return protectPeriods(address) + trailing;
+      })
+      .replace(/\b\d+\.\d+\b/g, protectPeriods)
+      .replace(/\b(?:Mr|Mrs|Ms|Dr|St|Mt|No)\./g, match => match.replace(".", placeholder));
+    protectedText = protectedText.replace(/\b(?:[A-Za-z]\.){2,}/g, (initialism, offset, source) => {
       const after = source.slice(offset + initialism.length);
       const nextWord = (after.match(/^\s+([A-Za-zÀ-ÖØ-öø-ÿ][A-Za-zÀ-ÖØ-öø-ÿ’'-]*)/) || [])[1] || "";
       const finalPeriodIsBoundary = !nextWord || commonSentenceStarters.has(nextWord.toLowerCase());
@@ -697,7 +711,8 @@
     while ((node = walker.nextNode())) {
       const parent = node.parentElement;
       if (!parent || !normalizeSpace(node.nodeValue)) continue;
-      if (parent.closest("script,style,noscript,svg,code,pre,nav,[hidden],[aria-hidden='true']")) continue;
+      if (parent.closest("script,style,noscript,svg,code,pre,nav")) continue;
+      if (parent.closest("[hidden],[aria-hidden='true']") && !allowed(parent)) continue;
       if (allowed(parent)) output.push(node);
     }
     return output;
@@ -795,28 +810,42 @@
 
   function isLikelyTitleCase(value) {
     const tokens = words(value);
-    if (tokens.length < 3) return false;
-    const allowed = new Set(["B.C", "BC", "Canada", "Canadian", "Indigenous", "First", "Nations", "Métis", "Inuit"]);
+    if (tokens.length < 2) return false;
+    const allowed = new Set(["B.C", "BC", "British", "Columbia", "Canada", "Canadian", "Indigenous", "First", "Nations", "Métis", "Inuit"]);
     const formalNameWords = new Set(BUILT_IN_TERMS.flatMap(term => words(term)));
     const capitalized = tokens.slice(1).filter(token => /^[A-Z][a-z]{2,}$/.test(token) && !allowed.has(token) && !formalNameWords.has(token));
-    return capitalized.length >= 2 && capitalized.length >= Math.ceil((tokens.length - 1) / 2);
+    return capitalized.length >= 1 && capitalized.length >= Math.ceil((tokens.length - 1) / 2);
   }
 
   function firstWords(value, count) {
     return words(value).slice(0, count || 2).join(" ").toLowerCase();
   }
 
+  function acronymBase(value) {
+    const text = String(value || "");
+    return /[A-Z0-9]s$/.test(text) ? text.slice(0, -1) : text;
+  }
+
+  function exactTokenIndex(value, token) {
+    const text = String(value || "");
+    const expression = new RegExp("(^|[^A-Za-zÀ-ÖØ-öø-ÿ0-9])(" + escapeRegExp(token) + ")(?=$|[^A-Za-zÀ-ÖØ-öø-ÿ0-9])");
+    const match = expression.exec(text);
+    return match ? match.index + match[1].length : -1;
+  }
+
   function acronymDefinedInText(value, acronym) {
     const text = normalizeSpace(value);
     if (!text || !acronym) return false;
-    const escaped = escapeRegExp(acronym);
-    const parenthetical = new RegExp("\\(\\s*" + escaped + "\\s*\\)").exec(text);
-    const firstUse = new RegExp("\\b" + escaped + "\\b").exec(text);
+    const base = acronymBase(acronym);
+    const escaped = escapeRegExp(base);
+    const plural = String(acronym || "").endsWith("s") ? "s?" : "";
+    const parenthetical = new RegExp("\\(\\s*" + escaped + plural + "\\s*\\)").exec(text);
+    const firstUse = new RegExp("(^|[^A-Za-zÀ-ÖØ-öø-ÿ0-9])(" + escaped + plural + ")(?=$|[^A-Za-zÀ-ÖØ-öø-ÿ0-9])").exec(text);
     if (!parenthetical || !firstUse) return false;
     const acronymInsideParentheses = parenthetical.index + parenthetical[0].search(new RegExp(escaped));
-    if (firstUse.index !== acronymInsideParentheses) return false;
+    if (firstUse.index + firstUse[1].length !== acronymInsideParentheses) return false;
     const before = text.slice(0, parenthetical.index).trim();
-    const longForm = before.match(/([A-Za-zÀ-ÖØ-öø-ÿ][A-Za-zÀ-ÖØ-öø-ÿ0-9’'/-]*(?:\s+(?:&|and|of|the|for|to|in|[A-Za-zÀ-ÖØ-öø-ÿ][A-Za-zÀ-ÖØ-öø-ÿ0-9’'/-]*)){1,12})$/i);
+    const longForm = before.match(/([A-Za-zÀ-ÖØ-öø-ÿ][A-Za-zÀ-ÖØ-öø-ÿ0-9.’'/-]*(?:\s+(?:&|and|of|the|for|to|in|[A-Za-zÀ-ÖØ-öø-ÿ][A-Za-zÀ-ÖØ-öø-ÿ0-9.’'/-]*)){1,12})$/i);
     return Boolean(longForm && words(longForm[1]).length >= 2);
   }
 
@@ -986,6 +1015,13 @@
     return Boolean(element && element.closest && element.closest(CMS_LITE_COMPONENT_SELECTORS));
   }
 
+  function cmsLiteComponentLabel(element) {
+    const component = element && element.closest && element.closest(CMS_LITE_COMPONENT_SELECTORS);
+    if (!component) return "";
+    const label = component.querySelector("summary,h2,h3,h4,[aria-controls],[class*='title' i],[class*='heading' i]");
+    return normalizeSpace(label && label.textContent);
+  }
+
   function isCmsLiteTemplateImage(image, profile) {
     if (profile !== "cms-lite" || !image) return false;
     const src = String(image.currentSrc || image.src || (image.getAttribute && image.getAttribute("src")) || "");
@@ -1034,7 +1070,11 @@
   function buildPageDetails(doc, detailRoot, profile, suppliedPageOrder) {
     const pageOrder = suppliedPageOrder || new WeakMap();
     if (!suppliedPageOrder) Array.from(doc.querySelectorAll("*")).forEach((element, index) => pageOrder.set(element, index));
-    const headings = scanHeadings(doc, detailRoot, isVisible).slice(0, 500).map(heading => ({
+    const includeDetail = element => {
+      if (profile === "cms-lite" && element.closest && element.closest(CMS_LITE_EXCLUDED_SELECTORS)) return false;
+      return isVisible(element) || (profile === "cms-lite" && isCmsLiteComponent(element));
+    };
+    const headings = scanHeadings(doc, detailRoot, includeDetail).slice(0, 500).map(heading => ({
       level: Number(heading.tagName.slice(1)),
       text: normalizeSpace(heading.textContent) || "[No heading text]",
       selector: cssPath(heading),
@@ -1052,7 +1092,7 @@
       previousLevel = heading.level;
     });
     const images = Array.from(detailRoot.querySelectorAll("img"))
-      .filter(image => isVisible(image) && !isCmsLiteTemplateImage(image, profile))
+      .filter(image => includeDetail(image) && !isCmsLiteTemplateImage(image, profile))
       .slice(0, 300).map(image => ({
       selector: cssPath(image),
       pageOrder: pageOrder.get(image),
@@ -1061,13 +1101,13 @@
       altState: !image.hasAttribute("alt") ? "missing" : (image.alt ? "provided" : "empty"),
       linked: Boolean(image.closest("a"))
     }));
-    const links = Array.from(detailRoot.querySelectorAll("a[href]")).filter(isVisible).map(link => ({
+    const links = Array.from(detailRoot.querySelectorAll("a[href]")).filter(includeDetail).map(link => ({
       selector: cssPath(link),
       pageOrder: pageOrder.get(link),
       text: accessibleName(link) || "[No accessible name]",
       href: link.href || link.getAttribute("href") || "",
       target: link.target || "",
-      location: locationLabel(link, detailRoot),
+      location: (profile === "cms-lite" ? cmsLiteComponentLabel(link) : "") || locationLabel(link, detailRoot),
       kind: /^mailto:/i.test(link.getAttribute("href") || "") ? "email" : /^tel:/i.test(link.getAttribute("href") || "") ? "phone" : assetTypeFromUrl(link.href || link.getAttribute("href") || "") ? "asset" : "web"
     }));
     return {
@@ -1165,7 +1205,8 @@
     const perRuleLimit = 25;
 
     function inScanArea(element) {
-      if (!isVisible(element)) return false;
+      const collapsedCmsLiteContent = scope === "content" && profile === "cms-lite" && isCmsLiteComponent(element);
+      if (!isVisible(element) && !collapsedCmsLiteContent) return false;
       if (scope === "content" && profile === "cms-lite" && element.closest(CMS_LITE_EXCLUDED_SELECTORS)) return false;
       if (!(root === doc.body || element === root || root.contains(element))) return false;
       if (!sectionHeading) return true;
@@ -1225,7 +1266,7 @@
         pageOrder: element && documentOrder.has(element) ? documentOrder.get(element) : Number.MAX_SAFE_INTEGER,
         occurrenceCount: 1
       };
-      finding.location = meta.location || locationLabel(element, root);
+      finding.location = meta.location || (profile === "cms-lite" ? cmsLiteComponentLabel(element) : "") || locationLabel(element, root);
       finding.fingerprint = findingFingerprint(pageUrl, finding);
       const duplicate = issues.find(item => item.ruleId === finding.ruleId && item.selector === finding.selector && item.evidence === finding.evidence && item.automaticStatus === finding.automaticStatus && (item.matchIndex === undefined ? "" : item.matchIndex) === (finding.matchIndex === undefined ? "" : finding.matchIndex));
       if (duplicate) duplicate.occurrenceCount += 1;
@@ -1269,6 +1310,7 @@
       ? normalizeSpace(metadataTitle || (authoredTitleElement && authoredTitleElement.textContent) || doc.title)
       : normalizeSpace(doc.title);
     const titleTarget = scope === "content" ? (authoredTitleElement || root) : (doc.querySelector("title") || doc.documentElement);
+    const titleIsAuthoredH1 = Boolean(authoredTitleElement && titleTarget === authoredTitleElement);
     if (!sectionHeading) {
       if (!title) add("page-title-missing", titleTarget, "No page title found");
       if (title.length >= 70) add("page-title-long", titleTarget, title + " (" + title.length + " characters)");
@@ -1295,8 +1337,16 @@
       if (previousLevel && level > previousLevel + 1) add("heading-skip", heading, heading.tagName + ": " + text, "Change this heading so it follows H" + previousLevel + " without skipping a level.");
       if (level >= 5) add("heading-deep", heading, heading.tagName + ": " + text);
       if (englishLanguage && text && endsStylePunctuation(text)) add("heading-punctuation", heading, text);
-      if (heading.querySelector("strong,b,em,i,u")) add("heading-formatting", heading, text);
-      if (englishLanguage && isLikelyTitleCase(text)) add("heading-title-case", heading, text);
+      const nestedFormatting = Array.from(heading.querySelectorAll("strong,b,em,i,u")).map(item => {
+        if (/^(STRONG|B)$/.test(item.tagName)) return "bold";
+        if (/^(EM|I)$/.test(item.tagName)) return "italic";
+        return "underline";
+      });
+      const formattingTypes = Array.from(new Set(nestedFormatting));
+      if (formattingTypes.length) add("heading-formatting", heading, text, null, {
+        diagnostics: [`Formatting found inside this heading: ${formattingTypes.join(", ")}.`]
+      });
+      if (englishLanguage && isLikelyTitleCase(text) && !(titleIsAuthoredH1 && heading === titleTarget)) add("heading-title-case", heading, text);
       inspectHeadingText(heading, text);
       previousLevel = level;
     });
@@ -1319,30 +1369,34 @@
         links = list && /^(UL|OL)$/.test(list.tagName) ? Array.from(list.querySelectorAll("a[href^='#']")) : [];
       }
       const diagnostics = [];
-      const comparedLength = Math.max(links.length, eligibleH2s.length);
-      for (let index = 0; index < comparedLength; index += 1) {
-        const link = links[index];
-        const expectedHeading = eligibleH2s[index];
-        if (!link && expectedHeading) {
-          diagnostics.push(`Missing link for H2 “${normalizeSpace(expectedHeading.textContent)}” (${anchorIdForHeading(expectedHeading) ? `#${anchorIdForHeading(expectedHeading)}` : "no anchor found"}).`);
-          continue;
-        }
-        if (link && !expectedHeading) {
-          diagnostics.push(`Extra link “${normalizeSpace(link.textContent)}” points to ${link.getAttribute("href") || "an empty target"}.`);
-          continue;
-        }
+      const linkedH2s = new Set();
+      links.forEach((link, index) => {
         const href = link.getAttribute("href") || "";
         const target = fragmentTarget(doc, href);
         const targetHeading = headingForFragmentTarget(target);
         const linkText = normalizeSpace(link.textContent);
-        const expectedText = normalizeSpace(expectedHeading.textContent);
-        if (comparisonText(linkText) !== comparisonText(expectedText)) diagnostics.push(`Link ${index + 1} says “${linkText}”; the matching H2 says “${expectedText}”.`);
-        if (targetHeading !== expectedHeading) {
-          const actual = targetHeading ? `${targetHeading.tagName} “${normalizeSpace(targetHeading.textContent)}”` : (target ? `${target.tagName} target` : "a missing target");
-          const expectedAnchor = anchorIdForHeading(expectedHeading);
-          diagnostics.push(`Link ${index + 1} points to ${href || "an empty target"} (${actual}); expected ${expectedAnchor ? `#${expectedAnchor}` : `the H2 “${expectedText}”`}.`);
+        if (!targetHeading) {
+          diagnostics.push(`Link ${index + 1}, “${linkText}”, points to ${href || "an empty target"}, but no heading exists there.`);
+          return;
         }
-      }
+        const targetText = normalizeSpace(targetHeading.textContent);
+        if (targetHeading.tagName !== "H2") {
+          diagnostics.push(`Link ${index + 1}, “${linkText}”, points to ${targetHeading.tagName} “${targetText}”. ‘On this page’ links should point to H2 headings.`);
+          return;
+        }
+        if (!eligibleH2s.includes(targetHeading)) {
+          diagnostics.push(`Link ${index + 1}, “${linkText}”, points to H2 “${targetText}”, which is not an eligible authored section heading.`);
+          return;
+        }
+        if (linkedH2s.has(targetHeading)) diagnostics.push(`Link ${index + 1} repeats the link to H2 “${targetText}”.`);
+        linkedH2s.add(targetHeading);
+        const expectedPosition = eligibleH2s.indexOf(targetHeading);
+        if (expectedPosition !== index) diagnostics.push(`Link ${index + 1}, “${linkText}”, points to H2 “${targetText}”, which is section ${expectedPosition + 1} in page order.`);
+        if (comparisonText(linkText) !== comparisonText(targetText)) diagnostics.push(`Link ${index + 1} says “${linkText}”; its H2 says “${targetText}”.`);
+      });
+      eligibleH2s.forEach(heading => {
+        if (!linkedH2s.has(heading)) diagnostics.push(`Missing link for H2 “${normalizeSpace(heading.textContent)}” (${anchorIdForHeading(heading) ? `#${anchorIdForHeading(heading)}` : "no anchor found"}).`);
+      });
       if (diagnostics.length) add("on-this-page-links", onThisPage, `${diagnostics.length} mismatch${diagnostics.length === 1 ? "" : "es"} across ${links.length} links and ${eligibleH2s.length} eligible H2 headings`, null, { diagnostics });
     }
 
@@ -1441,9 +1495,25 @@
       }
 
       const approvedGovernmentRanges = approvedTermRanges(value);
+      const bcGovernmentExpression = /\bB\.C\.\s+Government\b(?!\s+of\b)/g;
+      let bcGovernmentMatch;
+      while ((bcGovernmentMatch = bcGovernmentExpression.exec(value))) {
+        const governmentIndex = bcGovernmentMatch.index + bcGovernmentMatch[0].lastIndexOf("Government");
+        add("government-capitalization", parent, value, null, {
+          flaggedToken: "Government",
+          matchText: "Government",
+          replacement: "government",
+          proposedPhrase: "B.C. Government",
+          contextText: value,
+          matchIndex: governmentIndex,
+          diagnostics: ["‘B.C. government’ is a descriptive reference, not the full formal name ‘Government of British Columbia’."],
+          matchedException: exceptionAtIndex(savedExceptions, "government-capitalization", value, governmentIndex, hostname)
+        });
+      }
       const governmentExpression = /\bGovernment\b/g;
       let governmentMatch;
       while ((governmentMatch = governmentExpression.exec(value))) {
+        if (/B\.C\.\s+$/.test(value.slice(Math.max(0, governmentMatch.index - 8), governmentMatch.index))) continue;
         if (isSentenceInitial(value, governmentMatch.index)) continue;
         if (isInsideRange(governmentMatch.index, approvedGovernmentRanges)) continue;
         const after = value.slice(governmentMatch.index + governmentMatch[0].length);
@@ -1643,24 +1713,26 @@
       const expression = /\b[A-Z][A-Z0-9]{1,5}s?\b/g;
       let match;
       while ((match = expression.exec(node.nodeValue))) {
-        if (!firstAcronymOccurrences.has(match[0])) firstAcronymOccurrences.set(match[0], { node, nodeIndex, index: match.index });
+        const base = acronymBase(match[0]);
+        if (!firstAcronymOccurrences.has(base)) firstAcronymOccurrences.set(base, { node, nodeIndex, index: match.index, token: match[0] });
       }
     });
     firstAcronymOccurrences.forEach((occurrence, acronym) => {
+      const displayedAcronym = occurrence.token || acronym;
       if (!englishLanguage) return;
-      if (isWellKnownAcronym(acronym)) return;
+      if (isWellKnownAcronym(acronym) || isWellKnownAcronym(displayedAcronym)) return;
       if (isCommonRomanNumeral(acronym)) return;
       if (/^[A-Z]\d[A-Z]$/.test(acronym)) return;
       const parent = occurrence.node.parentElement;
       const element = parent.closest("h1,h2,h3,h4,h5,h6,p,li,dd,dt,figcaption,blockquote") || parent;
-      const elementText = normalizeSpace(element.textContent || occurrence.node.nodeValue || acronym);
+      const elementText = normalizeSpace(element.textContent || occurrence.node.nodeValue || displayedAcronym);
       if (isPostalAcronymContext(acronym, elementText, element)) return;
-      if (acronymDefinedInText(elementText, acronym) || acronymDefinedAcrossParts(acronymTextParts, occurrence.nodeIndex, occurrence.index, acronym)) return;
-      const termIndex = Math.max(0, elementText.indexOf(acronym));
+      if (acronymDefinedInText(elementText, displayedAcronym) || acronymDefinedAcrossParts(acronymTextParts, occurrence.nodeIndex, occurrence.index, displayedAcronym)) return;
+      const termIndex = Math.max(0, exactTokenIndex(elementText, displayedAcronym));
       add("undefined-acronym", element || root, `First use: ${elementText}`, null, {
-        flaggedToken: acronym,
-        matchText: acronym,
-        proposedPhrase: proposeExactPhrase(elementText, termIndex, acronym),
+        flaggedToken: displayedAcronym,
+        matchText: displayedAcronym,
+        proposedPhrase: proposeExactPhrase(elementText, termIndex, displayedAcronym),
         contextText: elementText,
         matchIndex: termIndex,
         diagnostics: [`No earlier definition in the form “full term (${acronym})” was found in the scanned content.`],
@@ -1788,6 +1860,7 @@
 
     Array.from(root.querySelectorAll("strong,b")).filter(inScanArea).forEach(element => {
       if (element.parentElement && element.parentElement.closest("strong,b")) return;
+      if (element.closest("h1,h2,h3,h4,h5,h6")) return;
       if (element.closest("figure,figcaption,[class*='chart' i],[role='img']")) return;
       if (element.closest("a")) {
         add("bold-link", element, element.textContent, null,
@@ -1800,10 +1873,10 @@
       if (nearby && levels < 4 && nearby.querySelector("figure")) return;
       if (element.closest("h1,h2,h3,h4,h5,h6") || words(element.textContent).length > 12) add("bold-block", element, element.textContent);
     });
-    Array.from(root.querySelectorAll("em,i")).filter(inScanArea).forEach(element => add("italics", element, element.textContent));
+    Array.from(root.querySelectorAll("em,i")).filter(inScanArea).filter(element => !element.closest("h1,h2,h3,h4,h5,h6")).forEach(element => add("italics", element, element.textContent));
     Array.from(root.querySelectorAll("s,strike,del")).filter(inScanArea).forEach(element => add("strikethrough", element, element.textContent));
     Array.from(root.querySelectorAll("u")).filter(inScanArea).forEach(element => {
-      if (!element.closest("a")) add("underline", element, element.textContent);
+      if (!element.closest("a,h1,h2,h3,h4,h5,h6")) add("underline", element, element.textContent);
     });
 
     const aligned = new Set();
@@ -1890,7 +1963,13 @@
     return {
       ruleVersion: RULE_VERSION,
       scannedAt: new Date().toISOString(),
-      page: { title: title || "Untitled page", url: pageUrl, hostname },
+      page: {
+        title: title || "Untitled page",
+        url: pageUrl,
+        hostname,
+        instanceId: doc.defaultView && doc.defaultView.performance ? String(doc.defaultView.performance.timeOrigin || "") : "",
+        contentSignature: hashString(`${mainText}|${headings.map(heading => normalizeSpace(heading.textContent)).join("|")}|${links.length}`)
+      },
       settings: {
         scope,
         profile,
@@ -1949,6 +2028,8 @@
       listEndingNeedsRemoval,
       acronymDefinedInText,
       acronymDefinedAcrossParts,
+      acronymBase,
+      exactTokenIndex,
       isWellKnownAcronym,
       isCommonRomanNumeral,
       isPostalAcronymContext,

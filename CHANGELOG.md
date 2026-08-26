@@ -2,6 +2,21 @@
 
 All notable public changes to the B.C. Web Style Guide Checker will be recorded here.
 
+## 1.2.0 — 2026-08-25
+
+- Improved sentence detection around email addresses, web addresses, decimal file sizes and abbreviations so paragraphs and list items are counted more accurately
+- Recognized plural acronyms after a singular definition and definitions that contain abbreviations such as `B.C.`
+- Corrected exact acronym highlighting when the same letters appear inside a longer acronym
+- Removed unconditional plain-language flags for `accommodation`, `individual` and `request`, which depend on context
+- Expanded CMS Lite published-page checks to supported authored accordions and supplemental components while continuing to exclude shared template content
+- Added H1 sentence-case coverage and more precise checks for `B.C. Government`
+- Reworked `On this page` results to identify missing targets, H3 or H4 targets, repeated links, order differences and text differences separately
+- Combined bold, italic and underline findings inside a heading into one heading-formatting finding
+- Added a true page-order review sequence that can move between different issue types
+- Warned when the page has reloaded since a saved review was created
+- Kept the active page highlight visible during review and added a compact link-status shortcut
+- Kept feedback navigation and note actions available while scrolling
+
 ## 1.1.1 — 2026-08-25
 
 - Stopped treating common file extensions, HR, selected Roman numerals and Canadian postal abbreviations as undefined acronyms in the contexts where they are expected

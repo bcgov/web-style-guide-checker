@@ -86,13 +86,13 @@ function $(id) { return document.getElementById(id); }
 function cacheElements() {
   [
     "active-page-label", "return-review-button", "feedback-header-button", "feedback-header-count", "profile-badge", "colour-control-row", "colour-control", "scope-note", "scan-button", "scan-permission-button", "cache-note",
-    "scan-settings", "cancel-settings-button", "scan-context-title", "scan-context-details", "change-scan-button", "stale-report-banner",
+    "scan-settings", "cancel-settings-button", "scan-context-title", "scan-context-details", "change-scan-button", "stale-report-banner", "stale-report-title", "stale-report-message",
     "cms-lite-settings", "cms-whole-scan", "standard-scope-settings", "choose-section-button", "clear-section-button", "section-scope-label",
     "current-loading", "current-error", "current-error-message", "current-results", "copy-button", "csv-button",
     "counts", "rescan-button", "status-filter", "severity-filter", "category-filter", "sort-order", "important-filter", "showing-count",
     "filter-panel", "filter-count", "active-filters", "clear-filters", "open-filter-button", "filter-close",
     "list-controls", "list-review-panel", "guided-review-panel", "page-details-panel", "findings", "manual-checks",
-    "findings-tab-count", "review-issues-button", "view-reviewed-button", "reviewed-count", "review-back-button",
+    "findings-tab-count", "review-issues-button", "view-reviewed-button", "reviewed-count", "link-check-shortcut", "link-check-shortcut-status", "review-back-button",
     "guided-progress", "guided-finding", "guided-previous", "guided-next", "follow-page-control", "follow-page", "workspace-review-note", "page-details", "manual-review",
     "previous-issue-type", "next-issue-type", "current-issue-type",
     "current-export-findings", "current-export-metadata", "current-export-stats", "current-export-links", "current-export-reviewed",
@@ -361,6 +361,32 @@ function showCurrentState(name, message) {
   if (message) elements["current-error-message"].textContent = message;
 }
 
+async function cachedPageChanged(tab, report) {
+  if (!tab || !tab.id || !report || !report.page || !report.page.instanceId) return false;
+  if (canonicalUrl(tab.url || "") !== canonicalUrl(report.page.url || "")) return true;
+  try {
+    const results = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: () => String(performance.timeOrigin || "")
+    });
+    return Boolean(results[0] && results[0].result && results[0].result !== report.page.instanceId);
+  } catch (_) {
+    return false;
+  }
+}
+
+function showStaleState(report, pageChanged) {
+  const rulesChanged = Boolean(report && report.ruleVersion !== globalThis.BCWebStyleGuideChecker.ruleVersion);
+  elements["stale-report-banner"].hidden = !rulesChanged && !pageChanged;
+  if (pageChanged) {
+    elements["stale-report-title"].textContent = "The page has reloaded since this review.";
+    elements["stale-report-message"].textContent = "Your saved decisions are still here. Rescan to check the current page content.";
+  } else if (rulesChanged) {
+    elements["stale-report-title"].textContent = "New checker rules are available.";
+    elements["stale-report-message"].textContent = "Rescan the page to update the findings.";
+  }
+}
+
 function showScanSettings() {
   elements["scan-settings"].hidden = false;
   elements["cancel-settings-button"].hidden = !state.activeReport;
@@ -390,7 +416,7 @@ async function syncActiveTab() {
       renderCurrentReport();
       showCurrentState("results");
       elements["scan-settings"].hidden = true;
-      elements["stale-report-banner"].hidden = cached.ruleVersion === globalThis.BCWebStyleGuideChecker.ruleVersion;
+      showStaleState(cached, await cachedPageChanged(tab, cached));
       restoreReviewScroll(state.activePageKey);
     } else if (surfaceParams.get("view") === "current") {
       state.activePageKey = tab ? reportKey(tab.url || "") : "";
@@ -421,7 +447,7 @@ async function syncActiveTab() {
     if (elements["status-filter"]) elements["status-filter"].value = "open";
     if (elements["severity-filter"]) elements["severity-filter"].value = "all";
     if (elements["category-filter"]) elements["category-filter"].value = "all";
-    if (elements["sort-order"]) elements["sort-order"].value = "recommended";
+    if (elements["sort-order"]) elements["sort-order"].value = "type";
     if (elements["important-filter"]) elements["important-filter"].checked = false;
     if (elements["follow-page"]) elements["follow-page"].checked = true;
     state.activePageKey = nextPageKey;
@@ -446,7 +472,7 @@ async function syncActiveTab() {
     showCurrentState("results");
     elements["scan-settings"].hidden = true;
     elements["cache-note"].textContent = `Showing saved results from ${formatDate(cached.scannedAt)}.`;
-    elements["stale-report-banner"].hidden = cached.ruleVersion === globalThis.BCWebStyleGuideChecker.ruleVersion;
+    showStaleState(cached, await cachedPageChanged(tab, cached));
     restoreReviewScroll(nextPageKey);
   } else {
     state.activeReport = null;
@@ -858,7 +884,7 @@ function restoreReviewContext(pageKey) {
   elements["status-filter"].value = saved.status || "open";
   elements["severity-filter"].value = saved.severity || "all";
   elements["category-filter"].value = saved.category || "all";
-  elements["sort-order"].value = saved.sortOrder === "page" ? "page" : "recommended";
+  elements["sort-order"].value = saved.sortOrder === "page" ? "page" : "type";
   elements["important-filter"].checked = Boolean(saved.important);
   elements["follow-page"].checked = saved.followPage !== false;
   state.collapsedFindingGroups = new Set(saved.collapsed || []);
@@ -904,7 +930,7 @@ async function scanCurrentPage(suppliedOptions) {
     elements["status-filter"].value = preserved ? preserved.status : "open";
     elements["severity-filter"].value = preserved ? preserved.severity : "all";
     elements["category-filter"].value = preserved ? preserved.category : "all";
-    elements["sort-order"].value = preserved && preserved.sortOrder === "page" ? "page" : "recommended";
+    elements["sort-order"].value = preserved && preserved.sortOrder === "page" ? "page" : "type";
     state.guidedIndex = preserved ? preserved.guidedIndex : 0;
     state.guidedFingerprint = preserved ? preserved.guidedFingerprint : "";
     state.selectedRuleId = preserved ? preserved.selectedRuleId : "";
@@ -1023,6 +1049,15 @@ function groupedFindingTypes(items = filteredFindings()) {
       || first.title.localeCompare(second.title));
 }
 
+function orderedReviewFindings(items = filteredFindings()) {
+  const pageSort = elements["sort-order"] && elements["sort-order"].value === "page";
+  if (pageSort) return items.slice().sort((first, second) =>
+    (first.pageOrder ?? Number.MAX_SAFE_INTEGER) - (second.pageOrder ?? Number.MAX_SAFE_INTEGER)
+      || (first.matchIndex ?? Number.MAX_SAFE_INTEGER) - (second.matchIndex ?? Number.MAX_SAFE_INTEGER)
+      || first.title.localeCompare(second.title));
+  return groupedFindingTypes(items).flatMap(group => group.findings);
+}
+
 function updateFilterUi() {
   const filters = [];
   const status = elements["status-filter"].value;
@@ -1057,6 +1092,10 @@ function renderFindings() {
   const occurrences = items.reduce((total, finding) => total + findingAmount(finding), 0);
   elements["showing-count"].textContent = `${groups.length} issue type${groups.length === 1 ? "" : "s"} · ${occurrences} finding${occurrences === 1 ? "" : "s"}`;
   renderReviewLauncher(groups);
+  const linkCheck = state.activeReport && state.activeReport.linkCheck;
+  elements["link-check-shortcut-status"].textContent = linkCheck
+    ? `${linkCheck.completed || 0} checked · ${linkCheck.broken || 0} broken · ${(linkCheck.serverErrors || 0) + (linkCheck.unavailable || 0) + (linkCheck.permissionRequired || 0)} need review`
+    : "Not checked · optional website access";
   if (!items.length) {
     const openCount = openIssues(state.activeReport).length;
     elements.findings.innerHTML = `<div class="empty-state"><strong>${openCount ? "No findings match these filters." : "No open findings were detected."}</strong><br>${openCount ? "Clear a filter to see the other findings." : "Manual review may still be useful."}</div>`;
@@ -1073,9 +1112,10 @@ function renderFindings() {
 }
 
 function renderReviewLauncher(groups) {
-  const next = groups[0] || null;
+  const next = orderedReviewFindings()[0] || null;
   elements["review-issues-button"].disabled = !next;
   elements["review-issues-button"].dataset.ruleId = next ? next.ruleId : "";
+  elements["review-issues-button"].dataset.fingerprint = next ? next.fingerprint : "";
   elements["review-issues-button"].textContent = next ? "Review issues" : "No issues to review";
 }
 
@@ -1112,6 +1152,7 @@ function updateIssueTypeLabel() {
 }
 
 function jumpIssueType(amount) {
+  if (elements["sort-order"].value === "page") return;
   const items = guidedFindings();
   const current = items[state.guidedIndex];
   if (!current) return;
@@ -1141,7 +1182,7 @@ function openRuleGroup(ruleId, fingerprint = "", options = {}) {
   const group = groups.find(item => item.ruleId === ruleId);
   if (!group || !group.findings.length) return;
   state.selectedRuleId = ruleId;
-  state.detailQueue = groups.flatMap(item => item.findings.map(finding => finding.fingerprint));
+  state.detailQueue = orderedReviewFindings().map(finding => finding.fingerprint);
   const firstInGroup = group.findings[0].fingerprint;
   const requestedIndex = state.detailQueue.indexOf(fingerprint || firstInGroup);
   state.guidedIndex = requestedIndex >= 0 ? requestedIndex : 0;
@@ -1161,6 +1202,7 @@ function openRuleGroup(ruleId, fingerprint = "", options = {}) {
 function closeFindingReview() {
   state.reviewMode = "list";
   state.decisionMessage = "";
+  clearFindingHighlight();
   renderReviewView();
   persistReviewContext(state.activePageKey).catch(() => {});
   requestAnimationFrame(() => {
@@ -1209,7 +1251,7 @@ function renderFinding(finding) {
       ${note.text ? `<div class="audit-note"><strong>Audit note</strong><p>${escapeHtml(note.text)}</p></div>` : ""}
       <div class="finding-footer">
         <div class="finding-actions">
-          ${finding.selector ? `<button class="small-button locate-button" type="button" data-selector="${escapeHtml(finding.selector)}">${workspaceSurface ? "View on original page" : "Show again on page"}</button>` : ""}
+          ${finding.selector ? `<button class="small-button locate-button" type="button" data-selector="${escapeHtml(finding.selector)}">${workspaceSurface ? "Show in source tab" : "Show again on page"}</button>` : ""}
           ${canReview ? `<button class="small-button decision-button resolve-button" type="button" data-status="resolved">Mark resolved</button><button class="small-button decision-button" type="button" data-status="ignored">Ignore finding</button>` : `<button class="small-button reopen-button" type="button">Reopen finding</button>`}
           ${canReview && finding.exceptionEligible ? `<button class="small-button exception-button" type="button">Always allow exact term</button>` : ""}
           <button class="small-button note-button" type="button">${note.text || note.important ? "Edit note or importance" : "Add note or importance"}</button>
@@ -1309,7 +1351,16 @@ function switchReviewMode(name) {
 
 function guidedFindings() {
   if (!state.activeReport) return [];
-  const byFingerprint = new Map(state.activeReport.issues.map(finding => [finding.fingerprint, finding]));
+  const severity = elements["severity-filter"].value;
+  const category = elements["category-filter"].value;
+  const importantOnly = elements["important-filter"].checked;
+  const byFingerprint = new Map(state.activeReport.issues.filter(finding => {
+    const automaticallyIgnored = finding.automaticStatus === "ignored" && !state.decisions[finding.fingerprint];
+    return !automaticallyIgnored
+      && (severity === "all" || severity === finding.severity)
+      && (category === "all" || category === finding.category)
+      && (!importantOnly || importantFinding(finding));
+  }).map(finding => [finding.fingerprint, finding]));
   return state.detailQueue.map(fingerprint => byFingerprint.get(fingerprint)).filter(Boolean);
 }
 
@@ -1341,12 +1392,14 @@ function renderGuidedReview(locate) {
   const nextFinding = items[state.guidedIndex + 1] || null;
   const atLastInType = !nextFinding || nextFinding.ruleId !== finding.ruleId;
   const hasNextType = Boolean(nextFinding && nextFinding.ruleId !== finding.ruleId);
-  elements["guided-next"].textContent = atLastFinding ? "Return to findings" : atLastInType ? "Next issue type" : "Next";
-  elements["next-issue-type"].classList.toggle("is-placeholder", atLastInType);
-  elements["next-issue-type"].disabled = atLastInType;
-  elements["next-issue-type"].setAttribute("aria-hidden", String(atLastInType));
-  elements["next-issue-type"].tabIndex = atLastInType ? -1 : 0;
-  elements["next-issue-type"].textContent = hasNextType ? "Skip to next issue type" : "Return to findings";
+  const pageOrder = elements["sort-order"].value === "page";
+  elements["guided-next"].textContent = atLastFinding ? "Return to findings" : (!pageOrder && atLastInType) ? "Next issue type" : "Next";
+  const hideIssueTypeShortcut = pageOrder || atLastInType;
+  elements["next-issue-type"].classList.toggle("is-placeholder", hideIssueTypeShortcut);
+  elements["next-issue-type"].disabled = hideIssueTypeShortcut;
+  elements["next-issue-type"].setAttribute("aria-hidden", String(hideIssueTypeShortcut));
+  elements["next-issue-type"].tabIndex = hideIssueTypeShortcut ? -1 : 0;
+  elements["next-issue-type"].textContent = hasNextType && !pageOrder ? "Skip to next issue type" : "Return to findings";
   if (locate && !workspaceSurface && elements["follow-page"].checked && finding.selector) {
     highlightSelector(finding.selector, true, false);
   }
@@ -1408,7 +1461,7 @@ function renderPageDetails(section = "overview") {
       <span class="link-destination">${escapeHtml(result.link.href)}</span>
       ${result.redirected && result.finalUrl ? `<span class="link-redirect">Redirects to ${escapeHtml(result.finalUrl)}</span>` : ""}
       ${result.error ? `<span class="link-error">${escapeHtml(result.error)}</span>` : ""}
-      <div class="link-result-actions">${result.link.selector ? `<button class="button tertiary compact detail-jump" type="button" data-selector="${escapeHtml(result.link.selector)}">${workspaceSurface ? "View on original page" : "Show on page"}</button>` : ""}<button class="button tertiary compact open-background-link" type="button" data-url="${escapeHtml(result.link.href)}">Open in background</button></div>
+      <div class="link-result-actions">${result.link.selector ? `<button class="button tertiary compact detail-jump" type="button" data-selector="${escapeHtml(result.link.selector)}">${workspaceSurface ? "Show in source tab" : "Show on page"}</button>` : ""}<button class="button tertiary compact open-background-link" type="button" data-url="${escapeHtml(result.link.href)}">Open in background</button></div>
     </li>`;
   const linkResultGroups = linkCheck && Array.isArray(linkCheck.results) ? resultPriority.map(status => {
     const results = linkCheck.results.filter(result => result.status === status);
@@ -1489,20 +1542,22 @@ async function highlightSelector(selector, requireReport, activateTab = false) {
         }
         const element = document.querySelector(selected);
         if (!element) return;
+        const details = element.closest("details");
+        if (details) details.open = true;
+        const collapsed = element.closest(".collapse,[class*='collapse' i],[class*='accordion' i],.panel");
+        if (collapsed) {
+          const id = collapsed.id;
+          const trigger = id
+            ? document.querySelector(`[aria-controls="${globalThis.CSS && CSS.escape ? CSS.escape(id) : id}"]`)
+            : collapsed.querySelector("[aria-expanded='false'],.collapsed");
+          if (trigger && trigger.getAttribute("aria-expanded") !== "true") trigger.click();
+        }
         element.dataset.bcStyleCheckerOutline = element.style.outline;
         element.dataset.bcStyleCheckerOffset = element.style.outlineOffset;
         element.dataset.bcStyleCheckerHighlight = "true";
         element.style.outline = "4px solid #fcba19";
         element.style.outlineOffset = "3px";
         element.scrollIntoView({ behavior: "smooth", block: "center" });
-        setTimeout(() => {
-          if (!element.dataset.bcStyleCheckerHighlight) return;
-          element.style.outline = element.dataset.bcStyleCheckerOutline || "";
-          element.style.outlineOffset = element.dataset.bcStyleCheckerOffset || "";
-          delete element.dataset.bcStyleCheckerHighlight;
-          delete element.dataset.bcStyleCheckerOutline;
-          delete element.dataset.bcStyleCheckerOffset;
-        }, 5000);
       }
     });
     if (activateTab) await chrome.tabs.update(tab.id, { active: true });
@@ -1513,7 +1568,27 @@ async function highlightSelector(selector, requireReport, activateTab = false) {
 
 function locateFinding(selector) { return highlightSelector(selector, true, workspaceSurface); }
 
+async function clearFindingHighlight() {
+  try {
+    const tab = await currentReviewTab();
+    if (!tab || !tab.id) return;
+    await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: () => {
+        const element = document.querySelector("[data-bc-style-checker-highlight]");
+        if (!element) return;
+        element.style.outline = element.dataset.bcStyleCheckerOutline || "";
+        element.style.outlineOffset = element.dataset.bcStyleCheckerOffset || "";
+        delete element.dataset.bcStyleCheckerHighlight;
+        delete element.dataset.bcStyleCheckerOutline;
+        delete element.dataset.bcStyleCheckerOffset;
+      }
+    });
+  } catch (_) {}
+}
+
 async function clearPageOverlays() {
+  await clearFindingHighlight();
   const tabId = state.overlayTabId;
   if (!tabId) return;
   try {
@@ -2796,7 +2871,14 @@ function bindEvents() {
   document.querySelectorAll(".review-tab").forEach(button => button.addEventListener("click", () => switchReviewView(button.dataset.reviewView)));
   elements["review-issues-button"].addEventListener("click", () => {
     const ruleId = elements["review-issues-button"].dataset.ruleId;
-    if (ruleId) openRuleGroup(ruleId);
+    const fingerprint = elements["review-issues-button"].dataset.fingerprint || "";
+    if (ruleId) openRuleGroup(ruleId, fingerprint);
+  });
+  elements["link-check-shortcut"].addEventListener("click", () => {
+    state.reviewView = "details";
+    state.pageDetailSection = "links";
+    renderReviewView();
+    persistReviewContext(state.activePageKey).catch(() => {});
   });
   elements["view-reviewed-button"].addEventListener("click", () => {
     elements["status-filter"].value = "reviewed";
@@ -2819,7 +2901,7 @@ function bindEvents() {
     if (elements["follow-page"].checked && state.reviewMode === "detail") {
       const finding = guidedFindings()[state.guidedIndex];
       if (finding && finding.selector) highlightSelector(finding.selector, true, false);
-    }
+    } else if (!elements["follow-page"].checked) clearFindingHighlight();
     persistReviewContext(state.activePageKey).catch(() => {});
   });
 

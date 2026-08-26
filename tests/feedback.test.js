@@ -25,8 +25,8 @@ const context = {
     userAgent: "Mozilla/5.0 Chrome/151.0.0.0 Safari/537.36",
     platform: "Win32"
   },
-  chrome: { runtime: { getManifest: () => ({ version: "1.1.1" }) } },
-  BCWebStyleGuideChecker: { ruleVersion: "1.1.1" },
+  chrome: { runtime: { getManifest: () => ({ version: "1.2.0" }) } },
+  BCWebStyleGuideChecker: { ruleVersion: "1.2.0" },
   canonicalUrl: value => String(value).split("#")[0],
   formatDate: value => new Date(value).toISOString(),
   normalizeSpace: value => String(value || "").replace(/\s+/g, " ").trim(),
@@ -51,8 +51,8 @@ const included = {
     pageSection: "Details",
     selectedText: "Programs & services",
     finding: null,
-    extensionVersion: "1.1.1",
-    rulesVersion: "1.1.1",
+    extensionVersion: "1.2.0",
+    rulesVersion: "1.2.0",
     capturedAt: "2026-08-24T18:00:00.000Z"
   }
 };
@@ -74,7 +74,7 @@ assert.match(report, /Page context excluded by the tester/);
 assert.equal((report.match(/Address:/g) || []).length, 1, "Excluded page context must not be repeated in the report");
 
 const subject = context.feedbackTest.feedbackSubject([included, excluded]);
-assert.match(subject, /^Web Style Guide Checker feedback — v1\.1\.1 — \d{4}-\d{2}-\d{2} — 2 notes$/);
+assert.match(subject, /^Web Style Guide Checker feedback — v1\.2\.0 — \d{4}-\d{2}-\d{2} — 2 notes$/);
 
 const emailSummary = context.feedbackTest.feedbackEmailSummary([included, excluded], "feedback-report.txt");
 assert.match(emailSummary, /Attach the downloaded report to this email before sending/);

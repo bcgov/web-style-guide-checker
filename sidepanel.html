@@ -100,8 +100,8 @@
           </div>
 
           <div id="stale-report-banner" class="notice warning" hidden role="status">
-            <strong>New checker rules are available.</strong>
-            <span>Rescan the page to update the findings.</span>
+            <strong id="stale-report-title">This saved review may be out of date.</strong>
+            <span id="stale-report-message">Rescan the page to update the findings.</span>
           </div>
 
           <div class="review-shell">
@@ -121,8 +121,8 @@
               <section class="review-launch" aria-label="Start reviewing findings">
                 <label for="sort-order">Review order</label>
                 <select id="sort-order">
-                  <option value="recommended">Recommended order</option>
-                  <option value="page">Page order</option>
+                  <option value="type">By issue type</option>
+                  <option value="page">In page order</option>
                 </select>
                 <button id="review-issues-button" class="button primary" type="button">Review issues</button>
               </section>
@@ -136,6 +136,10 @@
                 <span><strong>Reviewed findings</strong><small>View ignored and resolved items</small></span>
                 <span id="reviewed-count">0</span>
               </button>
+              <button id="link-check-shortcut" class="link-check-shortcut" type="button">
+                <span><strong>Link status</strong><small id="link-check-shortcut-status">Not checked</small></span>
+                <span>Check links</span>
+              </button>
             </section>
 
             <section id="guided-review-panel" class="review-panel finding-review-panel" role="tabpanel" aria-labelledby="findings-review-tab" hidden>
@@ -144,7 +148,7 @@
                 <span id="guided-progress"></span>
               </div>
               <label id="follow-page-control" class="follow-page-control"><input id="follow-page" type="checkbox" checked> Follow findings on page</label>
-              <p id="workspace-review-note" class="workspace-review-note" hidden>This review is open in a separate tab. Use <strong>View on original page</strong> to switch to the scanned page.</p>
+              <p id="workspace-review-note" class="workspace-review-note" hidden>This review is open in a separate tab. Use <strong>Show in source tab</strong> to return to the scanned page.</p>
               <div id="guided-finding"></div>
               <nav class="finding-navigation" aria-label="Finding navigation">
                 <button id="guided-previous" class="button secondary" type="button">Previous</button>

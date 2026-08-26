@@ -79,6 +79,21 @@ async function scan(page, html, options = {}) {
     assert.equal(safeAcronymContexts.issues.some(issue => issue.ruleId === "undefined-acronym" && issue.flaggedToken === token), false, `${token} should not be treated as an undefined acronym here`);
   });
 
+  const acronymDefinitions = await scan(page, `
+    <main><h1>Export agreements</h1>
+      <p>Canada has several Free Trade Agreements (FTAs).</p>
+      <p>Recreation Sites and Trails B.C. (RSTBC) manages public recreation sites.</p>
+    </main>`);
+  assert.equal(acronymDefinitions.issues.some(issue => issue.ruleId === "undefined-acronym" && ["FTA", "FTAs", "RSTBC"].includes(issue.flaggedToken)), false);
+
+  const exactAcronymHighlight = await scan(page, `
+    <main><h1>Protect intellectual property</h1>
+      <p>Canadian Intellectual Property Office (CIPO) offers IP tools and resources.</p>
+    </main>`);
+  const ipFinding = exactAcronymHighlight.issues.find(issue => issue.ruleId === "undefined-acronym" && issue.flaggedToken === "IP");
+  assert.ok(ipFinding, "IP should still be reviewed when only CIPO is defined");
+  assert.equal(ipFinding.contextText.slice(ipFinding.matchIndex, ipFinding.matchIndex + 2), "IP");
+
   const whitespaceChecks = await scan(page, `
     <main><h1>Trail information</h1>
       <p><a href="/manual">Chapter 10 of the Recreation Manual </a></p>
@@ -106,6 +121,36 @@ async function scan(page, html, options = {}) {
   const slash = orderedFindings.issues.find(issue => issue.ruleId === "slash");
   assert.equal(Number.isFinite(semicolon.pageOrder), true);
   assert.equal(semicolon.pageOrder < slash.pageOrder, true);
+
+  const headingOverlap = await scan(page, `
+    <main><h1>Conservation Surcharges</h1><h2><strong>Important information</strong></h2><p>Read the details.</p></main>`);
+  assert.equal(headingOverlap.issues.filter(issue => issue.ruleId === "heading-title-case" && /Conservation Surcharges/.test(issue.evidence)).length, 1);
+  assert.equal(headingOverlap.issues.filter(issue => issue.ruleId === "heading-formatting").length, 1);
+  assert.equal(headingOverlap.issues.some(issue => ["bold-block", "bold-link", "italic", "underline"].includes(issue.ruleId) && /Important information/.test(issue.evidence)), false);
+
+  const governmentNames = await scan(page, `
+    <main><h1>Government services</h1>
+      <p>The Government of British Columbia provides the service.</p>
+      <p>The B.C. Government updated the page.</p>
+    </main>`);
+  assert.equal(governmentNames.issues.filter(issue => issue.ruleId === "government-capitalization").length, 1);
+  assert.match(governmentNames.issues.find(issue => issue.ruleId === "government-capitalization").evidence, /B\.C\. Government/);
+
+  const h3JumpLink = await scan(page, `
+    <main><h1>Application guide</h1><h2>On this page</h2><ul>
+      <li><a href="#overview">Overview</a></li><li><a href="#documents">Documents</a></li><li><a href="#contact">Contact</a></li>
+    </ul><h2 id="overview">Overview</h2><p>Overview.</p><h3 id="documents">Documents</h3><p>Documents.</p><h2 id="contact">Contact</h2><p>Contact.</p></main>`);
+  const jumpFinding = h3JumpLink.issues.find(issue => issue.ruleId === "on-this-page-links");
+  assert.ok(jumpFinding);
+  assert.equal(jumpFinding.diagnostics.some(message => /points to H3 “Documents”/.test(message)), true);
+
+  const cmsComponents = await scan(page, `
+    <main class="topicMain__container"><h1>CMS Lite content</h1>
+      <section id="cmf-ui-supplementary-content"><h2>Help &amp; Support</h2><p>Supplemental authored content.</p></section>
+      <section class="accordion"><button aria-expanded="false" aria-controls="answer">Details</button><div id="answer" class="collapse" style="display:none"><h3>Apply &amp;Pay</h3><p>Collapsed authored content.</p></div></section>
+    </main>`, { profile: "cms-lite" });
+  assert.equal(cmsComponents.issues.some(issue => issue.ruleId === "ampersand" && /Help & Support/.test(issue.evidence)), true);
+  assert.equal(cmsComponents.issues.some(issue => issue.ruleId === "missing-space-after-ampersand" && /Apply &Pay/.test(issue.evidence)), true);
 
   await browser.close();
   console.log("Browser regression tests passed");

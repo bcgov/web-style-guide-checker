@@ -31,6 +31,8 @@ function has(report, ruleId) {
   assert.equal(has(report, "government-capitalization"), false);
   report = await scan(page, "<p>The office is at 501 Government Street.</p>");
   assert.equal(has(report, "government-capitalization"), false);
+  report = await scan(page, "<p>The B.C. Government introduced a new service.</p>");
+  assert.equal(report.issues.filter(issue => issue.ruleId === "government-capitalization").length, 1);
 
   report = await scan(page, "<p>Contact Dr. Jane Smith for advice.</p>");
   assert.equal(has(report, "academic-title"), true);
@@ -126,6 +128,11 @@ function has(report, ruleId) {
   report = await scan(page, "<p>Le gouvernement fournit des services. Therefore est un mot anglais.</p>", {}, "fr-CA");
   assert.equal(has(report, "formal-sentence-starter"), false);
   assert.equal(report.stats.readingGrade, null);
+
+  report = await scan(page, "<p>To request an accommodation, contact the office.</p><p>Submit individual applications.</p><p>Use the subject line Refund Request.</p>");
+  ["accommodation", "individual", "request"].forEach(word => {
+    assert.equal(report.issues.some(issue => issue.ruleId === "complex-phrase" && issue.flaggedToken && issue.flaggedToken.toLowerCase() === word), false);
+  });
 
   await browser.close();
   console.log("Style-guide rule tests passed");
