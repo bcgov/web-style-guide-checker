@@ -48,7 +48,7 @@
     "reading-level": ["Plain language", "review", "Review the reading level", "The guide targets Grade 8. The checker raises this review finding at Grade 9 or higher.", "Simplify sentence structure and replace complex words where meaning allows. The displayed grade is an estimate.", "plain"],
     "complex-phrase": ["Plain language", "check", "Consider a simpler phrase", "The guide recommends common, everyday words.", "Use the suggested plain-language wording when it preserves the intended meaning.", "plain"],
     "filler-phrase": ["Plain language", "check", "Cut unnecessary words", "Extra words make content slower to scan.", "Use the shorter wording suggested by the guide.", "plain"],
-    "passive-voice": ["Plain language", "review", "Check for passive voice", "Active voice is usually shorter and makes responsibility clearer.", "Name the person or organization doing the action and use subject–verb–object order where appropriate.", "grammar"],
+    "passive-voice": ["Plain language", "review", "Check for passive voice", "Passive wording can make it unclear who is responsible. The highlighted words may be only one passive part of an otherwise clear sentence.", "Name the person or organization doing the action when that improves clarity. For example, change ‘Applications can be sent by email’ to ‘Send applications by email.’", "grammar"],
     "negative-contraction": ["Plain language", "check", "Avoid a negative contraction", "Negative contractions can be misread as their opposite.", "Write out the negative form, such as ‘do not’ or ‘cannot’.", "grammar"],
     "undefined-acronym": ["Plain language", "review", "Define the acronym on first use", "Write a term in full the first time, followed by its abbreviation in parentheses, unless the short form is widely better known.", "Define it on first use or confirm it is better known than the long form.", "abbreviations"],
     "bc-abbreviation": ["Capitalization", "check", "Write B.C. with periods", "The province abbreviation uses periods except in brand and company names.", "Change ‘BC’ to ‘B.C.’ unless it is part of a formal brand such as BC Hydro or BC Ferries.", "abbreviations"],
@@ -65,17 +65,19 @@
     "academic-title": ["Capitalization", "review", "Confirm the academic title", "The guide reserves ‘Dr.’ for medical doctors. The checker cannot determine a person’s profession from the page.", "Keep ‘Dr.’ only for a medical doctor or where an official name or quotation must be preserved.", "capitalization"],
     "grade-capitalization": ["Capitalization", "review", "Capitalize ‘Grade’ in education content", "Capitalize Grade when it comes before a number or letter in education-related content.", "Use ‘Grade’ when this refers to a school grade. Leave other meanings, such as a product grade or road slope, unchanged.", "capitalization"],
     "faq-content": ["Content design", "review", "Restructure FAQ content", "The guide recommends integrating answers under topic-based headings because FAQs are difficult to scan and maintain.", "Group the information by topic and replace question headings with descriptive headings.", "faq"],
-    "generic-link": ["Links", "fix", "Write descriptive link text", "Link text needs to make sense without the surrounding sentence.", "Describe the destination or what someone can do there.", "links"],
+    "generic-link": ["Links", "fix", "Write descriptive link text", "Link text needs to make sense without the surrounding sentence.", "Name the destination or task. For example, replace ‘Click here’ with ‘Apply for a fishing licence.’", "links"],
     "empty-link": ["Links", "fix", "Give the link an accessible name", "A link without a name gives people no information about its destination.", "Add descriptive text or an accessible label.", "links"],
     "url-link-text": ["Links", "check", "Replace the URL with descriptive link text", "People scan links to understand where they lead.", "Use the destination name or the task someone can complete.", "links"],
     "long-link-text": ["Links", "review", "Shorten the link text", "The guide advises against linking long sentences or blocks of text.", "Link only the concise words that describe the destination.", "links"],
-    "new-tab": ["Links", "review", "Confirm the link needs a new tab", "Links should open in the same tab by default. A new tab can make sense when preserving an in-progress task or secure session.", "Remove target=\"_blank\" unless opening a new tab supports the user’s task.", "links"],
+    "new-tab": ["Links", "review", "Confirm the link needs a new tab", "Links should open in the same tab by default. A new tab can make sense when preserving an in-progress task or secure session.", "Change the link setting so it opens in the same tab, unless a new tab helps someone keep an in-progress form or secure session open.", "links"],
     "news-release-link": ["Links", "review", "Check the news release link", "News release links can become stale and should generally be replaced after 30 days.", "Link to maintained, static content where possible and confirm this news release remains necessary.", "links"],
     "email-link-text": ["Links", "fix", "Use the email address as link text", "The guide says an email link should display the email address.", "Use the full email address as the linked text.", "links"],
     "phone-unlinked": ["Links", "fix", "Link the phone number", "Phone numbers should be clickable.", "Wrap the number in a tel link using international dialling format.", "links"],
     "phone-link-format": ["Links", "fix", "Fix the phone link", "Telephone links should use international dialling format.", "Use a value such as tel:+1-250-555-0123.", "links"],
     "file-link-label": ["Links", "fix", "Add the file type and size", "Document link text should tell people the file type and size before they open it. A type on its own, such as ‘(PDF)’, is not enough.", "Add a label such as ‘(PDF, 504KB)’ to the linked text.", "links"],
+    "file-link-label-format": ["Links", "fix", "Fix the file type and size label", "A document label needs a comma after the file type and no space between the size and unit.", "Use the format ‘(PDF, 159KB)’ or the equivalent for this file.", "links"],
     "file-link-size-spacing": ["Links", "fix", "Remove the space in the file size", "File sizes use no space between the number and unit.", "Remove the space between the number and unit, such as changing ‘271 KB’ to ‘271KB’.", "links"],
+    "link-trailing-space": ["Links", "fix", "Remove the trailing space from the link", "A space at the end of linked text creates an unnecessarily large link area and can make editing less predictable.", "Remove the space at the end of the linked text.", "formatting"],
     "file-link-type-mismatch": ["Links", "fix", "Correct the file type in the link text", "The file type in the link text does not match the asset returned by the server.", "Update the type in the linked text or correct the asset.", "links"],
     "file-link-size-mismatch": ["Links", "check", "Correct the file size in the link text", "The file size in the link text does not match the size returned by the server.", "Update the displayed file size after confirming the linked asset is the intended file.", "links"],
     "punctuation-only-link": ["Links", "fix", "Remove the punctuation-only link", "A link made only from punctuation has no useful purpose when it is read on its own.", "Move the punctuation outside the link, or include it in the neighbouring descriptive link if both go to the same destination.", "links"],
@@ -86,13 +88,13 @@
     "list-depth": ["Lists", "fix", "Reduce the list depth", "The guide says never to use lists with more than 2 levels.", "Flatten or regroup the list.", "lists"],
     "list-punctuation": ["Lists", "fix", "Remove punctuation from the list item", "List items should not end in punctuation.", "Remove the final punctuation mark.", "lists"],
     "list-lowercase": ["Lists", "check", "Capitalize the list item", "The first word of each list item should be capitalized.", "Capitalize the first word unless the item intentionally demonstrates lower-case wording.", "lists"],
-    "list-long": ["Lists", "review", "Consider grouping the list", "The guide does not set a numeric limit. The checker prompts a review when a list has more than 7 items because longer lists may be harder to follow.", "Group related items under descriptive headings or into shorter lists when that helps people scan.", "lists"],
+    "list-long": ["Lists", "review", "Consider grouping the list", "A list with more than 7 items can be harder to scan and remember.", "Group related items under clear headings or split the list into shorter lists when that helps people find what they need.", "lists"],
     "list-introduction": ["Lists", "check", "Introduce the list with a colon", "The guide says to introduce a list with a colon.", "Add a colon when the preceding sentence introduces this list, or confirm that the paragraph and list are separate.", "lists"],
     "list-multiple-sentences": ["Lists", "check", "Shorten the list item", "List items are easiest to scan when they contain one sentence. A second sentence may be necessary in some cases.", "Keep one main idea in the item, or confirm that the additional sentence is necessary.", "lists"],
     "list-repetition": ["Lists", "review", "Remove repeated openings", "Repeated words at the start of list items delay the distinguishing information, especially for screen reader users.", "Move the unique information to the beginning of each item.", "lists"],
     "table-headers": ["Tables", "fix", "Add table headers", "Tables need programmatic headers so people can understand the relationships in the data.", "Use th elements for row or column headings.", "tables"],
     "table-caption": ["Tables", "review", "Check the table has a useful caption", "A short caption can make the purpose of tabular data clearer.", "Add a concise caption when the surrounding heading does not already identify the table.", "tables"],
-    "table-accordion": ["Tables", "fix", "Move the table out of the accordion", "The guide says never to use tables in accordions.", "Place the table in the main page content.", "tables"],
+    "table-accordion": ["Tables", "fix", "Move the table out of the accordion", "The guide says never to use tables in accordions.", "Place the table in the main page content.", "formatting"],
     "month-abbreviation": ["Numbers and dates", "check", "Write out the month", "Month names should be written in full when space is available.", "Use the full month name in body content.", "numbers"],
     "numeric-date": ["Numbers and dates", "check", "Write out the date", "Numeric dates are reserved for space-limited forms and tables and should use YYYY-MM-DD.", "Use a format such as ‘August 13, 2026’ in body content.", "numbers"],
     "ordinal-date": ["Numbers and dates", "fix", "Remove the ordinal from the date", "Dates should not use ordinals.", "Write ‘January 18, 2003’, not ‘January 18th, 2003’.", "numbers"],
@@ -112,10 +114,11 @@
     "currency-comma": ["Numbers and dates", "fix", "Add a comma to the monetary amount", "Use commas in monetary amounts over $999.", "Add the thousands separator, such as ‘$15,000’.", "numbers"],
     "currency-range": ["Numbers and dates", "fix", "Use ‘to’ for the monetary range", "Monetary ranges use the word ‘to’ rather than a hyphen or dash.", "Write the range using ‘to’, such as ‘$200 to $400’.", "numbers"],
     "ampersand": ["Punctuation", "review", "Check the ampersand", "The guide says to write ‘and’ except in business names and citations.", "Replace & with ‘and’ unless it is part of a formal name or citation.", "punctuation"],
+    "missing-space-after-ampersand": ["Punctuation", "fix", "Add the missing space", "A word that follows an ampersand needs a separating space.", "Add a space after the ampersand, then replace the ampersand with ‘and’ unless it is part of a formal name or citation.", "punctuation"],
     "semicolon": ["Punctuation", "fix", "Replace the semicolon", "The guide recommends 2 sentences instead of a semicolon.", "Split the sentence at the semicolon.", "punctuation"],
     "exclamation": ["Punctuation", "fix", "Remove the exclamation mark", "Government web content should use a calm, direct tone.", "Use a period or rewrite the sentence.", "punctuation"],
     "em-dash": ["Punctuation", "fix", "Replace the em dash", "The guide recommends shorter sentences instead of em dashes.", "Split the sentence or use commas when appropriate.", "punctuation"],
-    "range-dash": ["Punctuation", "check", "Use ‘to’ for the range", "Number, date and time ranges should use the word ‘to’ instead of a dash.", "Replace the dash with ‘to’ unless this is a fiscal year.", "punctuation"],
+    "range-dash": ["Punctuation", "check", "Use ‘to’ for the range", "Number, date and time ranges should use the word ‘to’ instead of a dash.", "Replace the dash with ‘to’, such as ‘May 15 to July 31’, unless this is a fiscal year.", "punctuation"],
     "slash": ["Punctuation", "check", "Replace the slash", "Slashes should be limited to URLs because forms such as ‘and/or’ can create ambiguity.", "Write the relationship explicitly.", "punctuation"],
     "apostrophe-plural": ["Punctuation", "review", "Check the apostrophe in the plural", "Apostrophes do not normally form plurals. They may instead show possession or omitted digits.", "Remove the apostrophe when this is a plural. Keep it when it correctly shows possession or omitted digits.", "punctuation"],
     "double-space": ["Formatting", "fix", "Remove the extra space", "Use one space after a sentence.", "Replace consecutive spaces with one space.", "formatting"],
@@ -136,7 +139,7 @@
     "contrast": ["Accessibility", "check", "Check the colour contrast", "Text needs sufficient contrast against its background.", "Adjust the foreground or background colour. Verify overlays and images with a dedicated contrast tool.", "contrast"]
   };
 
-  const RULE_VERSION = "1.1.0";
+  const RULE_VERSION = "1.1.1";
 
   const BUILT_IN_TERMS = [
     "BC Public Service Agency",
@@ -213,9 +216,16 @@
   const WELL_KNOWN_ACRONYMS = new Set([
     "PDF", "DNA", "HTML", "CSS", "URL", "SEO", "SMS", "WCAG", "FAQ", "FAQs", "COVID", "BC",
     "ID", "PO", "VSA", "IDIR", "RCMP", "CRC", "PSA", "PIA", "STRA", "CPPM", "BCID", "SIN", "ESS", "ERA", "ICBC",
-    "PST", "GST", "HST", "HRU", "HRUs", "GUID", "GUIDs", "IM", "IT", "MCP", "KB", "MB", "GB",
-    "NB", "NL", "NS", "NT", "PEI", "AB", "MB", "NU", "ON", "QC", "SK", "YT"
+    "PST", "GST", "HST", "HR", "HRU", "HRUs", "GUID", "GUIDs", "IM", "IT", "MCP", "KB", "MB", "GB",
+    "NB", "NL", "NS", "NT", "PEI", "AB", "MB", "NU", "ON", "QC", "SK", "YT",
+    ...Object.values(ASSET_TYPES)
   ]);
+
+  const COMMON_ROMAN_NUMERALS = new Set([
+    "II", "III", "IV", "VI", "VII", "VIII", "IX", "XI", "XII", "XIII", "XIV", "XV", "XVI", "XVII", "XVIII", "XIX", "XX"
+  ]);
+
+  const POSTAL_ACRONYMS = new Set(["STN", "PROV", "GOVT"]);
 
   const INTRANET_HEADING_ACRONYMS = new Set(["PSA", "BCGEU"]);
 
@@ -243,6 +253,19 @@
 
   function isWellKnownAcronym(value) {
     return WELL_KNOWN_ACRONYMS.has(String(value || ""));
+  }
+
+  function isCommonRomanNumeral(value) {
+    return COMMON_ROMAN_NUMERALS.has(String(value || ""));
+  }
+
+  function isPostalAcronymContext(value, context, element) {
+    if (!POSTAL_ACRONYMS.has(String(value || ""))) return false;
+    if (element && element.closest && element.closest("address")) return true;
+    const text = normalizeSpace(context).toUpperCase();
+    return /\b[A-Z]\d[A-Z]\s?\d[A-Z]\d\b/.test(text)
+      || /\b(?:PO|P\.O\.)\s+BOX\s+\d+\b/.test(text)
+      || /\bSTN\s+PROV\s+GOVT\b/.test(text);
   }
 
   const MANUAL_CHECKS = [
@@ -937,6 +960,19 @@
         replacement: `${full[2]}${full[4]}`
       };
     }
+    const malformed = text.match(/([\[(])(PDF|DOCX?|XLSX?|CSV|PPTX?|RTF|TXT|ODT|ODS|ODP|ZIP)\s+(\d+(?:\.\d{1,2})?)\s*(KB|MB|GB)([\])])/i);
+    if (malformed) {
+      return {
+        valid: false,
+        status: "label-format",
+        type: malformed[2].toUpperCase(),
+        size: Number(malformed[3]),
+        unit: malformed[4].toUpperCase(),
+        raw: malformed[0],
+        sizeText: `${malformed[3]}${malformed[4]}`,
+        replacement: `${malformed[1]}${malformed[2].toUpperCase()}, ${malformed[3]}${malformed[4].toUpperCase()}${malformed[5]}`
+      };
+    }
     const typeOnly = text.match(/[\[(](PDF|DOCX?|XLSX?|CSV|PPTX?|RTF|TXT|ODT|ODS|ODP|ZIP)(?:[\])]|,)/i);
     return { valid: false, status: typeOnly ? "missing-size" : "missing-label", type: typeOnly ? typeOnly[1].toUpperCase() : "", size: null, unit: "", raw: typeOnly ? typeOnly[0] : "", sizeText: "", replacement: "" };
   }
@@ -1531,6 +1567,10 @@
       });
       const slashMatch = /\b(?:and\/or|he\/she|she\/he|his\/her|her\/his|he\/him|she\/her|s\/he)\b/i.exec(value);
       if (slashMatch) add("slash", parent, value, null, { matchText: slashMatch[0], matchIndex: slashMatch.index });
+      const joinedAmpersand = /&([A-ZÀ-ÖØ-Þ][a-zà-öø-ÿ]{2,})/.exec(value);
+      if (joinedAmpersand && !parent.closest("code,pre")) add("missing-space-after-ampersand", parent, value, null, {
+        matchText: joinedAmpersand[0], replacement: `& ${joinedAmpersand[1]}`, matchIndex: joinedAmpersand.index
+      });
       if (value.includes("&") && !parent.closest("code,pre")) add("ampersand", parent, value);
       const nonEmailAtText = value
         .replace(/\b[^\s@]+@[^\s@]+\.[^\s@]+\b/g, "")
@@ -1609,10 +1649,12 @@
     firstAcronymOccurrences.forEach((occurrence, acronym) => {
       if (!englishLanguage) return;
       if (isWellKnownAcronym(acronym)) return;
+      if (isCommonRomanNumeral(acronym)) return;
       if (/^[A-Z]\d[A-Z]$/.test(acronym)) return;
       const parent = occurrence.node.parentElement;
       const element = parent.closest("h1,h2,h3,h4,h5,h6,p,li,dd,dt,figcaption,blockquote") || parent;
       const elementText = normalizeSpace(element.textContent || occurrence.node.nodeValue || acronym);
+      if (isPostalAcronymContext(acronym, elementText, element)) return;
       if (acronymDefinedInText(elementText, acronym) || acronymDefinedAcrossParts(acronymTextParts, occurrence.nodeIndex, occurrence.index, acronym)) return;
       const termIndex = Math.max(0, elementText.indexOf(acronym));
       add("undefined-acronym", element || root, `First use: ${elementText}`, null, {
@@ -1635,6 +1677,11 @@
       const linkText = accessibleName(link);
       const href = link.getAttribute("href") || "";
       const absoluteHref = link.href || href;
+      const finalTextNode = link.lastChild && link.lastChild.nodeType === 3 ? link.lastChild : null;
+      if (finalTextNode && /[\t \u00a0\u2007\u202f]+$/.test(finalTextNode.nodeValue || "")) add("link-trailing-space", link, `${linkText} ⟦trailing space⟧`, null, {
+        matchText: "⟦trailing space⟧",
+        diagnostics: ["The extra space is inside the link and may not be visible on the published page."]
+      });
       if (!linkText && !link.querySelector("img")) add("empty-link", link, href);
       if (/^(?:click here|here|read more|learn more|more|this link|link)$/i.test(linkText)) add("generic-link", link, linkText);
       if (/^(?:https?:\/\/|www\.)\S+$/i.test(linkText)) add("url-link-text", link, linkText);
@@ -1666,6 +1713,12 @@
           matchText: label.sizeText,
           replacement: label.replacement,
           matchIndex: Math.max(0, (linkText || "").indexOf(label.sizeText))
+        });
+        else if (label.status === "label-format") add("file-link-label-format", link, linkText || href, null, {
+          flaggedToken: label.raw,
+          matchText: label.raw,
+          replacement: label.replacement,
+          matchIndex: Math.max(0, (linkText || "").indexOf(label.raw))
         });
         else if ((expectedType || label.type || link.hasAttribute("download")) && !label.valid) add("file-link-label", link, linkText || href);
       }
@@ -1897,6 +1950,8 @@
       acronymDefinedInText,
       acronymDefinedAcrossParts,
       isWellKnownAcronym,
+      isCommonRomanNumeral,
+      isPostalAcronymContext,
       doubleSpaceDetails,
       anchorTextScore,
       contrastRatio,

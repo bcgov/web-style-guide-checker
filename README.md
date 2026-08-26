@@ -2,7 +2,7 @@
 
 The B.C. Web Style Guide Checker is a Chrome and Microsoft Edge extension that reviews webpages against selected requirements and recommendations in the B.C. Web Style Guide.
 
-Version 1.1.0 expands the first public release with updated Web Style Guide checks and additional false-positive safeguards.
+Version 1.1.1 is a maintenance release that improves finding accuracy, guidance and beta-feedback handling.
 
 The checker supports content review. It does not replace editorial, accessibility, legal, policy, service-design or user-research judgement.
 
@@ -67,7 +67,7 @@ The Feedback area lets beta testers collect several notes before contacting the 
 
 The extension automatically captures a small context snapshot when a note is created. This can include the page title and address, detected site profile, scan scope, page section, related finding, extension version and browser version. Testers can exclude page context from any note before exporting it.
 
-Feedback notes stay on the tester's device. **Create feedback email** opens a pre-addressed draft containing the saved notes. The tester must review the draft and select **Send** in their email application. Copy and CSV export are also available.
+Feedback notes stay on the tester's device. **Create feedback email** opens a pre-addressed draft. Short reports are included in the email. For longer reports, the extension downloads one text file and tells the tester to attach it. The tester must review the draft and select **Send** in their email application. Copy and CSV export are also available.
 
 ## Reports and batch scans
 

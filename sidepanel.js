@@ -108,7 +108,7 @@ function cacheElements() {
     "feedback-view", "feedback-back-button", "feedback-ready-count", "add-feedback-button", "feedback-empty", "feedback-list", "feedback-send-panel", "feedback-send-status",
     "create-feedback-email", "copy-feedback-report", "export-feedback-csv", "archived-feedback", "archived-feedback-count", "archived-feedback-list",
     "feedback-dialog", "feedback-form", "feedback-dialog-heading", "feedback-dialog-close", "feedback-type", "feedback-text", "feedback-important",
-    "feedback-context-section", "feedback-include-context", "feedback-context-preview", "feedback-cancel", "feedback-email-dialog", "feedback-email-close",
+    "feedback-context-section", "feedback-include-context", "feedback-context-preview", "feedback-cancel", "feedback-email-dialog", "feedback-email-message", "feedback-email-close",
     "archive-prepared-feedback", "keep-prepared-feedback",
     "more-dialog", "more-menu-button", "more-close", "open-workspace-button", "open-feedback-button", "open-batch-button", "open-settings-button",
     "export-dialog", "export-close"
@@ -530,7 +530,7 @@ async function verifyOneAsset(report, asset) {
     asset.actualType = actualType;
     asset.finalUrl = response.url || asset.href;
     asset.verificationStatus = actualSize === null ? "type-verified" : "verified";
-    if (actualType && !asset.validLabel && asset.labelStatus !== "size-spacing") {
+    if (actualType && !asset.validLabel && !["size-spacing", "label-format"].includes(asset.labelStatus)) {
       appendUniqueFinding(report, globalThis.BCWebStyleGuideChecker.createExternalFinding("file-link-label", report.page.url, {
         id: `file-link-label-${asset.selector}`,
         selector: asset.selector,
@@ -1971,6 +1971,27 @@ function feedbackReportText(notes = readyFeedbackNotes()) {
   return lines.join("\n");
 }
 
+function feedbackEmailSummary(notes, filename) {
+  const lines = [
+    "Web Style Guide Checker feedback",
+    "",
+    `${notes.length} saved feedback note${notes.length === 1 ? " is" : "s are"} included in the attached report: ${filename}`,
+    "",
+    "Attach the downloaded report to this email before sending.",
+    "",
+    "Notes in this report:"
+  ];
+  notes.slice(0, 30).forEach((note, index) => {
+    const context = note.includeContext && note.context ? note.context : {};
+    const page = context.pageTitle || context.domain || "Page context not included";
+    const summary = normalizeSpace(note.text).slice(0, 140);
+    lines.push(`${index + 1}. ${feedbackTypeLabel(note.type)} — ${page} — ${summary}${normalizeSpace(note.text).length > 140 ? "…" : ""}`);
+  });
+  if (notes.length > 30) lines.push(`Plus ${notes.length - 30} more note${notes.length - 30 === 1 ? "" : "s"} in the attached report.`);
+  lines.push("", `Extension version: ${chrome.runtime.getManifest().version}`, `Created: ${feedbackReportDate()}`);
+  return lines.join("\n");
+}
+
 async function copyFeedbackReport() {
   const notes = readyFeedbackNotes();
   if (!notes.length) return;
@@ -2008,18 +2029,14 @@ async function createFeedbackEmail() {
   const notes = readyFeedbackNotes();
   if (!notes.length) return;
   const report = feedbackReportText(notes);
+  const completeInEmail = report.length <= MAILTO_REPORT_LIMIT;
+  const filename = `web-style-guide-checker-feedback-${feedbackReportDate()}.txt`;
+  if (!completeInEmail) downloadTextFile(report, filename);
   try {
     await navigator.clipboard.writeText(report);
-  } catch (_) {
-    if (report.length > MAILTO_REPORT_LIMIT) {
-      showToast("The report could not be copied. Use Copy report before creating the email.");
-      return;
-    }
-  }
+  } catch (_) {}
   const subject = feedbackSubject(notes);
-  const body = report.length <= MAILTO_REPORT_LIMIT
-    ? report
-    : `Web Style Guide Checker feedback\n\n${notes.length} notes are ready. The complete report has been copied to the clipboard. Paste it into this email before sending.\n\nExtension version: ${chrome.runtime.getManifest().version}\nCreated: ${feedbackReportDate()}`;
+  const body = completeInEmail ? report : feedbackEmailSummary(notes, filename);
   const anchor = document.createElement("a");
   anchor.href = `mailto:${FEEDBACK_RECIPIENTS.join(",")}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   anchor.hidden = true;
@@ -2027,6 +2044,9 @@ async function createFeedbackEmail() {
   anchor.click();
   anchor.remove();
   state.preparedFeedbackIds = notes.map(note => note.id);
+  elements["feedback-email-message"].textContent = completeInEmail
+    ? "The complete feedback report is in the email draft. Review it, then select Send in your email app."
+    : `The complete report was downloaded as ${filename}. Attach that file to the email draft, review the email, then select Send.`;
   elements["feedback-email-dialog"].showModal();
 }
 
@@ -2223,6 +2243,16 @@ function actionRows(report, includeReviewed, submittedUrl, pageNumber) {
 function downloadCsvRows(rows, filename, header) {
   const csv = [header || ACTION_HEADER, ...rows].map(row => row.map(csvCell).join(",")).join("\r\n");
   const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function downloadTextFile(textValue, filename) {
+  const blob = new Blob([String(textValue || "")], { type: "text/plain;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;

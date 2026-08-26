@@ -62,6 +62,32 @@ async function scan(page, html, options = {}) {
   assert.equal(assetSpacing.issues.some(issue => issue.ruleId === "file-link-label"), false);
   assert.equal(assetSpacing.issues.find(issue => issue.ruleId === "file-link-size-spacing").replacement, "271KB");
 
+  const malformedAssetLabel = await scan(page, `
+    <main><h1>Conservation surcharges</h1><p><a href="/guide.pdf">Guidelines for angling (PDF 159 KB)</a></p></main>`);
+  assert.equal(malformedAssetLabel.issues.some(issue => issue.ruleId === "file-link-label-format"), true);
+  assert.equal(malformedAssetLabel.issues.some(issue => issue.ruleId === "file-link-label"), false);
+  assert.equal(malformedAssetLabel.issues.find(issue => issue.ruleId === "file-link-label-format").replacement, "(PDF, 159KB)");
+
+  const safeAcronymContexts = await scan(page, `
+    <main><h1>Application information</h1>
+      <p>Core HR responsibilities are included.</p>
+      <p>Download the application (DOCX, 162KB).</p>
+      <p>The Class II section opens in June.</p>
+      <address>Wildlife Branch PO Box 9363 STN PROV GOVT Victoria, B.C. V8W 9M8</address>
+    </main>`);
+  ["HR", "DOCX", "II", "STN", "PROV", "GOVT"].forEach(token => {
+    assert.equal(safeAcronymContexts.issues.some(issue => issue.ruleId === "undefined-acronym" && issue.flaggedToken === token), false, `${token} should not be treated as an undefined acronym here`);
+  });
+
+  const whitespaceChecks = await scan(page, `
+    <main><h1>Trail information</h1>
+      <p><a href="/manual">Chapter 10 of the Recreation Manual </a></p>
+      <p>Recreation Sites &amp;Trails BC manages this service.</p>
+    </main>`);
+  assert.equal(whitespaceChecks.issues.some(issue => issue.ruleId === "link-trailing-space"), true);
+  assert.equal(whitespaceChecks.issues.some(issue => issue.ruleId === "missing-space-after-ampersand"), true);
+  assert.equal(whitespaceChecks.issues.some(issue => issue.ruleId === "ampersand"), true);
+
   const editorialChecks = await scan(page, `
     <main><h1>Business taxes</h1><p>PST applies to some purchases.</p><p>APPLY FOR SUPPORT</p><img src="decorative.png" alt=""></main>`);
   assert.equal(editorialChecks.issues.some(issue => issue.ruleId === "undefined-acronym" && issue.flaggedToken === "PST"), false);

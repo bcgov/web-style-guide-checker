@@ -110,6 +110,7 @@ assert.equal(helpers.assetLabel("Application form (PDF, 23 KB)").status, "size-s
 assert.equal(helpers.assetLabel("Application form (PDF, 23 KB)").replacement, "23KB");
 assert.equal(helpers.assetLabel("Application form [PDF, 23KB]").valid, true);
 assert.equal(helpers.assetLabel("Application form [PDF, 271 KB]").status, "size-spacing");
+assert.deepEqual(helpers.assetLabel("Application form (PDF 159 KB)"), { valid: false, status: "label-format", type: "PDF", size: 159, unit: "KB", raw: "(PDF 159 KB)", sizeText: "159KB", replacement: "(PDF, 159KB)" });
 assert.equal(helpers.assetTypeFromUrl("https://example.com/files/form.docx?download=1"), "DOCX");
 assert.equal(helpers.endsStylePunctuation("Learn about B.C."), false);
 assert.equal(helpers.endsStylePunctuation("Services in N.T."), false);
@@ -131,7 +132,14 @@ assert.equal(helpers.acronymDefinedAcrossParts(["Provincial Sales Tax", "PST app
 assert.equal(helpers.acronymDefinedAcrossParts(["PST applies", "Provincial Sales Tax (PST)"], 0, 0, "PST"), false);
 assert.equal(helpers.isWellKnownAcronym("PST"), true);
 assert.equal(helpers.isWellKnownAcronym("GST"), true);
+assert.equal(helpers.isWellKnownAcronym("HR"), true);
+assert.equal(helpers.isWellKnownAcronym("DOCX"), true);
 assert.equal(helpers.isWellKnownAcronym("ZXQ"), false);
+assert.equal(helpers.isCommonRomanNumeral("II"), true);
+assert.equal(helpers.isCommonRomanNumeral("XX"), true);
+assert.equal(helpers.isCommonRomanNumeral("MIX"), false);
+assert.equal(helpers.isPostalAcronymContext("STN", "PO Box 9363 STN PROV GOVT Victoria, B.C. V8W 9M8"), true);
+assert.equal(helpers.isPostalAcronymContext("STN", "The STN program is changing"), false);
 
 const visibleDoubleSpace = helpers.doubleSpaceDetails("Information is safe.  For immediate help call 911.");
 assert.equal(visibleDoubleSpace.count, 2);

@@ -9,7 +9,7 @@ const read = name => fs.readFileSync(path.join(root, name), "utf8");
 
 const manifest = JSON.parse(read("manifest.json"));
 assert.equal(manifest.manifest_version, 3);
-assert.equal(manifest.version, "1.1.0");
+assert.equal(manifest.version, "1.1.1");
 assert.ok(manifest.optional_host_permissions.includes("http://*/*"));
 assert.ok(manifest.optional_host_permissions.includes("https://*/*"));
 
@@ -79,6 +79,7 @@ assert.match(script, /feedbackNotesV1/, "Feedback notes must use local extension
 assert.match(script, /function captureFeedbackContext\(/, "Feedback must capture diagnostic and page context");
 assert.match(script, /function feedbackReportText\(/, "Feedback must provide a readable bulk report");
 assert.match(script, /function createFeedbackEmail\(/, "Feedback must provide an explicit email-draft action");
+assert.match(script, /function downloadTextFile\(/, "Long feedback reports must be downloadable for attachment");
 assert.match(script, /julia\.ready@gov\.bc\.ca/, "Julia must receive prepared feedback emails");
 assert.match(script, /karmen\.abrahams-munroe@gov\.bc\.ca/, "Karmen must receive prepared feedback emails");
 assert.match(script, /Web Style Guide Checker feedback — v/, "Feedback email subjects must use the agreed syntax");
@@ -101,7 +102,7 @@ assert.doesNotMatch(script, /<summary>More actions<\/summary>/, "Exact-term acti
 assert.match(script, /"Where on the page", "Category", "Issue", "Why it matters", "Recommended action"/, "Action reports must use plain-language columns");
 
 const core = read("checker-core.js");
-assert.match(core, /const RULE_VERSION = "1\.1\.0"/);
+assert.match(core, /const RULE_VERSION = "1\.1\.1"/);
 assert.match(core, /‘BC’ by itself cannot be allowed/, "Bare BC must be rejected as an allowed term");
 assert.match(core, /function isCmsLiteTemplateImage\(/, "CMS Lite template images must be identifiable");
 assert.match(core, /pageOrder:/, "Findings must retain document order");
@@ -110,6 +111,9 @@ assert.doesNotMatch(core, /querySelectorAll\("a\[href\]"\)\)\.filter\(isVisible\
 assert.doesNotMatch(core + script, /cke_wysiwyg_frame|cke_editable/, "CMS Lite draft-editor support is intentionally outside this release");
 [
   "file-link-size-spacing",
+  "file-link-label-format",
+  "link-trailing-space",
+  "missing-space-after-ampersand",
   "bold-link",
   "all-caps",
   "at-symbol",

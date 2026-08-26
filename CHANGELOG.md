@@ -2,6 +2,15 @@
 
 All notable public changes to the B.C. Web Style Guide Checker will be recorded here.
 
+## 1.1.1 — 2026-08-25
+
+- Stopped treating common file extensions, HR, selected Roman numerals and Canadian postal abbreviations as undefined acronyms in the contexts where they are expected
+- Distinguished malformed document labels such as `(PDF 159 KB)` from labels that are missing a type or size
+- Corrected the reference for tables inside accordions
+- Rewrote new-tab and long-list guidance in plain language and added practical examples to several findings
+- Added checks for trailing spaces inside links and missing spaces after ampersands joined to words
+- Included complete short feedback reports in email drafts and downloaded long reports as text files to attach
+
 ## 1.1.0 — 2026-08-24
 
 - Updated checks for government capitalization, headings, alternative text, dates, times, time zones, measurements, currency, education terms and Canadian spelling
