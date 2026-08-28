@@ -138,7 +138,7 @@ const decisionFunction = script.match(/async function setDecision\([\s\S]*?\n\}/
 assert.ok(decisionFunction, "Review decision handler must exist");
 assert.match(decisionFunction[0], /nextInGroup/, "Review decisions must advance to the next finding");
 assert.match(script, /Follow findings on page|follow-page/, "Guided review must expose automatic page following");
-assert.match(script, /highlightSelector\(finding\.selectors && finding\.selectors\.length \? finding\.selectors : finding\.selector, true, false\)/, "Automatic page following must support full-section highlighting without activating another tab");
+assert.match(script, /highlightSelector\(\s*findingSelectors\(finding\),\s*true,\s*false,\s*Number\(finding\.editorRegion\) \|\| null\s*\)/, "Automatic page following must preserve the CMS Lite editor region without activating another tab");
 assert.match(script, /elements\["manual-review"\]\.hidden = section !== "overview"/, "The manual checklist must appear only on the Page details overview");
 assert.match(script, /elements\["sort-order"\]\.value === "page"/, "Findings must support page-order sorting");
 assert.match(script, /continueAfterAllowedTerm/, "Allowed terms must rebase the active review queue");
@@ -189,7 +189,18 @@ assert.match(core, /evidenceMatchIndex:/, "Displayed evidence must retain the hi
 assert.match(core, /selectors:/, "Findings must support multi-block section locations");
 assert.match(core, /shouldFlagReadingGrade\(grade\)/, "Reading-level findings must use the Grade 9 threshold helper");
 assert.doesNotMatch(core, /querySelectorAll\("a\[href\]"\)\)\.filter\(isVisible\)\.slice\(/, "Page audit must retain every visible link");
-assert.doesNotMatch(core + script, /cke_wysiwyg_frame|cke_editable/, "CMS Lite draft-editor support is intentionally outside this release");
+assert.match(script, /iframe\.cke_wysiwyg_frame/, "CMS Lite editor scanning must discover CKEditor frames");
+assert.match(script, /body\.cke_editable/, "CMS Lite editor scanning must target editable CKEditor bodies");
+assert.match(script, /editorRegion:\s*index \+ 1/, "Each CMS Lite editor scan must carry a stable editor-region identifier");
+assert.match(core, /const editorRegion = Number\(options\.editorRegion\) \|\| null/, "Core findings must receive the CMS Lite editor-region identifier before fingerprinting");
+assert.match(core, /if \(editorRegion\) parts\.push\(`editor-\$\{editorRegion\}`\)/, "CMS Lite findings in different editor regions must have distinct fingerprints");
+assert.match(core, /options\.pageUrlOverride/, "CMS Lite editor scans must use the outer page URL for stable page-scoped identity");
+assert.match(script, /"broken-anchor"[\s\S]*"undefined-acronym"/, "Checks that require cross-editor page context must be deferred in CMS Lite editor mode");
+assert.match(script, /instanceId:\s*String\(performance\.timeOrigin \|\| ""\)/, "CMS Lite editor reports must retain the outer page instance for stale-report detection");
+assert.match(script, /metadata:\s*\{\s*unavailable:\s*true,\s*reason:\s*"cms-lite-editor"/, "CMS Lite editor reports must mark page-level metadata as unavailable rather than missing");
+assert.match(script, /url\.hostname\.toLowerCase\(\) !== "cmslite\.gov\.bc\.ca"[\s\S]*url\.hostname = "gov\.bc\.ca"/, "CMS Lite editor links must resolve to their published gov.bc.ca address");
+assert.match(script, /const targetDocument = documentFor\(item\)/, "Page overlays must resolve items inside the correct CMS Lite editor document");
+assert.doesNotMatch(script, /[\u00C2\u00E2\u00C3]/, "Side panel source must not contain UTF-8 mojibake markers");
 [
   "file-link-size-spacing",
   "file-link-label-format",

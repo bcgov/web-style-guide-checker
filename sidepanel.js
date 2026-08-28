@@ -343,7 +343,7 @@ async function currentTab() {
 
 async function currentReviewTab() {
   if (workspaceSurface && state.lastReviewTabId) {
-    try { return await chrome.tabs.get(state.lastReviewTabId); } catch (_) {}
+    try { return await chrome.tabs.get(state.lastReviewTabId); } catch (_) { }
   }
   return currentTab();
 }
@@ -354,6 +354,10 @@ function isScannableUrl(url) {
 
 function detectProfile(url) {
   return globalThis.BCWebStyleGuideChecker.helpers.detectProfile(url, "auto");
+}
+
+function isCmsLiteEditorUrl(url) {
+  return hostnameFor(url) === "cmslite.gov.bc.ca";
 }
 
 function defaultSettings(url) {
@@ -368,9 +372,11 @@ function defaultSettings(url) {
 }
 
 function selectedSettings() {
-  const profile = detectProfile((state.activeTab && state.activeTab.url) || "");
+  const activeUrl = (state.activeTab && state.activeTab.url) || "";
+  const profile = detectProfile(activeUrl);
+  const cmsEditor = profile === "cms-lite" && isCmsLiteEditorUrl(activeUrl);
   const scope = profile === "cms-lite"
-    ? (elements["cms-whole-scan"].checked ? "whole" : "content")
+    ? (cmsEditor ? "content" : (elements["cms-whole-scan"].checked ? "whole" : "content"))
     : ((document.querySelector("input[name='scope']:checked") || {}).value || "content");
   return {
     scope,
@@ -392,7 +398,8 @@ async function saveDomainSettings() {
 function applySettings(settings) {
   const scopeInput = document.querySelector(`input[name='scope'][value='${settings.scope}']`);
   if (scopeInput) scopeInput.checked = true;
-  elements["cms-whole-scan"].checked = settings.scope === "whole";
+  const cmsEditor = isCmsLiteEditorUrl((state.activeTab && state.activeTab.url) || "");
+  elements["cms-whole-scan"].checked = !cmsEditor && settings.scope === "whole";
   elements["colour-control"].checked = settings.canControlColour;
   updateSettingsExplanation();
 }
@@ -400,11 +407,15 @@ function applySettings(settings) {
 function updateSettingsExplanation() {
   const settings = selectedSettings();
   const isCmsLite = settings.profile === "cms-lite";
-  elements["profile-badge"].textContent = isCmsLite ? "CMS Lite detected" : "Standard website";
+  const cmsEditor = isCmsLite && isCmsLiteEditorUrl((state.activeTab && state.activeTab.url) || "");
+  elements["profile-badge"].textContent = cmsEditor ? "CMS Lite editor detected" : isCmsLite ? "CMS Lite detected" : "Standard website";
   elements["cms-lite-settings"].hidden = !isCmsLite;
   elements["standard-scope-settings"].hidden = isCmsLite;
+  elements["cms-whole-scan"].disabled = cmsEditor;
   elements["colour-control-row"].hidden = settings.scope === "whole" || isCmsLite;
-  if (settings.scope === "whole") {
+  if (cmsEditor) {
+    elements["scope-note"].textContent = "The scan reviews editable CMS Lite rich-text regions. Page-level metadata, cross-region navigation and first-use checks, template components and colour contrast require the rendered page.";
+  } else if (settings.scope === "whole") {
     elements["scope-note"].textContent = "The scan includes navigation, footer, templates, controls and colour contrast.";
   } else if (isCmsLite) {
     elements["scope-note"].textContent = "The scan focuses on the CMS Lite title and editable page body. Template contrast and global components are excluded.";
@@ -496,7 +507,7 @@ async function returnToReview() {
   } catch (_) {
     state.lastReviewTabId = null;
     state.lastReviewPageKey = "";
-    await saveNavigation().catch(() => {});
+    await saveNavigation().catch(() => { });
     showToast("The reviewed page is no longer open.");
   }
 }
@@ -581,7 +592,7 @@ async function syncActiveTab() {
   if (workspaceSurface) {
     let tab = null;
     if (state.lastReviewTabId) {
-      try { tab = await chrome.tabs.get(state.lastReviewTabId); } catch (_) {}
+      try { tab = await chrome.tabs.get(state.lastReviewTabId); } catch (_) { }
     }
     const cached = state.lastReviewPageKey ? state.reports[state.lastReviewPageKey] : null;
     state.activeTab = tab;
@@ -674,15 +685,451 @@ async function syncActiveTab() {
 }
 
 async function injectScanner(tabId, options) {
-  await chrome.scripting.executeScript({ target: { tabId }, files: ["checker-core.js"] });
+  await chrome.scripting.executeScript({
+    target: { tabId },
+    files: ["checker-core.js"]
+  });
+
   const results = await chrome.scripting.executeScript({
     target: { tabId },
-    func: optionsValue => globalThis.BCWebStyleGuideChecker.scanPage(document, optionsValue),
+
+    func: optionsValue => {
+      const hostname = location.hostname.toLowerCase();
+
+      const editorFrames = Array.from(
+        document.querySelectorAll("iframe.cke_wysiwyg_frame")
+      );
+
+      const isCmsLiteEditor =
+        hostname === "cmslite.gov.bc.ca" &&
+        editorFrames.length > 0;
+
+      // Normal websites and CMS Lite QA continue using the existing scan.
+      if (!isCmsLiteEditor) {
+        return globalThis.BCWebStyleGuideChecker.scanPage(
+          document,
+          optionsValue
+        );
+      }
+
+      // CMS Lite Topic/editor mode:
+      // scan each non-empty CKEditor document instead of the CMS interface.
+      const cmsLitePublishedUrl = value => {
+        try {
+          const url = new URL(value, location.href);
+
+          if (
+            url.hostname.toLowerCase() !== "cmslite.gov.bc.ca" ||
+            !/^\/gov(?:\/|$)/.test(url.pathname)
+          ) {
+            return value;
+          }
+
+          url.protocol = "https:";
+          url.hostname = "gov.bc.ca";
+          url.port = "";
+          return url.href;
+        } catch (_) {
+          return value;
+        }
+      };
+
+      const frameReports = editorFrames
+        .map((frame, index) => {
+          const frameDocument = frame.contentDocument;
+
+          const frameBody =
+            frameDocument?.querySelector("body.cke_editable");
+
+          if (!frameDocument || !frameBody) {
+            return null;
+          }
+
+          const text =
+            frameBody.innerText?.trim() || "";
+
+          // Ignore completely empty editor regions.
+          if (
+            !text &&
+            !frameBody.querySelector(
+              "img,a,table,ul,ol"
+            )
+          ) {
+            return null;
+          }
+
+          const report =
+            globalThis.BCWebStyleGuideChecker.scanPage(
+              frameDocument,
+              {
+                ...optionsValue,
+                profile: "cms-lite",
+                scope: "content",
+                editorRegion: index + 1,
+                pageUrlOverride: location.href
+              }
+            );
+
+          report.editorRegion = index + 1;
+
+          return report;
+        })
+        .filter(Boolean);
+
+      if (!frameReports.length) {
+        return {
+          error:
+            "No editable CMS Lite content was found."
+        };
+      }
+
+      /*
+       * These checks describe an entire rendered page rather than an
+       * individual editor region. Running them once per CKEditor frame
+       * would create misleading findings.
+       */
+      const editorExcludedRules = new Set([
+        "page-title-missing",
+        "page-title-long",
+        "page-title-punctuation",
+        "meta-description",
+        "document-language",
+        "main-landmark",
+        "skip-link-target",
+        "h1-count",
+        "on-this-page-missing",
+        "on-this-page-links",
+        "broken-anchor",
+        "undefined-acronym"
+      ]);
+
+      const pageOrderOffsets = new Map();
+      let nextPageOrder = 0;
+
+      frameReports.forEach(report => {
+        const details = report.pageDetails || {};
+        const localOrders = [
+          ...(report.issues || []),
+          ...(details.headings || []),
+          ...(details.images || []),
+          ...(details.links || [])
+        ]
+          .map(item => item.pageOrder)
+          .filter(value =>
+            Number.isFinite(value) &&
+            value !== Number.MAX_SAFE_INTEGER
+          );
+
+        pageOrderOffsets.set(
+          report.editorRegion,
+          nextPageOrder
+        );
+
+        const localMax = localOrders.length
+          ? Math.max(...localOrders)
+          : 0;
+
+        nextPageOrder += localMax + 1;
+      });
+
+      const combinedPageOrder = (
+        value,
+        editorRegion
+      ) => {
+        if (
+          !Number.isFinite(value) ||
+          value === Number.MAX_SAFE_INTEGER
+        ) {
+          return value;
+        }
+
+        return (
+          pageOrderOffsets.get(editorRegion) ||
+          0
+        ) + value;
+      };
+
+      const issues = frameReports.flatMap(report =>
+        report.issues
+          .filter(finding => {
+            if (
+              editorExcludedRules.has(
+                finding.ruleId
+              )
+            ) {
+              return false;
+            }
+
+            if (
+              String(
+                finding.evidence || ""
+              ).startsWith(
+                "Rich Text Editor,"
+              )
+            ) {
+              return false;
+            }
+
+            return true;
+          })
+          .map(finding => ({
+            ...finding,
+
+            editorRegion:
+              report.editorRegion,
+
+            pageOrder:
+              combinedPageOrder(
+                finding.pageOrder,
+                report.editorRegion
+              ),
+
+            location:
+              `Editor region ${report.editorRegion}` +
+              (
+                finding.location &&
+                finding.location !== "Page"
+                  ? ` · ${finding.location}`
+                  : ""
+              )
+          }))
+      );
+
+      const severityCounts = {
+        fix: 0,
+        check: 0,
+        review: 0
+      };
+
+      issues
+        .filter(
+          issue =>
+            issue.automaticStatus === "open"
+        )
+        .forEach(issue => {
+          severityCounts[issue.severity] +=
+            issue.occurrenceCount || 1;
+        });
+
+      const combinedDetails = {
+        headings: [],
+        images: [],
+        links: [],
+        metadata: {
+          unavailable: true,
+          reason: "cms-lite-editor"
+        },
+
+        counts: {
+          headings: 0,
+          images: 0,
+          imagesMissingAlt: 0,
+          imagesEmptyAlt: 0,
+          links: 0,
+          assets: 0,
+          lists: 0,
+          tables: 0,
+          forms: 0,
+          accordions: 0
+        }
+      };
+
+      /*
+       * Preserve the editor region on Page details items.
+       *
+       * Selectors generated inside separate CKEditor documents can be
+       * identical, so the editor region is required later when the user
+       * selects "Show on page".
+       */
+      frameReports.forEach(report => {
+        const details =
+          report.pageDetails || {};
+
+        combinedDetails.headings.push(
+          ...(details.headings || []).map(
+            item => ({
+              ...item,
+              editorRegion:
+                report.editorRegion,
+              pageOrder:
+                combinedPageOrder(
+                  item.pageOrder,
+                  report.editorRegion
+                )
+            })
+          )
+        );
+
+        combinedDetails.images.push(
+          ...(details.images || []).map(
+            item => ({
+              ...item,
+              editorRegion:
+                report.editorRegion,
+              pageOrder:
+                combinedPageOrder(
+                  item.pageOrder,
+                  report.editorRegion
+                )
+            })
+          )
+        );
+
+        combinedDetails.links.push(
+          ...(details.links || []).map(
+            item => ({
+              ...item,
+              href:
+                cmsLitePublishedUrl(item.href),
+              rawHref:
+                /^https?:/i.test(item.rawHref || "")
+                  ? cmsLitePublishedUrl(item.rawHref)
+                  : item.rawHref,
+              editorRegion:
+                report.editorRegion,
+              pageOrder:
+                combinedPageOrder(
+                  item.pageOrder,
+                  report.editorRegion
+                )
+            })
+          )
+        );
+
+        Object.keys(
+          combinedDetails.counts
+        ).forEach(key => {
+          combinedDetails.counts[key] +=
+            details.counts?.[key] || 0;
+        });
+      });
+
+      const totalStats =
+        frameReports.reduce(
+          (totals, report) => {
+            totals.words +=
+              report.stats.words || 0;
+
+            totals.sentences +=
+              report.stats.sentences || 0;
+
+            totals.readingWords +=
+              report.stats.readingWords || 0;
+
+            totals.headings +=
+              report.stats.headings || 0;
+
+            totals.links +=
+              report.stats.links || 0;
+
+            totals.images +=
+              report.stats.images || 0;
+
+            return totals;
+          },
+
+          {
+            words: 0,
+            sentences: 0,
+            readingWords: 0,
+            headings: 0,
+            links: 0,
+            images: 0
+          }
+        );
+
+      return {
+        ...frameReports[0],
+
+        page: {
+          ...frameReports[0].page,
+          title:
+            document.title ||
+            "CMS Lite editable content",
+          url: location.href,
+          hostname,
+          instanceId:
+            String(performance.timeOrigin || ""),
+          contentSignature:
+            frameReports
+              .map(report =>
+                report.page?.contentSignature || ""
+              )
+              .join("|")
+        },
+
+        settings: {
+          ...frameReports[0].settings,
+          profile: "cms-lite",
+          profileLabel: "CMS Lite",
+          scope: "content",
+          editorMode: true,
+          rootSelector:
+            "CMS Lite editor regions"
+        },
+
+        stats: {
+          ...frameReports[0].stats,
+          ...totalStats,
+
+          // A single page-level grade would be misleading
+          // when several independent editor regions are
+          // scanned and then combined.
+          readingGrade: null,
+
+          root: "CKEditor regions"
+        },
+
+        severityCounts,
+
+        issues,
+
+        /*
+         * Preserve editorRegion here too. Asset verification happens
+         * after the initial scan, so document-link findings created
+         * later still need to know which editor contains the asset.
+         */
+        assets: frameReports.flatMap(
+          report =>
+            (report.assets || []).map(
+              asset => ({
+                ...asset,
+                editorRegion:
+                  report.editorRegion
+              })
+            )
+        ),
+
+        pageDetails: combinedDetails,
+
+        notes:
+          `Scanned ${frameReports.length} CMS Lite editor region` +
+          `${
+            frameReports.length === 1
+              ? ""
+              : "s"
+          }.`
+      };
+    },
+
     args: [options]
   });
-  const report = results && results[0] && results[0].result;
-  if (!report) throw new Error("The page returned no scan results.");
-  if (report.error) throw new Error(report.error);
+
+  const report =
+    results &&
+    results[0] &&
+    results[0].result;
+
+  if (!report) {
+    throw new Error(
+      "The page returned no scan results."
+    );
+  }
+
+  if (report.error) {
+    throw new Error(report.error);
+  }
+
   return report;
 }
 
@@ -717,13 +1164,39 @@ function displayBytes(value) {
 
 function appendUniqueFinding(report, finding) {
   if (!finding) return;
-  if (report.issues.some(item => item.ruleId === finding.ruleId && item.selector === finding.selector)) return;
-  if (!Number.isFinite(finding.pageOrder) || finding.pageOrder === Number.MAX_SAFE_INTEGER) {
+
+  const findingRegion =
+    Number(finding.editorRegion) || null;
+
+  const duplicate = report.issues.some(item =>
+    item.ruleId === finding.ruleId &&
+    item.selector === finding.selector &&
+    (Number(item.editorRegion) || null) === findingRegion
+  );
+
+  if (duplicate) return;
+
+  if (
+    !Number.isFinite(finding.pageOrder) ||
+    finding.pageOrder === Number.MAX_SAFE_INTEGER
+  ) {
     const details = report.pageDetails || {};
-    const pageItem = [...(details.headings || []), ...(details.images || []), ...(details.links || [])]
-      .find(item => item.selector === finding.selector && Number.isFinite(item.pageOrder));
-    if (pageItem) finding.pageOrder = pageItem.pageOrder;
+
+    const pageItem = [
+      ...(details.headings || []),
+      ...(details.images || []),
+      ...(details.links || [])
+    ].find(item =>
+      item.selector === finding.selector &&
+      (Number(item.editorRegion) || null) === findingRegion &&
+      Number.isFinite(item.pageOrder)
+    );
+
+    if (pageItem) {
+      finding.pageOrder = pageItem.pageOrder;
+    }
   }
+
   report.issues.push(finding);
 }
 
@@ -857,62 +1330,244 @@ async function checkRemoteUrl(value, timeoutMs = 10000) {
 }
 
 async function verifyOneAsset(report, asset) {
-  if (!/^https?:/i.test(asset.href || "")) { asset.verificationStatus = "unsupported"; return; }
-  const liveEquivalent = qaProductionEquivalent(asset.href);
-  const checkUrl = liveEquivalent || asset.href;
-  asset.checkedUrl = checkUrl;
-  asset.liveEquivalent = liveEquivalent || "";
-  const result = await checkRemoteUrl(checkUrl, 8000);
-  asset.finalUrl = result.finalUrl || checkUrl;
-  asset.verificationError = result.error || "";
-  if (result.status !== "ok") {
-    if (liveEquivalent && result.status === "broken") asset.verificationStatus = "live-not-found";
-    else if (result.status === "sign-in") asset.verificationStatus = "sign-in-required";
-    else if (result.status === "permission") asset.verificationStatus = "permission-unavailable";
-    else if (result.status === "redirect") asset.verificationStatus = "redirected";
-    else if (result.status === "server") asset.verificationStatus = "server-error";
-    else if (result.status === "restricted") asset.verificationStatus = "restricted";
-    else if (result.status === "rate-limited") asset.verificationStatus = "rate-limited";
-    else if (result.status === "client-error") asset.verificationStatus = "client-error";
-    else asset.verificationStatus = result.error === "Timed out" ? "timed-out" : "unavailable";
+  if (!/^https?:/i.test(asset.href || "")) {
+    asset.verificationStatus = "unsupported";
     return;
   }
+
+  const liveEquivalent =
+    qaProductionEquivalent(asset.href);
+
+  const checkUrl =
+    liveEquivalent || asset.href;
+
+  asset.checkedUrl = checkUrl;
+  asset.liveEquivalent = liveEquivalent || "";
+
+  const result =
+    await checkRemoteUrl(checkUrl, 8000);
+
+  asset.finalUrl =
+    result.finalUrl || checkUrl;
+
+  asset.verificationError =
+    result.error || "";
+
+  if (result.status !== "ok") {
+    if (
+      liveEquivalent &&
+      result.status === "broken"
+    ) {
+      asset.verificationStatus =
+        "live-not-found";
+    } else if (
+      result.status === "sign-in"
+    ) {
+      asset.verificationStatus =
+        "sign-in-required";
+    } else if (
+      result.status === "permission"
+    ) {
+      asset.verificationStatus =
+        "permission-unavailable";
+    } else if (
+      result.status === "redirect"
+    ) {
+      asset.verificationStatus =
+        "redirected";
+    } else if (
+      result.status === "server"
+    ) {
+      asset.verificationStatus =
+        "server-error";
+    } else if (
+      result.status === "restricted"
+    ) {
+      asset.verificationStatus =
+        "restricted";
+    } else if (
+      result.status === "rate-limited"
+    ) {
+      asset.verificationStatus =
+        "rate-limited";
+    } else if (
+      result.status === "client-error"
+    ) {
+      asset.verificationStatus =
+        "client-error";
+    } else {
+      asset.verificationStatus =
+        result.error === "Timed out"
+          ? "timed-out"
+          : "unavailable";
+    }
+
+    return;
+  }
+
   const response = result.response;
-  const lengthHeader = response && response.headers ? response.headers.get("content-length") : "";
-  const actualSize = lengthHeader && /^\d+$/.test(lengthHeader) ? Number(lengthHeader) : null;
+
+  const lengthHeader =
+    response && response.headers
+      ? response.headers.get("content-length")
+      : "";
+
+  const actualSize =
+    lengthHeader &&
+    /^\d+$/.test(lengthHeader)
+      ? Number(lengthHeader)
+      : null;
+
   const actualType = mimeAssetType(
-    response && response.headers ? response.headers.get("content-type") : "",
-    response && response.headers ? response.headers.get("content-disposition") : "",
+    response && response.headers
+      ? response.headers.get("content-type")
+      : "",
+    response && response.headers
+      ? response.headers.get(
+          "content-disposition"
+        )
+      : "",
     result.finalUrl || checkUrl
   );
+
   asset.actualSize = actualSize;
   asset.actualType = actualType;
-  asset.verificationStatus = liveEquivalent
-    ? (actualSize === null ? "live-type-verified" : "live-verified")
-    : (actualSize === null ? "type-verified" : "verified");
-  if (actualType && !asset.validLabel && asset.labelStatus === "missing-label") {
-    appendUniqueFinding(report, globalThis.BCWebStyleGuideChecker.createExternalFinding("file-link-label", report.page.url, {
-      id: `file-link-label-${asset.selector}`,
-      selector: asset.selector,
-      evidence: `${asset.text || asset.href} → ${actualType}${actualSize === null ? "" : `, ${displayBytes(actualSize)}`}${liveEquivalent ? " · checked live version" : ""}`
-    }));
+
+  asset.verificationStatus =
+    liveEquivalent
+      ? actualSize === null
+        ? "live-type-verified"
+        : "live-verified"
+      : actualSize === null
+        ? "type-verified"
+        : "verified";
+
+  if (
+    actualType &&
+    !asset.validLabel &&
+    asset.labelStatus === "missing-label"
+  ) {
+    appendUniqueFinding(
+      report,
+      globalThis.BCWebStyleGuideChecker
+        .createExternalFinding(
+          "file-link-label",
+          report.page.url,
+          {
+            id:
+              `file-link-label-${asset.selector}`,
+
+            selector:
+              asset.selector,
+
+            editorRegion:
+              Number(asset.editorRegion) ||
+              null,
+
+            evidence:
+              `${asset.text || asset.href} → ` +
+              `${actualType}` +
+              `${
+                actualSize === null
+                  ? ""
+                  : `, ${displayBytes(actualSize)}`
+              }` +
+              `${
+                liveEquivalent
+                  ? " · checked live version"
+                  : ""
+              }`
+          }
+        )
+    );
   }
-  if (asset.declaredType && actualType && asset.declaredType !== actualType) {
-    appendUniqueFinding(report, globalThis.BCWebStyleGuideChecker.createExternalFinding("file-link-type-mismatch", report.page.url, {
-      id: `file-link-type-${asset.selector}`,
-      selector: asset.selector,
-      evidence: `Link says ${asset.declaredType}; server returned ${actualType}: ${asset.text || asset.href}${liveEquivalent ? " · checked live version" : ""}`
-    }));
+
+  if (
+    asset.declaredType &&
+    actualType &&
+    asset.declaredType !== actualType
+  ) {
+    appendUniqueFinding(
+      report,
+      globalThis.BCWebStyleGuideChecker
+        .createExternalFinding(
+          "file-link-type-mismatch",
+          report.page.url,
+          {
+            id:
+              `file-link-type-${asset.selector}`,
+
+            selector:
+              asset.selector,
+
+            editorRegion:
+              Number(asset.editorRegion) ||
+              null,
+
+            evidence:
+              `Link says ${asset.declaredType}; ` +
+              `server returned ${actualType}: ` +
+              `${asset.text || asset.href}` +
+              `${
+                liveEquivalent
+                  ? " · checked live version"
+                  : ""
+              }`
+          }
+        )
+    );
   }
-  const labelledSize = declaredBytes(asset);
-  if (labelledSize !== null && actualSize !== null) {
-    const tolerance = Math.max(2048, actualSize * 0.04);
-    if (Math.abs(labelledSize - actualSize) > tolerance) {
-      appendUniqueFinding(report, globalThis.BCWebStyleGuideChecker.createExternalFinding("file-link-size-mismatch", report.page.url, {
-        id: `file-link-size-${asset.selector}`,
-        selector: asset.selector,
-        evidence: `Link says ${asset.declaredSize}${asset.declaredUnit}; server returned about ${displayBytes(actualSize)}: ${asset.text || asset.href}${liveEquivalent ? " · checked live version" : ""}`
-      }));
+
+  const labelledSize =
+    declaredBytes(asset);
+
+  if (
+    labelledSize !== null &&
+    actualSize !== null
+  ) {
+    const tolerance =
+      Math.max(
+        2048,
+        actualSize * 0.04
+      );
+
+    if (
+      Math.abs(
+        labelledSize - actualSize
+      ) > tolerance
+    ) {
+      appendUniqueFinding(
+        report,
+        globalThis.BCWebStyleGuideChecker
+          .createExternalFinding(
+            "file-link-size-mismatch",
+            report.page.url,
+            {
+              id:
+                `file-link-size-${asset.selector}`,
+
+              selector:
+                asset.selector,
+
+              editorRegion:
+                Number(asset.editorRegion) ||
+                null,
+
+              evidence:
+                `Link says ` +
+                `${asset.declaredSize}` +
+                `${asset.declaredUnit}; ` +
+                `server returned about ` +
+                `${displayBytes(actualSize)}: ` +
+                `${asset.text || asset.href}` +
+                `${
+                  liveEquivalent
+                    ? " · checked live version"
+                    : ""
+                }`
+            }
+          )
+      );
     }
   }
 }
@@ -972,24 +1627,115 @@ function waitForLinkCheckResume() {
 }
 
 function addHttpLinkFindings(report, results) {
-  report.issues = report.issues.filter(finding => !["broken-http-link", "http-link-server-error"].includes(finding.ruleId));
+  report.issues = report.issues.filter(
+    finding =>
+      ![
+        "broken-http-link",
+        "http-link-server-error"
+      ].includes(finding.ruleId)
+  );
+
   results.forEach(result => {
-    if (result.status === "broken") appendUniqueFinding(report, globalThis.BCWebStyleGuideChecker.createExternalFinding("broken-http-link", report.page.url, {
-      id: `broken-http-${result.link.selector}`,
-      selector: result.link.selector,
-      location: result.link.location || "Page",
-      evidence: `${result.link.text} → ${result.link.href} (HTTP ${result.code})`,
-      diagnostics: result.finalUrl && result.finalUrl !== result.link.href ? [`The request ended at ${result.finalUrl}.`] : []
-    }));
-    if (result.status === "server") appendUniqueFinding(report, globalThis.BCWebStyleGuideChecker.createExternalFinding("http-link-server-error", report.page.url, {
-      id: `server-http-${result.link.selector}`,
-      selector: result.link.selector,
-      location: result.link.location || "Page",
-      evidence: `${result.link.text} → ${result.link.href} (HTTP ${result.code})${result.qaLive ? " · checked live version" : ""}`
-    }));
+    const editorRegion =
+      Number(result.link.editorRegion) ||
+      null;
+
+    const location =
+      editorRegion
+        ? `Editor region ${editorRegion}${
+            result.link.location &&
+            result.link.location !== "Page"
+              ? ` · ${result.link.location}`
+              : ""
+          }`
+        : result.link.location || "Page";
+
+    if (result.status === "broken") {
+      appendUniqueFinding(
+        report,
+        globalThis.BCWebStyleGuideChecker
+          .createExternalFinding(
+            "broken-http-link",
+            report.page.url,
+            {
+              id:
+                `broken-http-${result.link.selector}`,
+
+              selector:
+                result.link.selector,
+
+              editorRegion,
+
+              location,
+
+              evidence:
+                `${result.link.text} → ` +
+                `${result.link.href} ` +
+                `(HTTP ${result.code})`,
+
+              diagnostics:
+                result.finalUrl &&
+                result.finalUrl !==
+                  result.link.href
+                  ? [
+                      `The request ended at ${result.finalUrl}.`
+                    ]
+                  : []
+            }
+          )
+      );
+    }
+
+    if (result.status === "server") {
+      appendUniqueFinding(
+        report,
+        globalThis.BCWebStyleGuideChecker
+          .createExternalFinding(
+            "http-link-server-error",
+            report.page.url,
+            {
+              id:
+                `server-http-${result.link.selector}`,
+
+              selector:
+                result.link.selector,
+
+              editorRegion,
+
+              location,
+
+              evidence:
+                `${result.link.text} → ` +
+                `${result.link.href} ` +
+                `(HTTP ${result.code})` +
+                `${
+                  result.qaLive
+                    ? " · checked live version"
+                    : ""
+                }`
+            }
+          )
+      );
+    }
   });
-  const severityOrder = { fix: 0, check: 1, review: 2 };
-  report.issues.sort((first, second) => severityOrder[first.severity] - severityOrder[second.severity] || first.category.localeCompare(second.category) || first.title.localeCompare(second.title));
+
+  const severityOrder = {
+    fix: 0,
+    check: 1,
+    review: 2
+  };
+
+  report.issues.sort(
+    (first, second) =>
+      severityOrder[first.severity] -
+        severityOrder[second.severity] ||
+      first.category.localeCompare(
+        second.category
+      ) ||
+      first.title.localeCompare(
+        second.title
+      )
+  );
 }
 
 async function checkHttpLinks(options = {}) {
@@ -1052,7 +1798,7 @@ async function checkHttpLinks(options = {}) {
         if (!options.quiet && state.activeReport === report && state.reviewView === "details") renderPageDetails("links");
         if (options.quiet && elements["export-dialog"] && elements["export-dialog"].open) updateCurrentExportDialog();
       }
-      if (results.length % 20 === 0) await storeReport(report).catch(() => {});
+      if (results.length % 20 === 0) await storeReport(report).catch(() => { });
     }
   };
   await Promise.all(Array.from({ length: Math.min(4, links.length) }, worker));
@@ -1069,7 +1815,7 @@ async function checkHttpLinks(options = {}) {
   const wasStopped = state.linkCheckCancelled;
   state.linkCheckCancelled = false;
   state.linkCheckWaiters = [];
-  await storeReport(report).catch(() => {});
+  await storeReport(report).catch(() => { });
   if (state.activeReport === report) renderCurrentReport();
   if (!options.quiet) showToast(wasStopped
     ? `Link check stopped after ${report.linkCheck.completed} of ${report.linkCheck.totalFound}.`
@@ -1230,7 +1976,7 @@ async function scanCurrentPage(suppliedOptions) {
     state.lastReviewTabId = state.activeTab.id;
     state.lastReviewPageKey = reportKey(report.page.url, report.settings && report.settings.sectionSelector);
     state.activePageKey = state.lastReviewPageKey;
-    await saveNavigation().catch(() => {});
+    await saveNavigation().catch(() => { });
     updateReturnButton();
     elements["status-filter"].value = preserved ? preserved.status : "open";
     elements["severity-filter"].value = preserved ? preserved.severity : "all";
@@ -1350,16 +2096,16 @@ function groupedFindingTypes(items = filteredFindings()) {
   }).sort((first, second) => pageSort
     ? first.pageOrder - second.pageOrder || first.title.localeCompare(second.title)
     : (severityOrder[first.severity] ?? 9) - (severityOrder[second.severity] ?? 9)
-      || first.category.localeCompare(second.category)
-      || first.title.localeCompare(second.title));
+    || first.category.localeCompare(second.category)
+    || first.title.localeCompare(second.title));
 }
 
 function orderedReviewFindings(items = filteredFindings()) {
   const pageSort = elements["sort-order"] && elements["sort-order"].value === "page";
   if (pageSort) return items.slice().sort((first, second) =>
     (first.pageOrder ?? Number.MAX_SAFE_INTEGER) - (second.pageOrder ?? Number.MAX_SAFE_INTEGER)
-      || (first.matchIndex ?? Number.MAX_SAFE_INTEGER) - (second.matchIndex ?? Number.MAX_SAFE_INTEGER)
-      || first.title.localeCompare(second.title));
+    || (first.matchIndex ?? Number.MAX_SAFE_INTEGER) - (second.matchIndex ?? Number.MAX_SAFE_INTEGER)
+    || first.title.localeCompare(second.title));
   return groupedFindingTypes(items).flatMap(group => group.findings);
 }
 
@@ -1478,7 +2224,7 @@ function jumpIssueType(amount) {
   state.pendingDecision = null;
   state.locateOnNextRender = true;
   renderReviewView();
-  persistReviewContext(state.activePageKey).catch(() => {});
+  persistReviewContext(state.activePageKey).catch(() => { });
 }
 
 function openRuleGroup(ruleId, fingerprint = "", options = {}) {
@@ -1500,7 +2246,7 @@ function openRuleGroup(ruleId, fingerprint = "", options = {}) {
   state.reviewView = "review";
   state.reviewMode = "detail";
   renderReviewView();
-  persistReviewContext(state.activePageKey).catch(() => {});
+  persistReviewContext(state.activePageKey).catch(() => { });
   requestAnimationFrame(() => elements["review-back-button"].focus());
 }
 
@@ -1509,7 +2255,7 @@ function closeFindingReview() {
   state.decisionMessage = "";
   clearFindingHighlight();
   renderReviewView();
-  persistReviewContext(state.activePageKey).catch(() => {});
+  persistReviewContext(state.activePageKey).catch(() => { });
   requestAnimationFrame(() => {
     const row = elements.findings.querySelector(`[data-rule-id="${CSS.escape(state.selectedRuleId)}"]`);
     if (row) row.focus();
@@ -1558,7 +2304,13 @@ function renderFinding(finding) {
       ${note.text ? `<div class="audit-note"><strong>Audit note</strong><p>${escapeHtml(note.text)}</p></div>` : ""}
       <div class="finding-footer">
         <div class="finding-actions">
-          ${finding.selector ? `<button class="small-button locate-button" type="button" data-selector="${escapeHtml(finding.selector)}">${workspaceSurface ? "Show in source tab" : "Show again on page"}</button>` : ""}
+          ${finding.selector ? `<button
+            class="small-button locate-button"
+             type="button"
+             data-selector="${escapeHtml(finding.selector)}"
+             data-editor-region="${finding.editorRegion || ""}">
+             ${workspaceSurface ? "Show in source tab" : "Show again on page"}
+</button>` : ""}
           ${canReview ? `<button class="small-button decision-button resolve-button" type="button" data-status="resolved">Mark resolved</button><button class="small-button decision-button" type="button" data-status="ignored">Ignore finding</button>` : `<button class="small-button reopen-button" type="button">Reopen finding</button>`}
           ${canReview && finding.exceptionEligible ? `<button class="small-button exception-button" type="button">${finding.ruleId === "proofreading-pubic" ? "Ignore on this page" : "Always allow exact term"}</button>` : ""}
           <button class="small-button note-button" type="button">${note.text || note.important ? "Edit note or importance" : "Add note or importance"}</button>
@@ -1607,7 +2359,7 @@ async function setDecision(finding, status) {
     if (nextGroup) openRuleGroup(nextGroup.ruleId, "", { preserveFeedback: true });
     else renderReviewView();
   }
-  persistReviewContext(state.activePageKey).catch(() => {});
+  persistReviewContext(state.activePageKey).catch(() => { });
   requestAnimationFrame(() => {
     const activeFinding = elements["guided-finding"].querySelector(".finding");
     if (activeFinding) activeFinding.focus({ preventScroll: true });
@@ -1647,13 +2399,13 @@ function renderReviewView() {
 function switchReviewView(name) {
   state.reviewView = name;
   renderReviewView();
-  persistReviewContext(state.activePageKey).catch(() => {});
+  persistReviewContext(state.activePageKey).catch(() => { });
 }
 
 function switchReviewMode(name) {
   state.reviewMode = ["guided", "detail"].includes(name) ? "detail" : "list";
   renderReviewView();
-  persistReviewContext(state.activePageKey).catch(() => {});
+  persistReviewContext(state.activePageKey).catch(() => { });
 }
 
 function guidedFindings() {
@@ -1708,7 +2460,7 @@ function renderGuidedReview(locate) {
   elements["next-issue-type"].tabIndex = hideIssueTypeShortcut ? -1 : 0;
   elements["next-issue-type"].textContent = hasNextType && !pageOrder ? "Skip to next issue type" : "Return to findings";
   if (locate && !workspaceSurface && elements["follow-page"].checked && finding.selector) {
-    highlightSelector(finding.selectors && finding.selectors.length ? finding.selectors : finding.selector, true, false);
+    highlightSelector(findingSelectors(finding), true, false, Number(finding.editorRegion) || null);
   }
 }
 
@@ -1726,7 +2478,7 @@ function moveGuided(amount) {
   state.pendingDecision = null;
   state.locateOnNextRender = true;
   renderReviewView();
-  persistReviewContext(state.activePageKey).catch(() => {});
+  persistReviewContext(state.activePageKey).catch(() => { });
 }
 
 function metadataDefinition(label, value) {
@@ -1744,12 +2496,15 @@ function renderPageDetails(section = "overview") {
   }
   state.pageDetailSection = section;
   const metadata = details.metadata || {};
-  const assetBySelector = new Map((report.assets || []).map(asset => [asset.selector, asset]));
+  const cmsEditorMode = Boolean(report.settings && report.settings.editorMode);
+  const metadataUnavailable = cmsEditorMode || metadata.unavailable === true;
+  const assetKey = (selector, editorRegion) => `${Number(editorRegion) || 0}|${selector || ""}`;
+  const assetBySelector = new Map((report.assets || []).map(asset => [assetKey(asset.selector, asset.editorRegion), asset]));
   const authoredHeadings = report.settings.profile === "cms-lite" ? details.headings.filter(heading => !heading.component) : details.headings;
   const generatedHeadings = report.settings.profile === "cms-lite" ? details.headings.filter(heading => heading.component) : [];
   const headingIssues = authoredHeadings.filter(heading => heading.flags && heading.flags.length).length;
   const open = report.issues.filter(finding => effectiveStatus(finding) === "open");
-  const headingRows = headings => headings.length ? headings.map(heading => `<li class="heading-outline-row heading-level-${heading.level}${heading.component ? " cms-generated-heading" : ""}"><button class="detail-jump" type="button" data-selector="${escapeHtml(heading.selector)}"><span class="detail-level level-h${heading.level}">H${heading.level}</span><span class="heading-outline-text">${escapeHtml(heading.text)}</span>${(heading.flags || []).map(flag => `<span class="detail-flag">${escapeHtml(flag)}</span>`).join("")}</button></li>`).join("") : `<li class="detail-empty-row">No visible headings found.</li>`;
+  const headingRows = headings => headings.length ? headings.map(heading => `<li class="heading-outline-row heading-level-${heading.level}${heading.component ? " cms-generated-heading" : ""}"><button class="detail-jump" type="button" data-selector="${escapeHtml(heading.selector)}" data-editor-region="${heading.editorRegion || ""}"><span class="detail-level level-h${heading.level}">H${heading.level}</span><span class="heading-outline-text">${escapeHtml(heading.text)}</span>${(heading.flags || []).map(flag => `<span class="detail-flag">${escapeHtml(flag)}</span>`).join("")}</button></li>`).join("") : `<li class="detail-empty-row">No visible headings found.</li>`;
   const linkCheck = report.linkCheck || null;
   const couldNotVerify = linkCheck ? (linkCheck.permissionRequired || 0) + (linkCheck.restricted || 0) + (linkCheck.rateLimited || 0) + (linkCheck.unavailable || 0) + (linkCheck.redirects || 0) + (linkCheck.signInRequired || 0) : 0;
   const responseErrors = linkCheck ? (linkCheck.serverErrors || 0) + (linkCheck.clientErrors || 0) : 0;
@@ -1781,7 +2536,7 @@ function renderPageDetails(section = "overview") {
       <span class="link-destination">${escapeHtml(result.link.href)}</span>
       ${result.qaLive && result.checkedUrl ? `<span class="link-redirect">Checked live version: ${escapeHtml(result.checkedUrl)}</span>` : result.redirected && result.finalUrl && result.finalUrl !== result.link.href ? `<span class="link-redirect">Redirects to ${escapeHtml(result.finalUrl)}</span>` : ""}
       ${result.error ? `<span class="link-error">${escapeHtml(result.error)}</span>` : ""}
-      <div class="link-result-actions">${result.link.selector ? `<button class="button tertiary compact detail-jump" type="button" data-selector="${escapeHtml(result.link.selector)}">${workspaceSurface ? "Show in source tab" : "Show on page"}</button>` : ""}<button class="button tertiary compact open-background-link" type="button" data-url="${escapeHtml(result.link.href)}">Open in background</button></div>
+      <div class="link-result-actions">${result.link.selector ? `<button class="button tertiary compact detail-jump" type="button" data-selector="${escapeHtml(result.link.selector)}" data-editor-region="${result.link.editorRegion || ""}">${workspaceSurface ? "Show in source tab" : "Show on page"}</button>` : ""}<button class="button tertiary compact open-background-link" type="button" data-url="${escapeHtml(result.link.href)}">Open in background</button></div>
     </li>`;
   const linkResultGroups = linkCheck && Array.isArray(linkCheck.results) ? resultPriority.map(status => {
     const results = linkCheck.results.filter(result => result.status === status);
@@ -1793,7 +2548,11 @@ function renderPageDetails(section = "overview") {
 
   if (section === "overview") {
     const brokenSummary = linkCheck ? `${linkCheck.broken || 0} broken · ${linkCheck.liveNotFound || 0} live versions not found · ${couldNotVerify} could not verify` : "Link check has not been run";
-    const grade = report.stats.readingGrade === null ? "Not enough prose" : `Estimated grade ${report.stats.readingGrade}`;
+    const grade = cmsEditorMode
+      ? "Reading grade not combined across editor regions"
+      : report.stats.readingGrade === null
+        ? "Not enough prose"
+        : `Estimated grade ${report.stats.readingGrade}`;
     elements["page-details"].innerHTML = `
       <p class="eyebrow">Inspect the page</p><h2>Page details</h2>
       <p class="hint">Choose an area to inspect. Findings remain available in the Findings tab.</p>
@@ -1801,7 +2560,7 @@ function renderPageDetails(section = "overview") {
         <button class="detail-card" type="button" data-detail-section="headings"><span><strong>Headings</strong><span>${headingIssues} outline flag${headingIssues === 1 ? "" : "s"}${generatedHeadings.length ? ` · ${generatedHeadings.length} CMS-generated` : ""}</span></span><span class="detail-card-count">${authoredHeadings.length}</span></button>
         <button class="detail-card" type="button" data-detail-section="images"><span><strong>Images and alt text</strong><span>${details.counts.imagesMissingAlt} missing alt · ${details.counts.imagesEmptyAlt} empty alt</span></span><span class="detail-card-count">${details.counts.images}</span></button>
         <button class="detail-card" type="button" data-detail-section="links"><span><strong>Links and assets</strong><span>${brokenSummary}</span></span><span class="detail-card-count">${details.counts.links}</span></button>
-        <button class="detail-card" type="button" data-detail-section="metadata"><span><strong>Metadata and SEO</strong><span>${metadata.description ? "Description published" : "Meta description missing"}</span></span><span class="detail-card-count">›</span></button>
+        <button class="detail-card" type="button" data-detail-section="metadata"><span><strong>Metadata and SEO</strong><span>${metadataUnavailable ? "Not checked in editor mode" : metadata.description ? "Description published" : "Meta description missing"}</span></span><span class="detail-card-count">›</span></button>
         <button class="detail-card" type="button" data-detail-section="statistics"><span><strong>Content statistics</strong><span>${report.stats.words.toLocaleString()} words · ${grade}</span></span><span class="detail-card-count">›</span></button>
         <button class="detail-card" type="button" data-detail-section="overlays"><span><strong>Page overlays</strong><span>Label headings, alt text or link destinations on the page</span></span><span class="detail-card-count">›</span></button>
       </div>`;
@@ -1814,7 +2573,7 @@ function renderPageDetails(section = "overview") {
   }
 
   if (section === "images") {
-    elements["page-details"].innerHTML = `${back}<h2>Images and alt text</h2><button class="button secondary" type="button" data-overlay="alts">Show alt text on page</button><ul class="detail-list">${details.images.length ? details.images.map(image => `<li><button class="detail-jump" type="button" data-selector="${escapeHtml(image.selector)}"><strong>${image.altState === "missing" ? "Missing alt attribute" : image.altState === "empty" ? "Empty alt (decorative)" : `Alt: ${escapeHtml(image.alt)}`}</strong><br><span class="component-note">${escapeHtml(image.src)}</span></button></li>`).join("") : `<li class="detail-empty-row">No visible images found.</li>`}</ul>`;
+    elements["page-details"].innerHTML = `${back}<h2>Images and alt text</h2><button class="button secondary" type="button" data-overlay="alts">Show alt text on page</button><ul class="detail-list">${details.images.length ? details.images.map(image => `<li><button class="detail-jump" type="button" data-selector="${escapeHtml(image.selector)}" data-editor-region="${image.editorRegion || ""}"><strong>${image.altState === "missing" ? "Missing alt attribute" : image.altState === "empty" ? "Empty alt (decorative)" : `Alt: ${escapeHtml(image.alt)}`}</strong><br><span class="component-note">${escapeHtml(image.src)}</span></button></li>`).join("") : `<li class="detail-empty-row">No visible images found.</li>`}</ul>`;
     return;
   }
 
@@ -1823,185 +2582,494 @@ function renderPageDetails(section = "overview") {
     const permissionHelp = linkCheck && linkCheck.state === "permission-denied"
       ? `<p class="detail-help permission-warning"><strong>No links were checked.</strong> Select “Allow access and check links” and approve the browser prompt.</p>`
       : `<p class="detail-help">Checks web links without using your browser sign-in. Links to www2.qa.gov.bc.ca are checked against the matching live www2.gov.bc.ca address. Same-origin redirects are followed automatically. Redirects to another website are followed when that website is included in the granted access; otherwise the final destination may remain unverified.</p>`;
-    elements["page-details"].innerHTML = `${back}<h2>Links and assets</h2><section class="link-check-panel"><div><strong>Check whether links work</strong><span>${linkCheckText}</span></div>${linkCheck ? `<progress class="link-check-progress" max="${Math.max(1, linkCheck.totalFound || 1)}" value="${linkCheck.completed || 0}">${linkCheck.completed || 0} of ${linkCheck.totalFound || 0}</progress>` : ""}<div class="link-check-actions">${state.linkCheckRunning ? `<button class="button secondary compact link-check-pause" type="button">${state.linkCheckPaused ? "Resume" : "Pause"}</button><button class="button tertiary compact link-check-stop" type="button">Stop</button>` : `<button class="button primary compact link-check-button" type="button">${linkCheckButtonLabel}</button>`}<button class="button secondary compact manage-permissions-button" type="button">Website access</button></div>${permissionHelp}</section>${linkCheck ? (linkResultGroups || `<div class="empty-state">No individual link results are available.</div>`) : `<div class="empty-state">Check the links to see each destination and its result.</div>`}<details class="detail-section"><summary>All page links (${details.links.length})</summary><ul class="detail-list">${details.links.length ? details.links.map(link => { const asset = assetBySelector.get(link.selector); const verification = asset ? ` · asset ${String(asset.verificationStatus || "not checked").replace(/-/g, " ")}${asset.actualSize ? ` · ${displayBytes(asset.actualSize)}` : ""}` : ""; return `<li><button class="detail-jump" type="button" data-selector="${escapeHtml(link.selector)}"><strong>${escapeHtml(link.text || "[No accessible name]")}</strong><br><span class="component-note">${escapeHtml(link.location || "Page content")} · ${escapeHtml(link.href)}${escapeHtml(verification)}</span></button></li>`; }).join("") : `<li class="detail-empty-row">No visible links found.</li>`}</ul></details>`;
+    elements["page-details"].innerHTML = `${back}<h2>Links and assets</h2><section class="link-check-panel"><div><strong>Check whether links work</strong><span>${linkCheckText}</span></div>${linkCheck ? `<progress class="link-check-progress" max="${Math.max(1, linkCheck.totalFound || 1)}" value="${linkCheck.completed || 0}">${linkCheck.completed || 0} of ${linkCheck.totalFound || 0}</progress>` : ""}<div class="link-check-actions">${state.linkCheckRunning ? `<button class="button secondary compact link-check-pause" type="button">${state.linkCheckPaused ? "Resume" : "Pause"}</button><button class="button tertiary compact link-check-stop" type="button">Stop</button>` : `<button class="button primary compact link-check-button" type="button">${linkCheckButtonLabel}</button>`}<button class="button secondary compact manage-permissions-button" type="button">Website access</button></div>${permissionHelp}</section>${linkCheck ? (linkResultGroups || `<div class="empty-state">No individual link results are available.</div>`) : `<div class="empty-state">Check the links to see each destination and its result.</div>`}<details class="detail-section"><summary>All page links (${details.links.length})</summary><ul class="detail-list">${details.links.length ? details.links.map(link => { const asset = assetBySelector.get(assetKey(link.selector, link.editorRegion)); const verification = asset ? ` · asset ${String(asset.verificationStatus || "not checked").replace(/-/g, " ")}${asset.actualSize ? ` · ${displayBytes(asset.actualSize)}` : ""}` : ""; return `<li><button class="detail-jump" type="button" data-selector="${escapeHtml(link.selector)}" data-editor-region="${link.editorRegion || ""}"><strong>${escapeHtml(link.text || "[No accessible name]")}</strong><br><span class="component-note">${escapeHtml(link.location || "Page content")} · ${escapeHtml(link.href)}${escapeHtml(verification)}</span></button></li>`; }).join("") : `<li class="detail-empty-row">No visible links found.</li>`}</ul></details>`;
     return;
   }
 
   if (section === "metadata") {
+    if (metadataUnavailable) {
+      elements["page-details"].innerHTML = `${back}<h2>Metadata and SEO</h2><div class="empty-state"><strong>Metadata is not checked in CMS Lite editor mode.</strong><br>Check the rendered page to review its title, description, language and other page-level metadata.</div>`;
+      return;
+    }
     elements["page-details"].innerHTML = `${back}<h2>Metadata and SEO</h2><dl class="metadata-list">${metadataDefinition("HTML title", metadata.documentTitle)}${metadataDefinition("Meta description", metadata.description)}${metadataDefinition("Keywords", metadata.keywords)}${metadataDefinition("Canonical URL", metadata.canonical)}${metadataDefinition("Robots", metadata.robots)}${metadataDefinition("Page language", metadata.language)}${metadataDefinition("Structured data", `${metadata.jsonLdCount || 0} JSON-LD block${metadata.jsonLdCount === 1 ? "" : "s"}`)}${(metadata.custom || []).filter(item => !["keywords", "robots"].includes(item.name.toLowerCase())).map(item => metadataDefinition(item.name, item.value)).join("")}</dl>`;
     return;
   }
 
   if (section === "statistics") {
     const counts = reportCounts(report);
-    elements["page-details"].innerHTML = `${back}<h2>Content statistics</h2><div class="details-overview"><div class="detail-stat"><strong>${report.stats.words.toLocaleString()}</strong><span>words</span></div><div class="detail-stat"><strong>${report.stats.sentences.toLocaleString()}</strong><span>sentence blocks</span></div><div class="detail-stat"><strong>${report.stats.readingGrade === null ? "—" : report.stats.readingGrade}</strong><span>estimated reading grade</span></div><div class="detail-stat"><strong>${authoredHeadings.length}</strong><span>authored headings</span></div><div class="detail-stat"><strong>${details.counts.links}</strong><span>links</span></div><div class="detail-stat"><strong>${details.counts.images}</strong><span>images</span></div></div><details class="detail-section"><summary>Open finding totals</summary><div class="finding-breakdown"><div class="breakdown-severity"><div class="fix"><strong>${counts.fix}</strong><span>Fix</span></div><div class="check"><strong>${counts.check}</strong><span>Check</span></div><div class="review"><strong>${counts.review}</strong><span>Review</span></div></div></div></details><details class="detail-section"><summary>Page components</summary><dl class="metadata-list">${metadataDefinition("Lists", details.counts.lists)}${metadataDefinition("Tables", details.counts.tables)}${metadataDefinition("Forms", details.counts.forms)}${metadataDefinition("Accordions", details.counts.accordions)}${metadataDefinition("Asset links", details.counts.assets)}</dl></details>`;
+    elements["page-details"].innerHTML = `${back}<h2>Content statistics</h2><div class="details-overview"><div class="detail-stat"><strong>${report.stats.words.toLocaleString()}</strong><span>words</span></div><div class="detail-stat"><strong>${report.stats.sentences.toLocaleString()}</strong><span>sentence blocks</span></div><div class="detail-stat"><strong>${cmsEditorMode ? "Not combined" : report.stats.readingGrade === null ? "—" : report.stats.readingGrade}</strong><span>estimated reading grade</span></div><div class="detail-stat"><strong>${authoredHeadings.length}</strong><span>authored headings</span></div><div class="detail-stat"><strong>${details.counts.links}</strong><span>links</span></div><div class="detail-stat"><strong>${details.counts.images}</strong><span>images</span></div></div><details class="detail-section"><summary>Open finding totals</summary><div class="finding-breakdown"><div class="breakdown-severity"><div class="fix"><strong>${counts.fix}</strong><span>Fix</span></div><div class="check"><strong>${counts.check}</strong><span>Check</span></div><div class="review"><strong>${counts.review}</strong><span>Review</span></div></div></div></details><details class="detail-section"><summary>Page components</summary><dl class="metadata-list">${metadataDefinition("Lists", details.counts.lists)}${metadataDefinition("Tables", details.counts.tables)}${metadataDefinition("Forms", details.counts.forms)}${metadataDefinition("Accordions", details.counts.accordions)}${metadataDefinition("Asset links", details.counts.assets)}</dl></details>`;
     return;
   }
 
   elements["page-details"].innerHTML = `${back}<h2>Page overlays</h2><p class="hint">Use these temporary labels to understand the live page. Clear them when you finish.</p><div class="audit-tools"><button type="button" data-overlay="headings">Heading levels</button><button type="button" data-overlay="alts">Image alt text</button><button type="button" data-overlay="links">Link destinations</button><button type="button" data-overlay="clear">Clear overlays</button></div>`;
 }
 
-async function revealFindingElements(selectedSelectors) {
-const clearExisting = () => {
-  document.querySelectorAll("[data-bc-style-checker-highlight]").forEach(old => {
-    old.style.outline = old.dataset.bcStyleCheckerOutline || "";
-    old.style.outlineOffset = old.dataset.bcStyleCheckerOffset || "";
-    delete old.dataset.bcStyleCheckerHighlight;
-    delete old.dataset.bcStyleCheckerOutline;
-    delete old.dataset.bcStyleCheckerOffset;
+async function revealFindingElements(selectedSelectors, editorRegion = null) {
+  const editorFrames = Array.from(
+    document.querySelectorAll("iframe.cke_wysiwyg_frame")
+  );
+
+  let editorFrame = null;
+  let targetDocument = document;
+
+  if (editorRegion && editorFrames[editorRegion - 1]) {
+    editorFrame = editorFrames[editorRegion - 1];
+
+    try {
+      targetDocument = editorFrame.contentDocument || document;
+    } catch (_) {
+      targetDocument = document;
+      editorFrame = null;
+    }
+  }
+
+  const clearInDocument = doc => {
+    if (!doc) return;
+
+    doc
+      .querySelectorAll("[data-bc-style-checker-highlight]")
+      .forEach(old => {
+        old.style.outline =
+          old.dataset.bcStyleCheckerOutline || "";
+
+        old.style.outlineOffset =
+          old.dataset.bcStyleCheckerOffset || "";
+
+        delete old.dataset.bcStyleCheckerHighlight;
+        delete old.dataset.bcStyleCheckerOutline;
+        delete old.dataset.bcStyleCheckerOffset;
+      });
+  };
+
+  // Clear highlights from the outer page.
+  clearInDocument(document);
+
+  // Clear highlights from all CMS Lite editor frames.
+  editorFrames.forEach(frame => {
+    try {
+      clearInDocument(frame.contentDocument);
+    } catch (_) {}
   });
-};
-clearExisting();
-const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
-let elements = selectedSelectors.map(selected => {
-  try { return document.querySelector(selected); } catch (_) { return null; }
-}).filter(Boolean);
-if (!elements.length) return false;
-const ancestors = [];
-elements.forEach(element => {
-  let current = element.parentElement;
-  while (current) {
-    if ((current.tagName === "DETAILS" || current.matches(".collapse,.panel-collapse,[class*='collapse' i],[class*='accordion' i] [aria-hidden='true']")) && !ancestors.includes(current)) ancestors.push(current);
-    current = current.parentElement;
-  }
-});
-ancestors.sort((first, second) => {
-  if (first.contains(second)) return -1;
-  if (second.contains(first)) return 1;
-  return 0;
-});
-const triggerFor = ancestor => {
-  const id = ancestor.id || "";
-  const escape = value => globalThis.CSS && CSS.escape ? CSS.escape(value) : String(value).replace(/["\\]/g, "\\$&");
-  const escapedId = escape(id);
-  const candidates = [];
-  if (id) {
-    [
-      `[aria-controls="${escapedId}"]`,
-      `a[href="#${escapedId}"]`,
-      `[data-target="#${escapedId}"]`,
-      `[data-bs-target="#${escapedId}"]`
-    ].forEach(query => { try { candidates.push(...document.querySelectorAll(query)); } catch (_) {} });
-  }
-  const labelledBy = ancestor.getAttribute("aria-labelledby") || "";
-  if (labelledBy) {
-    labelledBy.split(/\s+/).filter(Boolean).forEach(labelId => {
-      const label = document.getElementById(labelId);
-      if (label) candidates.push(label.matches("button,a,[role='button']") ? label : label.querySelector("button,a,[role='button']"));
-    });
-  }
-  const container = ancestor.closest(".panel,.accordion-item,.card,[class*='accordion' i]");
-  if (container) candidates.push(container.querySelector("[aria-expanded],[data-toggle='collapse'],[data-bs-toggle='collapse'],.accordion-toggle,.panel-title a,.accordion-button,button,a[role='button']"));
-  return candidates.find(candidate => candidate && candidate !== ancestor) || null;
-};
-const isCollapsed = (ancestor, trigger) => {
-  if (ancestor.tagName === "DETAILS") return !ancestor.open;
-  const style = getComputedStyle(ancestor);
-  const rect = ancestor.getBoundingClientRect();
-  const collapsedBySize = (ancestor.classList.contains("collapse") || ancestor.classList.contains("collapsing")) && rect.height <= 1;
-  return ancestor.hidden
-    || ancestor.getAttribute("aria-hidden") === "true"
-    || (ancestor.classList.contains("collapse") && !ancestor.classList.contains("show") && !ancestor.classList.contains("in"))
-    || ancestor.classList.contains("collapsing")
-    || style.display === "none"
-    || style.visibility === "hidden"
-    || collapsedBySize
-    || (trigger && trigger.getAttribute("aria-expanded") === "false");
-};
-const waitUntilOpen = async (ancestor, trigger) => {
-  const started = Date.now();
-  while (Date.now() - started < 900) {
-    if (!isCollapsed(ancestor, trigger)) return true;
+
+  const wait = ms =>
+    new Promise(resolve => setTimeout(resolve, ms));
+
+  const querySelectedElements = () =>
+    selectedSelectors
+      .map(selected => {
+        try {
+          return targetDocument.querySelector(selected);
+        } catch (_) {
+          return null;
+        }
+      })
+      .filter(Boolean);
+
+  let elements = querySelectedElements();
+
+  if (!elements.length) return false;
+
+  const ancestors = [];
+
+  elements.forEach(element => {
+    let current = element.parentElement;
+
+    while (current) {
+      if (
+        (
+          current.tagName === "DETAILS" ||
+          current.matches(
+            ".collapse,.panel-collapse,[class*='collapse' i],[class*='accordion' i] [aria-hidden='true']"
+          )
+        ) &&
+        !ancestors.includes(current)
+      ) {
+        ancestors.push(current);
+      }
+
+      current = current.parentElement;
+    }
+  });
+
+  ancestors.sort((first, second) => {
+    if (first.contains(second)) return -1;
+    if (second.contains(first)) return 1;
+    return 0;
+  });
+
+  const triggerFor = ancestor => {
+    const id = ancestor.id || "";
+
+    const escape = value =>
+      globalThis.CSS && CSS.escape
+        ? CSS.escape(value)
+        : String(value).replace(/["\\]/g, "\\$&");
+
+    const escapedId = escape(id);
+    const candidates = [];
+
+    if (id) {
+      [
+        `[aria-controls="${escapedId}"]`,
+        `a[href="#${escapedId}"]`,
+        `[data-target="#${escapedId}"]`,
+        `[data-bs-target="#${escapedId}"]`
+      ].forEach(query => {
+        try {
+          candidates.push(
+            ...targetDocument.querySelectorAll(query)
+          );
+        } catch (_) {}
+      });
+    }
+
+    const labelledBy =
+      ancestor.getAttribute("aria-labelledby") || "";
+
+    if (labelledBy) {
+      labelledBy
+        .split(/\s+/)
+        .filter(Boolean)
+        .forEach(labelId => {
+          const label =
+            targetDocument.getElementById(labelId);
+
+          if (label) {
+            candidates.push(
+              label.matches(
+                "button,a,[role='button']"
+              )
+                ? label
+                : label.querySelector(
+                    "button,a,[role='button']"
+                  )
+            );
+          }
+        });
+    }
+
+    const container = ancestor.closest(
+      ".panel,.accordion-item,.card,[class*='accordion' i]"
+    );
+
+    if (container) {
+      candidates.push(
+        container.querySelector(
+          "[aria-expanded],[data-toggle='collapse'],[data-bs-toggle='collapse'],.accordion-toggle,.panel-title a,.accordion-button,button,a[role='button']"
+        )
+      );
+    }
+
+    return (
+      candidates.find(
+        candidate =>
+          candidate && candidate !== ancestor
+      ) || null
+    );
+  };
+
+  const styleFor = element => {
+    const view =
+      element &&
+      element.ownerDocument &&
+      element.ownerDocument.defaultView;
+
+    return (view || window).getComputedStyle(element);
+  };
+
+  const isCollapsed = (ancestor, trigger) => {
+    if (ancestor.tagName === "DETAILS") {
+      return !ancestor.open;
+    }
+
+    const style = styleFor(ancestor);
+    const rect = ancestor.getBoundingClientRect();
+
+    const collapsedBySize =
+      (
+        ancestor.classList.contains("collapse") ||
+        ancestor.classList.contains("collapsing")
+      ) &&
+      rect.height <= 1;
+
+    return (
+      ancestor.hidden ||
+      ancestor.getAttribute("aria-hidden") === "true" ||
+      (
+        ancestor.classList.contains("collapse") &&
+        !ancestor.classList.contains("show") &&
+        !ancestor.classList.contains("in")
+      ) ||
+      ancestor.classList.contains("collapsing") ||
+      style.display === "none" ||
+      style.visibility === "hidden" ||
+      collapsedBySize ||
+      (
+        trigger &&
+        trigger.getAttribute("aria-expanded") ===
+          "false"
+      )
+    );
+  };
+
+  const waitUntilOpen = async (
+    ancestor,
+    trigger
+  ) => {
+    const started = Date.now();
+
+    while (Date.now() - started < 900) {
+      if (!isCollapsed(ancestor, trigger)) {
+        return true;
+      }
+
+      await wait(60);
+    }
+
+    return !isCollapsed(ancestor, trigger);
+  };
+
+  for (const ancestor of ancestors) {
+    if (ancestor.tagName === "DETAILS") {
+      if (!ancestor.open) {
+        ancestor.open = true;
+        await wait(40);
+      }
+
+      continue;
+    }
+
+    const trigger = triggerFor(ancestor);
+
+    if (!isCollapsed(ancestor, trigger)) {
+      continue;
+    }
+
+    if (trigger) {
+      try {
+        trigger.click();
+      } catch (_) {}
+
+      if (
+        await waitUntilOpen(ancestor, trigger)
+      ) {
+        continue;
+      }
+    }
+
+    // Fallback for CMS/Bootstrap panels whose normal
+    // collapse script is unavailable from the extension
+    // execution world. This only exposes the controlled
+    // panel so the reviewer can see the finding.
+    ancestor.hidden = false;
+    ancestor.removeAttribute("aria-hidden");
+    ancestor.classList.remove("collapsing");
+    ancestor.classList.add("show", "in");
+
+    ancestor.style.setProperty(
+      "display",
+      "block",
+      "important"
+    );
+
+    ancestor.style.setProperty(
+      "height",
+      "auto",
+      "important"
+    );
+
+    ancestor.style.setProperty(
+      "max-height",
+      "none",
+      "important"
+    );
+
+    ancestor.style.setProperty(
+      "overflow",
+      "visible",
+      "important"
+    );
+
+    ancestor.style.setProperty(
+      "visibility",
+      "visible",
+      "important"
+    );
+
+    if (trigger) {
+      trigger.setAttribute(
+        "aria-expanded",
+        "true"
+      );
+
+      trigger.classList.remove("collapsed");
+    }
+
     await wait(60);
   }
-  return !isCollapsed(ancestor, trigger);
-};
-for (const ancestor of ancestors) {
-  if (ancestor.tagName === "DETAILS") {
-    if (!ancestor.open) { ancestor.open = true; await wait(40); }
-    continue;
-  }
-  const trigger = triggerFor(ancestor);
-  if (!isCollapsed(ancestor, trigger)) continue;
-  if (trigger) {
-    try { trigger.click(); } catch (_) {}
-    if (await waitUntilOpen(ancestor, trigger)) continue;
-  }
-  // Fallback for CMS/Bootstrap panels whose normal collapse script is unavailable
-  // from the extension execution world. This only exposes the controlled panel so
-  // the reviewer can see the finding; it does not change saved page content.
-  ancestor.hidden = false;
-  ancestor.removeAttribute("aria-hidden");
-  ancestor.classList.remove("collapsing");
-  ancestor.classList.add("show", "in");
-  ancestor.style.setProperty("display", "block", "important");
-  ancestor.style.setProperty("height", "auto", "important");
-  ancestor.style.setProperty("max-height", "none", "important");
-  ancestor.style.setProperty("overflow", "visible", "important");
-  ancestor.style.setProperty("visibility", "visible", "important");
-  if (trigger) {
-    trigger.setAttribute("aria-expanded", "true");
-    trigger.classList.remove("collapsed");
-  }
-  await wait(60);
-}
-elements = selectedSelectors.map(selected => {
-  try { return document.querySelector(selected); } catch (_) { return null; }
-}).filter(Boolean);
-if (!elements.length) return false;
-const hasVisibleBox = element => {
-  if (!element || !element.getBoundingClientRect) return false;
-  const style = getComputedStyle(element);
-  if (style.display === "none" || style.visibility === "hidden") return false;
-  const rect = element.getBoundingClientRect();
-  return rect.width > 1 && rect.height > 1;
-};
-let usedContainerFallback = false;
-const highlightElements = [];
-elements.forEach(element => {
-  let target = element;
-  if (!hasVisibleBox(target)) {
-    const semanticContainer = element.closest("li,h1,h2,h3,h4,h5,h6,p,dd,dt,figcaption,blockquote,td,th");
-    if (semanticContainer && hasVisibleBox(semanticContainer)) target = semanticContainer;
-    else {
-      let current = element.parentElement;
-      while (current && !hasVisibleBox(current)) current = current.parentElement;
-      if (current) target = current;
+
+  // Re-query after opening any collapsed containers.
+  elements = querySelectedElements();
+
+  if (!elements.length) return false;
+
+  const hasVisibleBox = element => {
+    if (
+      !element ||
+      !element.getBoundingClientRect
+    ) {
+      return false;
     }
-    usedContainerFallback = target !== element;
+
+    const style = styleFor(element);
+
+    if (
+      style.display === "none" ||
+      style.visibility === "hidden"
+    ) {
+      return false;
+    }
+
+    const rect =
+      element.getBoundingClientRect();
+
+    return rect.width > 1 && rect.height > 1;
+  };
+
+  let usedContainerFallback = false;
+  const highlightElements = [];
+
+  elements.forEach(element => {
+    let target = element;
+
+    if (!hasVisibleBox(target)) {
+      const semanticContainer =
+        element.closest(
+          "li,h1,h2,h3,h4,h5,h6,p,dd,dt,figcaption,blockquote,td,th"
+        );
+
+      if (
+        semanticContainer &&
+        hasVisibleBox(semanticContainer)
+      ) {
+        target = semanticContainer;
+      } else {
+        let current = element.parentElement;
+
+        while (
+          current &&
+          !hasVisibleBox(current)
+        ) {
+          current = current.parentElement;
+        }
+
+        if (current) {
+          target = current;
+        }
+      }
+
+      usedContainerFallback =
+        target !== element;
+    }
+
+    if (
+      target &&
+      !highlightElements.includes(target)
+    ) {
+      highlightElements.push(target);
+    }
+  });
+
+  if (!highlightElements.length) {
+    return false;
   }
-  if (target && !highlightElements.includes(target)) highlightElements.push(target);
-});
-if (!highlightElements.length) return false;
-highlightElements.forEach(element => {
-  element.dataset.bcStyleCheckerOutline = element.style.outline;
-  element.dataset.bcStyleCheckerOffset = element.style.outlineOffset;
-  element.dataset.bcStyleCheckerHighlight = "true";
-  element.style.outline = "4px solid #fcba19";
-  element.style.outlineOffset = "3px";
-});
-highlightElements[0].scrollIntoView({ behavior: "smooth", block: "center" });
-return usedContainerFallback ? "container" : true;
+
+  highlightElements.forEach(element => {
+    element.dataset.bcStyleCheckerOutline =
+      element.style.outline;
+
+    element.dataset.bcStyleCheckerOffset =
+      element.style.outlineOffset;
+
+    element.dataset.bcStyleCheckerHighlight =
+      "true";
+
+    element.style.outline =
+      "4px solid #fcba19";
+
+    element.style.outlineOffset = "3px";
+  });
+
+  // If the finding is inside CMS Lite, bring the
+  // editor frame itself into view first.
+  if (editorFrame) {
+    editorFrame.scrollIntoView({
+      behavior: "smooth",
+      block: "center"
+    });
+  }
+
+  highlightElements[0].scrollIntoView({
+    behavior: "smooth",
+    block: "center"
+  });
+
+  return usedContainerFallback
+    ? "container"
+    : true;
 }
 
-async function highlightSelector(selector, requireReport, activateTab = false) {
+async function highlightSelector(
+  selector,
+  requireReport,
+  activateTab = false,
+  editorRegion = null
+) {
   try {
     const tab = await currentReviewTab();
-    if (!tab || !tab.id || (requireReport && (!state.activeReport || canonicalUrl(tab.url) !== canonicalUrl(state.activeReport.page.url)))) {
+
+    if (
+      !tab ||
+      !tab.id ||
+      (
+        requireReport &&
+        (
+          !state.activeReport ||
+          canonicalUrl(tab.url) !== canonicalUrl(state.activeReport.page.url)
+        )
+      )
+    ) {
       showToast("Open the scanned page to show this finding.");
       return;
     }
     const selectors = (Array.isArray(selector) ? selector : [selector]).filter(Boolean);
+
     if (!selectors.length) return;
+
     const results = await chrome.scripting.executeScript({
       target: { tabId: tab.id },
-      args: [selectors],
+      args: [
+        selectors,
+        Number(editorRegion) || null
+      ],
       func: revealFindingElements
     });
+
     const revealResult = results[0] && results[0].result;
-    if (revealResult === "container") showToast("The exact element is invisible. Its nearest visible container is highlighted.");
-    else if (revealResult !== true) showToast("The page changed. Rescan it to refresh this location.");
-    if (activateTab) await chrome.tabs.update(tab.id, { active: true });
+
+    if (revealResult === "container") {
+      showToast(
+        "The exact element is invisible. Its nearest visible container is highlighted."
+      );
+    } else if (revealResult !== true) {
+      showToast(
+        "The page changed. Rescan it to refresh this location."
+      );
+    }
+
+    if (activateTab) {
+      await chrome.tabs.update(tab.id, { active: true });
+    }
   } catch (_) {
     showToast("The page changed. Rescan it to refresh locations.");
   }
@@ -2009,30 +3077,72 @@ async function highlightSelector(selector, requireReport, activateTab = false) {
 
 function findingSelectors(finding) {
   if (!finding) return "";
-  return Array.isArray(finding.selectors) && finding.selectors.length ? finding.selectors : finding.selector;
+
+  return Array.isArray(finding.selectors) && finding.selectors.length
+    ? finding.selectors
+    : finding.selector;
 }
 
-function locateFinding(value) {
-  return highlightSelector(value && typeof value === "object" ? findingSelectors(value) : value, true, workspaceSurface);
+function locateFinding(value, editorRegion = null) {
+  if (value && typeof value === "object") {
+    return highlightSelector(
+      findingSelectors(value),
+      true,
+      workspaceSurface,
+      Number(value.editorRegion) || Number(editorRegion) || null
+    );
+  }
+
+  return highlightSelector(
+    value,
+    true,
+    workspaceSurface,
+    Number(editorRegion) || null
+  );
 }
 
 async function clearFindingHighlight() {
   try {
     const tab = await currentReviewTab();
+
     if (!tab || !tab.id) return;
+
     await chrome.scripting.executeScript({
       target: { tabId: tab.id },
+
       func: () => {
-        document.querySelectorAll("[data-bc-style-checker-highlight]").forEach(element => {
-          element.style.outline = element.dataset.bcStyleCheckerOutline || "";
-          element.style.outlineOffset = element.dataset.bcStyleCheckerOffset || "";
-          delete element.dataset.bcStyleCheckerHighlight;
-          delete element.dataset.bcStyleCheckerOutline;
-          delete element.dataset.bcStyleCheckerOffset;
-        });
+        const clearInDocument = doc => {
+          if (!doc) return;
+
+          doc
+            .querySelectorAll(
+              "[data-bc-style-checker-highlight]"
+            )
+            .forEach(element => {
+              element.style.outline =
+                element.dataset.bcStyleCheckerOutline || "";
+
+              element.style.outlineOffset =
+                element.dataset.bcStyleCheckerOffset || "";
+
+              delete element.dataset.bcStyleCheckerHighlight;
+              delete element.dataset.bcStyleCheckerOutline;
+              delete element.dataset.bcStyleCheckerOffset;
+            });
+        };
+
+        clearInDocument(document);
+
+        document
+          .querySelectorAll("iframe.cke_wysiwyg_frame")
+          .forEach(frame => {
+            try {
+              clearInDocument(frame.contentDocument);
+            } catch (_) {}
+          });
       }
     });
-  } catch (_) {}
+  } catch (_) { }
 }
 
 async function clearPageOverlays() {
@@ -2044,7 +3154,7 @@ async function clearPageOverlays() {
       target: { tabId },
       func: () => { if (typeof globalThis.__bcWsgOverlayCleanup === "function") globalThis.__bcWsgOverlayCleanup(); }
     });
-  } catch (_) {}
+  } catch (_) { }
   state.overlayMode = "";
   state.overlayTabId = null;
 }
@@ -2062,28 +3172,58 @@ async function runPageOverlay(mode) {
     args: [mode, items],
     func: (overlayMode, overlayItems) => {
       if (typeof globalThis.__bcWsgOverlayCleanup === "function") globalThis.__bcWsgOverlayCleanup();
+
+      const editorFrames = Array.from(
+        document.querySelectorAll("iframe.cke_wysiwyg_frame")
+      );
+
+      const documentFor = item => {
+        const editorRegion = Number(item && item.editorRegion) || 0;
+        if (!editorRegion || !editorFrames[editorRegion - 1]) return document;
+        try {
+          return editorFrames[editorRegion - 1].contentDocument || document;
+        } catch (_) {
+          return document;
+        }
+      };
+
+      const allDocuments = [
+        document,
+        ...editorFrames.map(frame => {
+          try { return frame.contentDocument; } catch (_) { return null; }
+        }).filter(Boolean)
+      ];
+
       const touched = [];
       const badges = [];
+
       const cleanup = () => {
         badges.forEach(badge => badge.remove());
-        document.querySelectorAll("[data-bc-style-checker-highlight]").forEach(temporaryHighlight => {
-          temporaryHighlight.style.outline = temporaryHighlight.dataset.bcStyleCheckerOutline || "";
-          temporaryHighlight.style.outlineOffset = temporaryHighlight.dataset.bcStyleCheckerOffset || "";
-          delete temporaryHighlight.dataset.bcStyleCheckerHighlight;
-          delete temporaryHighlight.dataset.bcStyleCheckerOutline;
-          delete temporaryHighlight.dataset.bcStyleCheckerOffset;
+
+        allDocuments.forEach(doc => {
+          doc.querySelectorAll("[data-bc-style-checker-highlight]").forEach(temporaryHighlight => {
+            temporaryHighlight.style.outline = temporaryHighlight.dataset.bcStyleCheckerOutline || "";
+            temporaryHighlight.style.outlineOffset = temporaryHighlight.dataset.bcStyleCheckerOffset || "";
+            delete temporaryHighlight.dataset.bcStyleCheckerHighlight;
+            delete temporaryHighlight.dataset.bcStyleCheckerOutline;
+            delete temporaryHighlight.dataset.bcStyleCheckerOffset;
+          });
         });
+
         touched.forEach(element => {
           element.style.outline = element.dataset.bcWsgOverlayOutline || "";
           element.style.outlineOffset = element.dataset.bcWsgOverlayOffset || "";
           delete element.dataset.bcWsgOverlayOutline;
           delete element.dataset.bcWsgOverlayOffset;
         });
+
         delete globalThis.__bcWsgOverlayCleanup;
       };
+
       globalThis.__bcWsgOverlayCleanup = cleanup;
-      const makeBadge = (text, title) => {
-        const badge = document.createElement("span");
+
+      const makeBadge = (doc, text, title) => {
+        const badge = doc.createElement("span");
         badge.className = "bc-wsg-overlay-badge";
         badge.setAttribute("aria-hidden", "true");
         badge.textContent = text;
@@ -2096,15 +3236,19 @@ async function runPageOverlay(mode) {
         badges.push(badge);
         return badge;
       };
+
       overlayItems.forEach((item, index) => {
+        const targetDocument = documentFor(item);
         let element;
-        try { element = document.querySelector(item.selector); } catch (_) { element = null; }
+        try { element = targetDocument.querySelector(item.selector); } catch (_) { element = null; }
         if (!element) return;
+
         element.dataset.bcWsgOverlayOutline = element.style.outline;
         element.dataset.bcWsgOverlayOffset = element.style.outlineOffset;
         element.style.outline = "3px solid #255a90";
         element.style.outlineOffset = "2px";
         touched.push(element);
+
         let label = "";
         if (overlayMode === "headings") label = `H${item.level}${item.flags && item.flags.length ? ` · ${item.flags.join(" · ")}` : ""}`;
         else if (overlayMode === "alts") label = item.altState === "missing" ? "Alt: MISSING" : item.altState === "empty" ? "Alt: empty (decorative)" : `Alt: ${item.alt}`;
@@ -2117,7 +3261,11 @@ async function runPageOverlay(mode) {
             label = `${index + 1}. ${display.length > 68 ? `${display.slice(0, 65)}…` : display}`;
           } catch (_) { label = `${index + 1}. ${item.kind}`; }
         }
-        element.insertAdjacentElement(overlayMode === "headings" ? "beforebegin" : "afterend", makeBadge(label, overlayMode === "links" ? item.href : ""));
+
+        element.insertAdjacentElement(
+          overlayMode === "headings" ? "beforebegin" : "afterend",
+          makeBadge(targetDocument, label, overlayMode === "links" ? item.href : "")
+        );
       });
     }
   });
@@ -2891,7 +4039,20 @@ function countRule(findings, ruleId) {
 }
 
 function distinctSelectors(findings) {
-  return new Set(findings.map(finding => finding.selector || finding.fingerprint || finding.id).filter(Boolean)).size;
+  return new Set(
+    findings
+      .map(finding => {
+        const identity =
+          finding.selector ||
+          finding.fingerprint ||
+          finding.id;
+
+        return identity
+          ? `${Number(finding.editorRegion) || 0}|${identity}`
+          : "";
+      })
+      .filter(Boolean)
+  ).size;
 }
 
 function numericEvidenceValue(finding, pattern) {
@@ -3368,14 +4529,14 @@ function zipStore(files) {
     const name = encoder.encode(file.name);
     const data = typeof file.data === "string" ? encoder.encode(file.data) : file.data;
     const crc = crc32(data);
-    const local = new Uint8Array([0x50,0x4b,0x03,0x04,...u16(20),...u16(0x0800),...u16(0),...u16(0),...u16(0),...u32(crc),...u32(data.length),...u32(data.length),...u16(name.length),...u16(0)]);
+    const local = new Uint8Array([0x50, 0x4b, 0x03, 0x04, ...u16(20), ...u16(0x0800), ...u16(0), ...u16(0), ...u16(0), ...u32(crc), ...u32(data.length), ...u32(data.length), ...u16(name.length), ...u16(0)]);
     parts.push(local, name, data);
-    const header = new Uint8Array([0x50,0x4b,0x01,0x02,...u16(20),...u16(20),...u16(0x0800),...u16(0),...u16(0),...u16(0),...u32(crc),...u32(data.length),...u32(data.length),...u16(name.length),...u16(0),...u16(0),...u16(0),...u16(0),...u32(0),...u32(offset)]);
+    const header = new Uint8Array([0x50, 0x4b, 0x01, 0x02, ...u16(20), ...u16(20), ...u16(0x0800), ...u16(0), ...u16(0), ...u16(0), ...u32(crc), ...u32(data.length), ...u32(data.length), ...u16(name.length), ...u16(0), ...u16(0), ...u16(0), ...u16(0), ...u32(0), ...u32(offset)]);
     central.push(header, name);
     offset += local.length + name.length + data.length;
   });
   const centralSize = central.reduce((total, part) => total + part.length, 0);
-  const end = new Uint8Array([0x50,0x4b,0x05,0x06,...u16(0),...u16(0),...u16(files.length),...u16(files.length),...u32(centralSize),...u32(offset),...u16(0)]);
+  const end = new Uint8Array([0x50, 0x4b, 0x05, 0x06, ...u16(0), ...u16(0), ...u16(files.length), ...u16(files.length), ...u32(centralSize), ...u32(offset), ...u16(0)]);
   return new Blob([...parts, ...central, end], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
 }
 
@@ -4002,7 +5163,7 @@ async function scanBatchUrl(url, settings) {
     return { submittedUrl: url, status: "error", error: readableScanError(error), scannedAt: new Date().toISOString() };
   } finally {
     if (tab && tab.id) {
-      try { await chrome.tabs.remove(tab.id); } catch (_) {}
+      try { await chrome.tabs.remove(tab.id); } catch (_) { }
     }
     state.batch.tempTabId = null;
   }
@@ -4411,7 +5572,7 @@ async function cancelBatch() {
   state.batch.running = false;
   state.batch.phase = "cancelled";
   if (state.batch.tempTabId) {
-    try { await chrome.tabs.remove(state.batch.tempTabId); } catch (_) {}
+    try { await chrome.tabs.remove(state.batch.tempTabId); } catch (_) { }
   }
   await persistBatchState().catch(() => {});
   renderBatchProgress();
@@ -4519,7 +5680,12 @@ function handleFindingAction(event) {
   if (!button) return;
   const finding = findingFromButton(button);
   if (button.classList.contains("undo-decision")) undoDecision(button.dataset.fingerprint || (button.closest("[data-fingerprint]") || {}).dataset?.fingerprint);
-  else if (button.classList.contains("locate-button")) locateFinding(finding || button.dataset.selector);
+else if (button.classList.contains("locate-button")) {
+  locateFinding(
+    finding || button.dataset.selector,
+    Number(button.dataset.editorRegion) || null
+  );
+}
   else if (button.classList.contains("decision-button")) setDecision(finding, button.dataset.status);
   else if (button.classList.contains("reopen-button")) setDecision(finding, "open");
   else if (button.classList.contains("manage-term-button")) openWorkspace("terms");
@@ -4534,7 +5700,7 @@ async function openWorkspace(view = "current") {
     if (tab && tab.id && isScannableUrl(tab.url || "")) {
       state.lastReviewTabId = tab.id;
       state.lastReviewPageKey = state.activeReport ? state.activePageKey : reportKey(tab.url || "");
-      await saveNavigation().catch(() => {});
+      await saveNavigation().catch(() => { });
     }
   }
   const destination = chrome.runtime.getURL(`sidepanel.html?workspace=1&view=${encodeURIComponent(view)}`);
@@ -4585,7 +5751,7 @@ function bindEvents() {
   elements["category-filter"].addEventListener("change", renderFindings);
   elements["sort-order"].addEventListener("change", () => {
     renderReviewView();
-    persistReviewContext(state.activePageKey).catch(() => {});
+    persistReviewContext(state.activePageKey).catch(() => { });
   });
   elements["important-filter"].addEventListener("change", renderFindings);
   elements["clear-filters"].addEventListener("click", clearFilters);
@@ -4619,7 +5785,7 @@ function bindEvents() {
     state.reviewView = "details";
     state.pageDetailSection = "links";
     renderReviewView();
-    persistReviewContext(state.activePageKey).catch(() => {});
+    persistReviewContext(state.activePageKey).catch(() => { });
   });
   elements["view-reviewed-button"].addEventListener("click", () => {
     elements["status-filter"].value = "reviewed";
@@ -4641,23 +5807,23 @@ function bindEvents() {
   elements["follow-page"].addEventListener("change", () => {
     if (elements["follow-page"].checked && state.reviewMode === "detail") {
       const finding = guidedFindings()[state.guidedIndex];
-      if (finding && finding.selector) highlightSelector(findingSelectors(finding), true, false);
+      if (finding && finding.selector) highlightSelector(findingSelectors(finding), true, false, Number(finding.editorRegion) || null);
     } else if (!elements["follow-page"].checked) clearFindingHighlight();
-    persistReviewContext(state.activePageKey).catch(() => {});
+    persistReviewContext(state.activePageKey).catch(() => { });
   });
 
   const handlePageAuditClick = event => {
     const button = event.target.closest("button");
     if (!button) return;
-    if (button.dataset.detailSection) { renderPageDetails(button.dataset.detailSection); persistReviewContext(state.activePageKey).catch(() => {}); }
+    if (button.dataset.detailSection) { renderPageDetails(button.dataset.detailSection); persistReviewContext(state.activePageKey).catch(() => { }); }
     else if (button.dataset.overlay) runPageOverlay(button.dataset.overlay);
     else if (button.classList.contains("link-check-button")) checkHttpLinks();
     else if (button.classList.contains("link-check-pause")) toggleLinkCheckPause();
     else if (button.classList.contains("link-check-stop")) stopLinkCheck();
     else if (button.classList.contains("manage-permissions-button")) openPermissionDialog();
-    else if (button.classList.contains("detail-jump")) locateFinding(button.dataset.selector);
+    else if (button.classList.contains("detail-jump")) locateFinding(button.dataset.selector, Number(button.dataset.editorRegion) || null);
     else if (button.classList.contains("open-background-link")) {
-      persistReviewContext(state.activePageKey).catch(() => {});
+      persistReviewContext(state.activePageKey).catch(() => { });
       chrome.tabs.create({ url: button.dataset.url, active: false }).then(() => showToast("Destination opened in the background.")).catch(() => showToast("The destination could not be opened."));
     }
   };
@@ -4743,7 +5909,7 @@ function bindEvents() {
   let scrollTimer;
   document.addEventListener("scroll", () => {
     clearTimeout(scrollTimer);
-    scrollTimer = setTimeout(() => persistReviewContext(state.activePageKey).catch(() => {}), 250);
+    scrollTimer = setTimeout(() => persistReviewContext(state.activePageKey).catch(() => { }), 250);
   }, { passive: true });
 
   if (!workspaceSurface) chrome.tabs.onActivated.addListener(() => { if (!state.batch.running) clearPageOverlays().finally(syncActiveTab); });

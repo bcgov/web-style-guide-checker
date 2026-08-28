@@ -710,13 +710,30 @@
     }
   }
 
-  function detectProfile(url, requestedProfile) {
-    let hostname = "";
-    try { hostname = new URL(url).hostname.toLowerCase(); } catch (_) { hostname = ""; }
-    if (requestedProfile && requestedProfile !== "auto") return requestedProfile;
-    if (["www2.gov.bc.ca", "www2.qa.gov.bc.ca", "intranet.gov.bc.ca", "intranet.qa.gov.bc.ca"].includes(hostname)) return "cms-lite";
-    return "standard";
+function detectProfile(url, requestedProfile) {
+  let hostname = "";
+  try {
+    hostname = new URL(url).hostname.toLowerCase();
+  } catch (_) {
+    hostname = "";
   }
+
+  if (requestedProfile && requestedProfile !== "auto") {
+    return requestedProfile;
+  }
+
+  if ([
+    "www2.gov.bc.ca",
+    "www2.qa.gov.bc.ca",
+    "intranet.gov.bc.ca",
+    "intranet.qa.gov.bc.ca",
+    "cmslite.gov.bc.ca"
+  ].includes(hostname)) {
+    return "cms-lite";
+  }
+
+  return "standard";
+}
 
   function profileLabel(profile) {
     return profile === "cms-lite" ? "CMS Lite" : "Standard website";
@@ -834,13 +851,16 @@
   }
 
   function findingFingerprint(pageUrl, finding) {
-    return "f-" + hashString([
+    const parts = [
       canonicalUrl(pageUrl),
       finding.ruleId,
       normalizeSpace(finding.evidence),
       finding.selector || "",
       finding.matchIndex === undefined ? "" : finding.matchIndex
-    ].join("|"));
+    ];
+    const editorRegion = Number(finding.editorRegion) || 0;
+    if (editorRegion) parts.push(`editor-${editorRegion}`);
+    return "f-" + hashString(parts.join("|"));
   }
 
   function cssPath(element) {
@@ -1279,14 +1299,48 @@
     return previous ? (previous.id || (previous.tagName === "A" ? previous.getAttribute("name") : "") || "") : "";
   }
 
-  function fragmentTarget(doc, href) {
-    if (!href || href.charAt(0) !== "#" || href.length < 2) return null;
-    let value = href.slice(1);
-    try { value = decodeURIComponent(value); } catch (_) {}
-    const byId = doc.getElementById(value);
-    if (byId) return byId;
-    return Array.from(doc.querySelectorAll("a[name],[name]")).find(element => element.getAttribute("name") === value) || null;
-  }
+function fragmentTarget(doc, href) {
+  if (!href || href.charAt(0) !== "#" || href.length < 2) return null;
+
+  let value = href.slice(1);
+  try {
+    value = decodeURIComponent(value);
+  } catch (_) {}
+
+  // Normal published-page anchor
+  const byId = doc.getElementById(value);
+  if (byId) return byId;
+
+  const byName = Array.from(doc.querySelectorAll("a[name],[name]"))
+    .find(element => element.getAttribute("name") === value);
+
+  if (byName) return byName;
+
+  // CKEditor represents anchors as fake image elements while editing.
+  const ckeAnchors = Array.from(
+    doc.querySelectorAll(
+      "img.cke_anchor[data-cke-real-element-type='anchor'][data-cke-realelement]"
+    )
+  );
+
+  return ckeAnchors.find(anchor => {
+    try {
+      const realElement = decodeURIComponent(
+        anchor.getAttribute("data-cke-realelement") || ""
+      );
+
+      const idMatch = realElement.match(/\bid=["']([^"']+)["']/i);
+      const nameMatch = realElement.match(/\bname=["']([^"']+)["']/i);
+
+      return (
+        (idMatch && idMatch[1] === value) ||
+        (nameMatch && nameMatch[1] === value)
+      );
+    } catch (_) {
+      return false;
+    }
+  }) || null;
+}
 
   function headingForFragmentTarget(target) {
     if (!target) return null;
@@ -1529,12 +1583,29 @@
   }
 
   function headingHasStableAnchor(heading) {
-    if (!heading) return false;
-    if (heading.id) return true;
-    if (heading.querySelector("[id],a[name]")) return true;
-    const previous = heading.previousElementSibling;
-    return Boolean(previous && (previous.id || (previous.tagName === "A" && previous.getAttribute("name"))));
-  }
+  if (!heading) return false;
+
+  // Standard published-page anchors
+  if (heading.id) return true;
+  if (heading.querySelector("[id],a[name]")) return true;
+
+  // CKEditor represents anchors as fake image elements in editing mode
+  const ckeAnchor = heading.querySelector(
+    "img.cke_anchor[data-cke-real-element-type='anchor']"
+  );
+
+  if (ckeAnchor) return true;
+
+  const previous = heading.previousElementSibling;
+
+  return Boolean(
+    previous &&
+    (
+      previous.id ||
+      (previous.tagName === "A" && previous.getAttribute("name"))
+    )
+  );
+}
 
   function metadataDetails(doc) {
     const metaValue = (attribute, value) => {
@@ -1644,6 +1715,7 @@
       suggestion: data.suggestion || rule[4],
       evidence: excerpt(data.evidence || ""),
       selector: data.selector || "",
+      editorRegion: Number(data.editorRegion) || null,
       sourceLabel: source[0],
       sourceUrl: source[1],
       flaggedToken: data.flaggedToken || "",
@@ -1665,10 +1737,11 @@
 
   function scanPage(doc, suppliedOptions) {
     const options = suppliedOptions || {};
-    const pageUrl = doc.location && doc.location.href ? doc.location.href : "";
+    const pageUrl = String(options.pageUrlOverride || (doc.location && doc.location.href ? doc.location.href : ""));
     const hostname = (() => { try { return new URL(pageUrl).hostname.toLowerCase(); } catch (_) { return ""; } })();
     const scope = options.scope === "whole" ? "whole" : "content";
     const profile = detectProfile(pageUrl, options.profile || "auto");
+    const editorRegion = Number(options.editorRegion) || null;
     const documentLanguage = normalizeSpace(doc.documentElement && doc.documentElement.getAttribute("lang"));
     const englishLanguage = isEnglishLanguage(documentLanguage);
     const intranetProfile = ["intranet.gov.bc.ca", "intranet.qa.gov.bc.ca"].includes(hostname);
@@ -1758,6 +1831,7 @@
         evidence: evidencePrefix + matchedEvidence.text,
         selector: cssPath(element),
         selectors: Array.isArray(meta.selectors) ? Array.from(new Set(meta.selectors.filter(Boolean))) : [],
+        editorRegion,
         sourceLabel: source[0],
         sourceUrl: source[1],
         flaggedToken: meta.flaggedToken || "",
@@ -2494,6 +2568,7 @@
           href: absoluteHref,
           text: linkText,
           selector: cssPath(link),
+          editorRegion,
           expectedType,
           declaredType: label.type,
           declaredSize: label.size,
