@@ -23,7 +23,9 @@ const FEEDBACK_TYPES = {
   suggestion: "Suggestion",
   other: "Other"
 };
-const MAILTO_REPORT_LIMIT = 6000;
+// Keep a healthy buffer below Outlook/Windows URL hand-off limits. The full
+// encoded mailto URI (not the unencoded report text) is measured against this.
+const MAILTO_SAFE_URI_LIMIT = 7000;
 const surfaceParams = new URLSearchParams(location.search);
 const workspaceSurface = surfaceParams.get("workspace") === "1";
 
@@ -64,19 +66,33 @@ const state = {
     running: false,
     paused: false,
     cancelled: false,
+    phase: "idle",
     urls: [],
     records: [],
     currentIndex: -1,
-    tempTabId: null
+    tempTabId: null,
+    checkLinks: false,
+    linkPermissionMode: "found",
+    linkCheckTotal: 0,
+    linkCheckCompleted: 0,
+    settings: { scope: "content", canControlColour: true },
+    exportPreset: "full",
+    customSheets: [],
+    includeReviewed: false,
+    downloaded: false,
+    downloadFilename: "",
+    downloadedAt: ""
   },
   pendingExceptionFinding: null,
   pendingNoteFinding: null,
   pendingFeedbackId: "",
   pendingFeedbackContext: null,
   preparedFeedbackIds: [],
+  feedbackCopyMode: "",
   feedbackPreviousView: "current",
   feedbackPreviousScroll: 0,
-  feedbackReturnFocus: null
+  feedbackReturnFocus: null,
+  pendingFeedbackPageChange: false
 };
 
 const elements = {};
@@ -86,30 +102,32 @@ function $(id) { return document.getElementById(id); }
 function cacheElements() {
   [
     "active-page-label", "return-review-button", "feedback-header-button", "feedback-header-count", "profile-badge", "colour-control-row", "colour-control", "scope-note", "scan-button", "scan-permission-button", "cache-note",
-    "scan-settings", "cancel-settings-button", "scan-context-title", "scan-context-details", "change-scan-button", "stale-report-banner", "stale-report-title", "stale-report-message",
+    "scan-settings", "cancel-settings-button", "scan-context-title", "scan-context-details", "stale-report-banner", "stale-report-title", "stale-report-message", "stale-rescan-button",
     "cms-lite-settings", "cms-whole-scan", "standard-scope-settings", "choose-section-button", "clear-section-button", "section-scope-label",
-    "current-loading", "current-error", "current-error-message", "current-results", "copy-button", "csv-button",
+    "current-loading", "current-error", "current-error-message", "current-results", "csv-button",
     "counts", "rescan-button", "status-filter", "severity-filter", "category-filter", "sort-order", "important-filter", "showing-count",
     "filter-panel", "filter-count", "active-filters", "clear-filters", "open-filter-button", "filter-close",
     "list-controls", "list-review-panel", "guided-review-panel", "page-details-panel", "findings", "manual-checks",
     "findings-tab-count", "review-issues-button", "view-reviewed-button", "reviewed-count", "link-check-shortcut", "link-check-shortcut-status", "review-back-button",
     "guided-progress", "guided-finding", "guided-previous", "guided-next", "follow-page-control", "follow-page", "workspace-review-note", "page-details", "manual-review",
     "previous-issue-type", "next-issue-type", "current-issue-type",
-    "current-export-findings", "current-export-metadata", "current-export-stats", "current-export-links", "current-export-reviewed",
-    "download-current-workbook", "download-current-action-csv",
-    "batch-csv-button", "batch-urls", "batch-validation", "batch-scope", "batch-colour-control", "batch-include-reviewed",
-    "batch-export-findings", "batch-export-metadata", "batch-export-stats", "batch-export-links",
+    "current-export-preset", "current-export-preset-description", "current-export-custom", "current-export-reviewed", "current-export-status",
+    "current-custom-summary", "current-custom-issues", "current-custom-findings", "current-custom-page-details", "current-custom-links", "current-custom-metadata",
+    "check-links-and-download-current", "download-current-workbook", "download-current-action-csv", "copy-detailed-findings",
+    "batch-csv-button", "batch-urls", "batch-validation", "batch-scope", "batch-colour-control", "batch-check-links", "batch-link-access-options", "batch-link-access-found", "batch-link-access-all", "batch-include-reviewed", "batch-export-preset", "batch-export-description", "batch-export-custom",
+    "batch-custom-summary", "batch-custom-pages", "batch-custom-site-wide", "batch-custom-issues-page", "batch-custom-findings", "batch-custom-links", "batch-custom-metadata", "batch-custom-scan-log",
     "batch-start-button", "batch-pause-button", "batch-cancel-button", "batch-progress-panel", "batch-progress-label",
-    "batch-progress-count", "batch-progress", "batch-error", "batch-error-message", "batch-results",
+    "batch-progress-count", "batch-progress", "batch-link-finish-actions", "batch-link-access-button", "batch-finish-without-links", "batch-download-status", "batch-error", "batch-error-message", "batch-results",
     "personal-term-count", "personal-terms", "built-in-terms-list", "exception-dialog", "exception-form",
-    "exception-rule-name", "exception-phrase", "exception-validation", "exception-cancel", "section-dialog", "section-list", "section-cancel",
+    "exception-dialog-heading", "exception-dialog-intro", "exception-rule-name", "exception-phrase", "exception-validation", "exception-cancel", "exception-page-scope", "exception-site-scope", "exception-all-scope", "exception-guardrail", "exception-submit", "section-dialog", "section-list", "section-cancel",
     "permission-dialog", "permission-close", "permission-linked", "permission-all", "permission-revoke", "permission-status", "settings-permission-button",
     "note-dialog", "note-form", "note-finding-name", "note-important", "note-text", "note-cancel", "toast",
     "feedback-view", "feedback-back-button", "feedback-ready-count", "add-feedback-button", "feedback-empty", "feedback-list", "feedback-send-panel", "feedback-send-status",
     "create-feedback-email", "copy-feedback-report", "export-feedback-csv", "archived-feedback", "archived-feedback-count", "archived-feedback-list",
     "feedback-dialog", "feedback-form", "feedback-dialog-heading", "feedback-dialog-close", "feedback-type", "feedback-text", "feedback-important",
     "feedback-context-section", "feedback-include-context", "feedback-context-preview", "feedback-cancel", "feedback-email-dialog", "feedback-email-message", "feedback-email-close",
-    "archive-prepared-feedback", "keep-prepared-feedback",
+    "archive-prepared-feedback", "keep-prepared-feedback", "feedback-copy-dialog", "feedback-copy-close", "feedback-copy-options", "feedback-copy-selection",
+    "feedback-copy-list", "feedback-copy-count", "feedback-copy-selected", "feedback-select-all", "feedback-select-unsent", "feedback-select-sent", "feedback-select-none",
     "more-dialog", "more-menu-button", "more-close", "open-workspace-button", "open-feedback-button", "open-batch-button", "open-settings-button",
     "export-dialog", "export-close"
   ].forEach(id => { elements[id] = $(id); });
@@ -152,6 +170,82 @@ function originPattern(value) {
   return `${url.protocol}//${url.host}/*`;
 }
 
+function qaProductionEquivalent(value) {
+  try {
+    const url = new URL(value);
+    if (url.hostname.toLowerCase() !== "www2.qa.gov.bc.ca") return "";
+    url.hostname = "www2.gov.bc.ca";
+    return url.href;
+  } catch (_) { return ""; }
+}
+
+function signInMayBeRequired(value) {
+  const host = hostnameFor(value);
+  return host === "cmslite.gov.bc.ca" || host === "logon7.gov.bc.ca" || host === "intranet.qa.gov.bc.ca";
+}
+
+function prepareRemoteLink(link, pageUrl) {
+  if (!link) return null;
+  const rawHref = String(link.rawHref || "").trim();
+  if (rawHref.startsWith("#")) return null;
+  let href;
+  try { href = new URL(link.href || rawHref, pageUrl).href; } catch (_) { return null; }
+  if (!/^https?:/i.test(href)) return null;
+  try {
+    const destination = new URL(href);
+    if (destination.hash && canonicalUrl(destination.href) === canonicalUrl(pageUrl || "")) return null;
+  } catch (_) {}
+  const liveEquivalent = qaProductionEquivalent(href);
+  const checkUrl = liveEquivalent || href;
+  return {
+    ...link,
+    href,
+    checkUrl,
+    qaLive: Boolean(liveEquivalent),
+    signInRequired: !liveEquivalent && signInMayBeRequired(checkUrl)
+  };
+}
+
+function remoteLinksForReport(report) {
+  const unique = new Map();
+  (((report || {}).pageDetails || {}).links || []).forEach(originalLink => {
+    const link = prepareRemoteLink(originalLink, report && report.page ? report.page.url : "");
+    if (!link) return;
+    const key = canonicalUrl(link.checkUrl || link.href);
+    if (unique.has(key)) unique.get(key).occurrences += 1;
+    else unique.set(key, { ...link, occurrences: 1 });
+  });
+  return Array.from(unique.values());
+}
+
+function linkResultFromRemote(link, result) {
+  const output = {
+    status: result.status,
+    code: result.code,
+    link,
+    checkedUrl: link.checkUrl || link.href,
+    finalUrl: result.finalUrl || link.checkUrl || link.href,
+    redirected: Boolean(result.redirected),
+    error: result.error || "",
+    qaLive: Boolean(link.qaLive)
+  };
+  if (link.qaLive && result.status === "ok") output.status = "live-ok";
+  if (link.qaLive && result.status === "broken") output.status = "live-not-found";
+  return output;
+}
+
+function permissionOriginsForRemoteUrl(value) {
+  try {
+    const url = new URL(value);
+    const origins = new Set([originPattern(url.href)]);
+    if (url.protocol === "http:") {
+      url.protocol = "https:";
+      origins.add(originPattern(url.href));
+    }
+    return Array.from(origins);
+  } catch (_) { return []; }
+}
+
 async function requestPagePermission(url) {
   const origins = [originPattern(url)];
   if (await chrome.permissions.contains({ origins })) return true;
@@ -180,13 +274,66 @@ async function loadState() {
   state.lastReviewTabId = navigation.tabId || null;
   state.lastReviewPageKey = navigation.pageKey || "";
   if (stored[STORAGE_KEYS.batch] && Array.isArray(stored[STORAGE_KEYS.batch].records)) {
-    state.batch.records = stored[STORAGE_KEYS.batch].records;
-    state.batch.urls = stored[STORAGE_KEYS.batch].urls || [];
+    const savedBatch = stored[STORAGE_KEYS.batch];
+    const savedUrls = savedBatch.urls || [];
+    const pageScanFinished = savedUrls.length > 0 && savedBatch.records.length >= savedUrls.length;
+    let restoredPhase = savedBatch.phase || (savedBatch.records.length && !pageScanFinished ? "paused" : savedBatch.records.length ? "done" : "idle");
+    if (restoredPhase === "links") restoredPhase = "link-permission";
+    if (["scanning", "paused"].includes(restoredPhase) && pageScanFinished) restoredPhase = savedBatch.checkLinks ? "link-permission" : "done";
+    if (restoredPhase === "scanning" && !pageScanFinished) restoredPhase = "paused";
+    state.batch = {
+      ...state.batch,
+      running: false,
+      paused: false,
+      cancelled: Boolean(savedBatch.cancelled),
+      phase: restoredPhase,
+      records: savedBatch.records,
+      urls: savedBatch.urls || [],
+      currentIndex: Number.isFinite(savedBatch.currentIndex) ? savedBatch.currentIndex : savedBatch.records.length - 1,
+      checkLinks: Boolean(savedBatch.checkLinks),
+      linkPermissionMode: savedBatch.linkPermissionMode === "all" ? "all" : "found",
+      linkCheckTotal: Number(savedBatch.linkCheckTotal) || 0,
+      linkCheckCompleted: Number(savedBatch.linkCheckCompleted) || 0,
+      settings: savedBatch.settings || state.batch.settings,
+      exportPreset: savedBatch.exportPreset === "custom" ? "custom" : "full",
+      customSheets: Array.isArray(savedBatch.customSheets) ? savedBatch.customSheets : [],
+      includeReviewed: Boolean(savedBatch.includeReviewed),
+      downloaded: Boolean(savedBatch.downloaded),
+      downloadFilename: savedBatch.downloadFilename || "",
+      downloadedAt: savedBatch.downloadedAt || ""
+    };
   }
 }
 
 async function saveKey(key, value) {
   await chrome.storage.local.set({ [key]: value });
+}
+
+function batchStorageValue() {
+  const batch = state.batch;
+  return {
+    urls: batch.urls,
+    records: batch.records,
+    currentIndex: batch.currentIndex,
+    phase: batch.phase,
+    cancelled: batch.cancelled,
+    checkLinks: batch.checkLinks,
+    linkPermissionMode: batch.linkPermissionMode,
+    linkCheckTotal: batch.linkCheckTotal,
+    linkCheckCompleted: batch.linkCheckCompleted,
+    settings: batch.settings,
+    exportPreset: batch.exportPreset,
+    customSheets: batch.customSheets,
+    includeReviewed: batch.includeReviewed,
+    downloaded: batch.downloaded,
+    downloadFilename: batch.downloadFilename,
+    downloadedAt: batch.downloadedAt,
+    savedAt: new Date().toISOString()
+  };
+}
+
+async function persistBatchState() {
+  await saveKey(STORAGE_KEYS.batch, batchStorageValue());
 }
 
 async function currentTab() {
@@ -380,10 +527,10 @@ function showStaleState(report, pageChanged) {
   elements["stale-report-banner"].hidden = !rulesChanged && !pageChanged;
   if (pageChanged) {
     elements["stale-report-title"].textContent = "The page has reloaded since this review.";
-    elements["stale-report-message"].textContent = "Your saved decisions are still here. Rescan to check the current page content.";
+    elements["stale-report-message"].textContent = "Your saved decisions are still here. Review the scan options, then check the current page content.";
   } else if (rulesChanged) {
     elements["stale-report-title"].textContent = "New checker rules are available.";
-    elements["stale-report-message"].textContent = "Rescan the page to update the findings.";
+    elements["stale-report-message"].textContent = "Review the scan options, then check the page again to update the findings.";
   }
 }
 
@@ -396,6 +543,38 @@ function showScanSettings() {
 function hideScanSettings() {
   if (!state.activeReport) return;
   elements["scan-settings"].hidden = true;
+  showCurrentState("results");
+}
+
+async function showRescanSettings() {
+  if (state.activeReport && state.activeReport.settings) {
+    applySettings(state.activeReport.settings);
+    if (state.activeReport.settings.sectionSelector) {
+      state.selectedSection = {
+        selector: state.activeReport.settings.sectionSelector,
+        text: state.activeReport.settings.sectionLabel || "Previously selected section",
+        level: "Section"
+      };
+      try {
+        const tab = await currentReviewTab();
+        const results = tab && tab.id ? await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          args: [state.selectedSection.selector],
+          func: selector => Boolean(document.querySelector(selector))
+        }) : [];
+        if (!results[0] || !results[0].result) {
+          state.selectedSection = null;
+          elements["cache-note"].textContent = "The previously selected section could not be found. The full page content is selected.";
+        }
+      } catch (_) {
+        state.selectedSection = null;
+        elements["cache-note"].textContent = "The previously selected section could not be confirmed. The full page content is selected.";
+      }
+    }
+  }
+  updateSettingsExplanation();
+  showCurrentState("idle");
+  showScanSettings();
 }
 
 async function syncActiveTab() {
@@ -431,7 +610,16 @@ async function syncActiveTab() {
   }
   const tab = await currentTab();
   const nextPageKey = tab ? reportKey(tab.url || "") : "";
-  if (nextPageKey !== state.activePageKey) {
+  const pageChanged = nextPageKey !== state.activePageKey;
+  if (pageChanged && elements["feedback-dialog"] && elements["feedback-dialog"].open) {
+    state.pendingFeedbackPageChange = true;
+    showToast("The page changed. Save or cancel this feedback note to continue to the new page.");
+  } else if (pageChanged && state.currentView === "feedback") {
+    state.feedbackPreviousView = "current";
+    switchView("current");
+    if (document.scrollingElement) document.scrollingElement.scrollTop = 0;
+  }
+  if (pageChanged) {
     if (state.activePageKey && state.activeReport) await persistReviewContext(state.activePageKey).catch(() => {});
     state.selectedSection = null;
     state.guidedIndex = 0;
@@ -539,51 +727,194 @@ function appendUniqueFinding(report, finding) {
   report.issues.push(finding);
 }
 
+function isManualRedirect(response) {
+  return Boolean(response && (response.type === "opaqueredirect" || response.status >= 300 && response.status < 400));
+}
+
+async function fetchRemoteFollowingRedirects(url, signal) {
+  let response = await fetch(url, { method: "HEAD", credentials: "omit", redirect: "follow", signal, cache: "no-store" });
+  if ([405, 501].includes(response.status)) {
+    response = await fetch(url, {
+      method: "GET",
+      headers: { Range: "bytes=0-0" },
+      credentials: "omit",
+      redirect: "follow",
+      signal,
+      cache: "no-store"
+    });
+    if (response.body && response.body.cancel) response.body.cancel().catch(() => {});
+  }
+  return response;
+}
+
+async function fetchRemoteOnce(url, signal) {
+  let response = await fetch(url, { method: "HEAD", credentials: "omit", redirect: "manual", signal, cache: "no-store" });
+  if ([405, 501].includes(response.status)) {
+    response = await fetch(url, {
+      method: "GET",
+      headers: { Range: "bytes=0-0" },
+      credentials: "omit",
+      redirect: "manual",
+      signal,
+      cache: "no-store"
+    });
+    if (response.body && response.body.cancel) response.body.cancel().catch(() => {});
+  }
+  return response;
+}
+
+async function checkRemoteUrl(value, timeoutMs = 10000) {
+  if (signInMayBeRequired(value)) return { status: "sign-in", finalUrl: value, error: "This destination may require browser sign-in." };
+  let startingUrl;
+  try { startingUrl = new URL(value).href; } catch (_) { return { status: "unavailable", finalUrl: value, error: "The destination address is invalid." }; }
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  const classifyResponse = (response, url, redirected) => {
+    const result = { response, code: response.status, finalUrl: response.url || url, redirected };
+    if (response.status === 404 || response.status === 410) return { ...result, status: "broken" };
+    if (response.status >= 500) return { ...result, status: "server" };
+    if ([401, 403].includes(response.status)) return { ...result, status: "restricted" };
+    if (response.status === 429) return { ...result, status: "rate-limited" };
+    if (response.status >= 400) return { ...result, status: "client-error" };
+    if (response.status >= 200 && response.status < 300) return { ...result, status: "ok" };
+    return { ...result, status: "unavailable", error: "The website returned an unexpected response." };
+  };
+  const permittedFor = async url => {
+    try { return await chrome.permissions.contains({ origins: [originPattern(url)] }); } catch (_) { return false; }
+  };
+  const visit = async (url, depth, redirected) => {
+    if (!await permittedFor(url)) return { status: "permission", finalUrl: url, redirected };
+    if (signInMayBeRequired(url)) return { status: "sign-in", finalUrl: url, redirected, error: "This destination may require browser sign-in." };
+
+    // Start by letting Fetch follow the redirect chain. This verifies ordinary
+    // same-origin redirects with the permission already granted for that site,
+    // and also verifies cross-origin redirects when the reviewer granted the
+    // destination origin (or broad all-sites access). If a redirect crosses to
+    // an origin the extension cannot access, Fetch may fail and we fall back to
+    // a manual request so the result is reported as unverified rather than broken.
+    try {
+      const followed = await fetchRemoteFollowingRedirects(url, controller.signal);
+      const finalUrl = followed.url || url;
+      const didRedirect = Boolean(redirected || followed.redirected || canonicalUrl(finalUrl) !== canonicalUrl(url));
+      if (didRedirect && finalUrl !== url && !await permittedFor(finalUrl)) {
+        return {
+          status: "redirect",
+          finalUrl,
+          redirected: true,
+          error: "The destination redirects to a website outside the current website access, so the final page was not verified."
+        };
+      }
+      if (!isManualRedirect(followed)) return classifyResponse(followed, finalUrl, didRedirect);
+    } catch (_) {
+      // Use the cautious manual path below to distinguish an inaccessible
+      // redirect from a general network failure when possible.
+    }
+
+    const response = await fetchRemoteOnce(url, controller.signal);
+    if (isManualRedirect(response)) {
+      let location = "";
+      try { location = response.headers.get("location") || ""; } catch (_) {}
+      if (location && depth < 3) {
+        let nextUrl = "";
+        try { nextUrl = new URL(location, url).href; } catch (_) {}
+        if (nextUrl) {
+          if (signInMayBeRequired(nextUrl)) return { status: "sign-in", finalUrl: nextUrl, redirected: true, error: "This destination redirects to a sign-in service." };
+          if (await permittedFor(nextUrl)) return visit(nextUrl, depth + 1, true);
+          return {
+            status: "redirect",
+            finalUrl: nextUrl,
+            redirected: true,
+            error: "The destination redirects to a website outside the current website access, so the final page was not verified."
+          };
+        }
+      }
+      try {
+        const current = new URL(url);
+        if (current.protocol === "http:" && depth < 3) {
+          current.protocol = "https:";
+          const httpsUrl = current.href;
+          if (await permittedFor(httpsUrl)) return visit(httpsUrl, depth + 1, true);
+        }
+      } catch (_) {}
+      return {
+        status: "redirect",
+        finalUrl: url,
+        redirected: true,
+        error: "The website redirects, but the checker could not verify the final destination with the current website access."
+      };
+    }
+    return classifyResponse(response, url, redirected);
+  };
+  try {
+    return await visit(startingUrl, 0, false);
+  } catch (error) {
+    return {
+      status: "unavailable",
+      finalUrl: startingUrl,
+      error: error && error.name === "AbortError" ? "Timed out" : "The website blocked or did not complete the automated check."
+    };
+  } finally { clearTimeout(timeout); }
+}
+
 async function verifyOneAsset(report, asset) {
   if (!/^https?:/i.test(asset.href || "")) { asset.verificationStatus = "unsupported"; return; }
-  let hasPermission = false;
-  try { hasPermission = await chrome.permissions.contains({ origins: [originPattern(asset.href)] }); } catch (_) {}
-  if (!hasPermission) { asset.verificationStatus = "permission-unavailable"; return; }
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 8000);
-  try {
-    const response = await fetch(asset.href, { method: "HEAD", credentials: "omit", redirect: "follow", signal: controller.signal, cache: "no-store" });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const lengthHeader = response.headers.get("content-length");
-    const actualSize = lengthHeader && /^\d+$/.test(lengthHeader) ? Number(lengthHeader) : null;
-    const actualType = mimeAssetType(response.headers.get("content-type"), response.headers.get("content-disposition"), response.url || asset.href);
-    asset.actualSize = actualSize;
-    asset.actualType = actualType;
-    asset.finalUrl = response.url || asset.href;
-    asset.verificationStatus = actualSize === null ? "type-verified" : "verified";
-    if (actualType && !asset.validLabel && !["size-spacing", "label-format"].includes(asset.labelStatus)) {
-      appendUniqueFinding(report, globalThis.BCWebStyleGuideChecker.createExternalFinding("file-link-label", report.page.url, {
-        id: `file-link-label-${asset.selector}`,
+  const liveEquivalent = qaProductionEquivalent(asset.href);
+  const checkUrl = liveEquivalent || asset.href;
+  asset.checkedUrl = checkUrl;
+  asset.liveEquivalent = liveEquivalent || "";
+  const result = await checkRemoteUrl(checkUrl, 8000);
+  asset.finalUrl = result.finalUrl || checkUrl;
+  asset.verificationError = result.error || "";
+  if (result.status !== "ok") {
+    if (liveEquivalent && result.status === "broken") asset.verificationStatus = "live-not-found";
+    else if (result.status === "sign-in") asset.verificationStatus = "sign-in-required";
+    else if (result.status === "permission") asset.verificationStatus = "permission-unavailable";
+    else if (result.status === "redirect") asset.verificationStatus = "redirected";
+    else if (result.status === "server") asset.verificationStatus = "server-error";
+    else if (result.status === "restricted") asset.verificationStatus = "restricted";
+    else if (result.status === "rate-limited") asset.verificationStatus = "rate-limited";
+    else if (result.status === "client-error") asset.verificationStatus = "client-error";
+    else asset.verificationStatus = result.error === "Timed out" ? "timed-out" : "unavailable";
+    return;
+  }
+  const response = result.response;
+  const lengthHeader = response && response.headers ? response.headers.get("content-length") : "";
+  const actualSize = lengthHeader && /^\d+$/.test(lengthHeader) ? Number(lengthHeader) : null;
+  const actualType = mimeAssetType(
+    response && response.headers ? response.headers.get("content-type") : "",
+    response && response.headers ? response.headers.get("content-disposition") : "",
+    result.finalUrl || checkUrl
+  );
+  asset.actualSize = actualSize;
+  asset.actualType = actualType;
+  asset.verificationStatus = liveEquivalent
+    ? (actualSize === null ? "live-type-verified" : "live-verified")
+    : (actualSize === null ? "type-verified" : "verified");
+  if (actualType && !asset.validLabel && asset.labelStatus === "missing-label") {
+    appendUniqueFinding(report, globalThis.BCWebStyleGuideChecker.createExternalFinding("file-link-label", report.page.url, {
+      id: `file-link-label-${asset.selector}`,
+      selector: asset.selector,
+      evidence: `${asset.text || asset.href} → ${actualType}${actualSize === null ? "" : `, ${displayBytes(actualSize)}`}${liveEquivalent ? " · checked live version" : ""}`
+    }));
+  }
+  if (asset.declaredType && actualType && asset.declaredType !== actualType) {
+    appendUniqueFinding(report, globalThis.BCWebStyleGuideChecker.createExternalFinding("file-link-type-mismatch", report.page.url, {
+      id: `file-link-type-${asset.selector}`,
+      selector: asset.selector,
+      evidence: `Link says ${asset.declaredType}; server returned ${actualType}: ${asset.text || asset.href}${liveEquivalent ? " · checked live version" : ""}`
+    }));
+  }
+  const labelledSize = declaredBytes(asset);
+  if (labelledSize !== null && actualSize !== null) {
+    const tolerance = Math.max(2048, actualSize * 0.04);
+    if (Math.abs(labelledSize - actualSize) > tolerance) {
+      appendUniqueFinding(report, globalThis.BCWebStyleGuideChecker.createExternalFinding("file-link-size-mismatch", report.page.url, {
+        id: `file-link-size-${asset.selector}`,
         selector: asset.selector,
-        evidence: `${asset.text || asset.href} → ${actualType}${actualSize === null ? "" : `, ${displayBytes(actualSize)}`}`
+        evidence: `Link says ${asset.declaredSize}${asset.declaredUnit}; server returned about ${displayBytes(actualSize)}: ${asset.text || asset.href}${liveEquivalent ? " · checked live version" : ""}`
       }));
     }
-    if (asset.declaredType && actualType && asset.declaredType !== actualType) {
-      appendUniqueFinding(report, globalThis.BCWebStyleGuideChecker.createExternalFinding("file-link-type-mismatch", report.page.url, {
-        id: `file-link-type-${asset.selector}`,
-        selector: asset.selector,
-        evidence: `Link says ${asset.declaredType}; server returned ${actualType}: ${asset.text || asset.href}`
-      }));
-    }
-    const labelledSize = declaredBytes(asset);
-    if (labelledSize !== null && actualSize !== null) {
-      const tolerance = Math.max(2048, actualSize * 0.04);
-      if (Math.abs(labelledSize - actualSize) > tolerance) {
-        appendUniqueFinding(report, globalThis.BCWebStyleGuideChecker.createExternalFinding("file-link-size-mismatch", report.page.url, {
-          id: `file-link-size-${asset.selector}`,
-          selector: asset.selector,
-          evidence: `Link says ${asset.declaredSize}${asset.declaredUnit}; server returned about ${displayBytes(actualSize)}: ${asset.text || asset.href}`
-        }));
-      }
-    }
-  } catch (error) {
-    asset.verificationStatus = error && error.name === "AbortError" ? "timed-out" : "unavailable";
-  } finally { clearTimeout(timeout); }
+  }
 }
 
 async function enrichAssetChecks(report) {
@@ -609,40 +940,9 @@ async function scanTab(tabId, options) {
 }
 
 async function checkOneHttpLink(report, link) {
-  let permitted = false;
-  try { permitted = await chrome.permissions.contains({ origins: [originPattern(link.href)] }); } catch (_) {}
-  if (!permitted) return { status: "permission", link };
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 10000);
-  try {
-    let response = await fetch(link.href, { method: "HEAD", credentials: "omit", redirect: "follow", signal: controller.signal, cache: "no-store" });
-    if ([405, 501].includes(response.status)) {
-      response = await fetch(link.href, {
-        method: "GET",
-        headers: { Range: "bytes=0-0" },
-        credentials: "omit",
-        redirect: "follow",
-        signal: controller.signal,
-        cache: "no-store"
-      });
-      if (response.body && response.body.cancel) response.body.cancel().catch(() => {});
-    }
-    if (response.status === 404 || response.status === 410) return { status: "broken", code: response.status, link, finalUrl: response.url || link.href };
-    if (response.status >= 500) return { status: "server", code: response.status, link, finalUrl: response.url || link.href };
-    if ([401, 403].includes(response.status)) return { status: "restricted", code: response.status, link, finalUrl: response.url || link.href };
-    if (response.status === 429) return { status: "rate-limited", code: response.status, link, finalUrl: response.url || link.href };
-    if (response.status >= 400) return { status: "client-error", code: response.status, link, finalUrl: response.url || link.href };
-    if (response.status >= 200 && response.status < 400) return {
-      status: "ok",
-      code: response.status,
-      link,
-      finalUrl: response.url || link.href,
-      redirected: Boolean(response.url && canonicalUrl(response.url) !== canonicalUrl(link.href))
-    };
-    return { status: "unavailable", code: response.status, link, finalUrl: response.url || link.href };
-  } catch (error) {
-    return { status: "unavailable", error: error && error.name === "AbortError" ? "Timed out" : "Request failed", link };
-  } finally { clearTimeout(timeout); }
+  if (link.signInRequired) return linkResultFromRemote(link, { status: "sign-in", finalUrl: link.checkUrl || link.href, error: "This destination may require browser sign-in." });
+  const result = await checkRemoteUrl(link.checkUrl || link.href, 10000);
+  return linkResultFromRemote(link, result);
 }
 
 function summarizeLinkCheck(totalFound, results) {
@@ -650,8 +950,12 @@ function summarizeLinkCheck(totalFound, results) {
   return {
     totalFound,
     completed: results.length,
-    okay: count("ok"),
+    okay: count("ok") + count("live-ok"),
+    liveWorking: count("live-ok"),
     broken: count("broken"),
+    liveNotFound: count("live-not-found"),
+    redirects: count("redirect"),
+    signInRequired: count("sign-in"),
     serverErrors: count("server"),
     permissionRequired: count("permission"),
     restricted: count("restricted"),
@@ -681,28 +985,27 @@ function addHttpLinkFindings(report, results) {
       id: `server-http-${result.link.selector}`,
       selector: result.link.selector,
       location: result.link.location || "Page",
-      evidence: `${result.link.text} → ${result.link.href} (HTTP ${result.code})`
+      evidence: `${result.link.text} → ${result.link.href} (HTTP ${result.code})${result.qaLive ? " · checked live version" : ""}`
     }));
   });
   const severityOrder = { fix: 0, check: 1, review: 2 };
   report.issues.sort((first, second) => severityOrder[first.severity] - severityOrder[second.severity] || first.category.localeCompare(second.category) || first.title.localeCompare(second.title));
 }
 
-async function checkHttpLinks() {
+async function checkHttpLinks(options = {}) {
   const report = state.activeReport;
-  if (!report || !report.pageDetails || state.linkCheckRunning) return;
-  const unique = new Map();
-  report.pageDetails.links.forEach(link => {
-    if (!/^https?:/i.test(link.href || "")) return;
-    const key = canonicalUrl(link.href);
-    if (unique.has(key)) unique.get(key).occurrences += 1;
-    else unique.set(key, { ...link, occurrences: 1 });
-  });
-  const links = Array.from(unique.values());
-  if (!links.length) { showToast("No HTTP or HTTPS links were found."); return; }
-  const origins = Array.from(new Set(links.map(link => {
-    try { return originPattern(link.href); } catch (_) { return ""; }
-  }).filter(Boolean)));
+  if (!report || !report.pageDetails || state.linkCheckRunning) return null;
+  const links = remoteLinksForReport(report);
+  if (!links.length) {
+    report.linkCheck = { state: "complete", startedAt: new Date().toISOString(), checkedAt: new Date().toISOString(), results: [], ...summarizeLinkCheck(0, []) };
+    await storeReport(report).catch(() => {});
+    if (!options.quiet) showToast("No web links need a network check on this page.");
+    return report.linkCheck;
+  }
+  const origins = Array.from(new Set(links
+    .filter(link => !link.signInRequired)
+    .flatMap(link => permissionOriginsForRemoteUrl(link.checkUrl || link.href))
+    .filter(Boolean)));
   const permissionGranted = !origins.length || await chrome.permissions.request({ origins }).catch(() => false);
   if (!permissionGranted) {
     report.linkCheck = {
@@ -715,9 +1018,9 @@ async function checkHttpLinks() {
       permissionRequired: links.length
     };
     await storeReport(report).catch(() => {});
-    renderPageDetails("links");
-    showToast(`Website access was declined. ${links.length} link${links.length === 1 ? " was" : "s were"} not checked.`);
-    return;
+    if (!options.quiet) renderPageDetails("links");
+    if (!options.quiet) showToast(`Website access was declined. ${links.length} link${links.length === 1 ? " was" : "s were"} not checked.`);
+    return report.linkCheck;
   }
   state.linkCheckRunning = true;
   state.linkCheckPaused = false;
@@ -729,7 +1032,7 @@ async function checkHttpLinks() {
     results: [],
     ...summarizeLinkCheck(links.length, [])
   };
-  renderPageDetails("links");
+  if (!options.quiet) renderPageDetails("links");
   let index = 0;
   const results = [];
   const worker = async () => {
@@ -746,7 +1049,8 @@ async function checkHttpLinks() {
         ...summarizeLinkCheck(links.length, results)
       };
       if (results.length % 5 === 0 || results.length === links.length) {
-        if (state.activeReport === report && state.reviewView === "details") renderPageDetails("links");
+        if (!options.quiet && state.activeReport === report && state.reviewView === "details") renderPageDetails("links");
+        if (options.quiet && elements["export-dialog"] && elements["export-dialog"].open) updateCurrentExportDialog();
       }
       if (results.length % 20 === 0) await storeReport(report).catch(() => {});
     }
@@ -767,9 +1071,10 @@ async function checkHttpLinks() {
   state.linkCheckWaiters = [];
   await storeReport(report).catch(() => {});
   if (state.activeReport === report) renderCurrentReport();
-  showToast(wasStopped
+  if (!options.quiet) showToast(wasStopped
     ? `Link check stopped after ${report.linkCheck.completed} of ${report.linkCheck.totalFound}.`
-    : `Link check complete: ${report.linkCheck.broken} broken, ${report.linkCheck.serverErrors} server errors.`);
+    : `Link check complete: ${report.linkCheck.broken} broken, ${report.linkCheck.liveNotFound || 0} live versions not found, ${report.linkCheck.serverErrors} server errors.`);
+  return report.linkCheck;
 }
 
 function toggleLinkCheckPause() {
@@ -1094,7 +1399,7 @@ function renderFindings() {
   renderReviewLauncher(groups);
   const linkCheck = state.activeReport && state.activeReport.linkCheck;
   elements["link-check-shortcut-status"].textContent = linkCheck
-    ? `${linkCheck.completed || 0} checked · ${linkCheck.broken || 0} broken · ${(linkCheck.serverErrors || 0) + (linkCheck.unavailable || 0) + (linkCheck.permissionRequired || 0)} need review`
+    ? `${linkCheck.completed || 0} checked · ${linkCheck.broken || 0} broken · ${(linkCheck.liveNotFound || 0) + (linkCheck.serverErrors || 0) + (linkCheck.unavailable || 0) + (linkCheck.permissionRequired || 0) + (linkCheck.redirects || 0) + (linkCheck.signInRequired || 0)} need review`
     : "Not checked · optional website access";
   if (!items.length) {
     const openCount = openIssues(state.activeReport).length;
@@ -1215,7 +1520,9 @@ function highlightedEvidence(finding) {
   const evidence = String(finding.evidence || "");
   const match = String(finding.matchText || finding.flaggedToken || "");
   if (!match) return escapeHtml(evidence);
-  const requestedIndex = Number.isInteger(finding.matchIndex) ? finding.matchIndex : -1;
+  const requestedIndex = Number.isInteger(finding.evidenceMatchIndex) && finding.evidenceMatchIndex >= 0
+    ? finding.evidenceMatchIndex
+    : Number.isInteger(finding.matchIndex) ? finding.matchIndex : -1;
   const index = requestedIndex >= 0 && evidence.slice(requestedIndex, requestedIndex + match.length).toLowerCase() === match.toLowerCase()
     ? requestedIndex
     : evidence.toLowerCase().indexOf(match.toLowerCase());
@@ -1253,7 +1560,7 @@ function renderFinding(finding) {
         <div class="finding-actions">
           ${finding.selector ? `<button class="small-button locate-button" type="button" data-selector="${escapeHtml(finding.selector)}">${workspaceSurface ? "Show in source tab" : "Show again on page"}</button>` : ""}
           ${canReview ? `<button class="small-button decision-button resolve-button" type="button" data-status="resolved">Mark resolved</button><button class="small-button decision-button" type="button" data-status="ignored">Ignore finding</button>` : `<button class="small-button reopen-button" type="button">Reopen finding</button>`}
-          ${canReview && finding.exceptionEligible ? `<button class="small-button exception-button" type="button">Always allow exact term</button>` : ""}
+          ${canReview && finding.exceptionEligible ? `<button class="small-button exception-button" type="button">${finding.ruleId === "proofreading-pubic" ? "Ignore on this page" : "Always allow exact term"}</button>` : ""}
           <button class="small-button note-button" type="button">${note.text || note.important ? "Edit note or importance" : "Add note or importance"}</button>
         </div>
         <details class="reference-guidance"><summary>Reference guidance</summary><a href="${escapeHtml(finding.sourceUrl)}" target="_blank" rel="noreferrer">${escapeHtml(finding.sourceLabel)} — B.C. Web Style Guide</a></details>
@@ -1401,7 +1708,7 @@ function renderGuidedReview(locate) {
   elements["next-issue-type"].tabIndex = hideIssueTypeShortcut ? -1 : 0;
   elements["next-issue-type"].textContent = hasNextType && !pageOrder ? "Skip to next issue type" : "Return to findings";
   if (locate && !workspaceSurface && elements["follow-page"].checked && finding.selector) {
-    highlightSelector(finding.selector, true, false);
+    highlightSelector(finding.selectors && finding.selectors.length ? finding.selectors : finding.selector, true, false);
   }
 }
 
@@ -1444,35 +1751,48 @@ function renderPageDetails(section = "overview") {
   const open = report.issues.filter(finding => effectiveStatus(finding) === "open");
   const headingRows = headings => headings.length ? headings.map(heading => `<li class="heading-outline-row heading-level-${heading.level}${heading.component ? " cms-generated-heading" : ""}"><button class="detail-jump" type="button" data-selector="${escapeHtml(heading.selector)}"><span class="detail-level level-h${heading.level}">H${heading.level}</span><span class="heading-outline-text">${escapeHtml(heading.text)}</span>${(heading.flags || []).map(flag => `<span class="detail-flag">${escapeHtml(flag)}</span>`).join("")}</button></li>`).join("") : `<li class="detail-empty-row">No visible headings found.</li>`;
   const linkCheck = report.linkCheck || null;
-  const couldNotVerify = linkCheck ? (linkCheck.permissionRequired || 0) + (linkCheck.restricted || 0) + (linkCheck.rateLimited || 0) + (linkCheck.unavailable || 0) : 0;
+  const couldNotVerify = linkCheck ? (linkCheck.permissionRequired || 0) + (linkCheck.restricted || 0) + (linkCheck.rateLimited || 0) + (linkCheck.unavailable || 0) + (linkCheck.redirects || 0) + (linkCheck.signInRequired || 0) : 0;
   const responseErrors = linkCheck ? (linkCheck.serverErrors || 0) + (linkCheck.clientErrors || 0) : 0;
   const linkCheckText = linkCheck
     ? linkCheck.state === "permission-denied"
       ? `Website access declined · 0 of ${linkCheck.totalFound || 0} checked`
-      : `${linkCheck.completed || 0} of ${linkCheck.totalFound || 0} processed · ${linkCheck.okay || 0} working · ${linkCheck.broken || 0} broken · ${responseErrors} errors · ${couldNotVerify} could not verify`
-    : "Optional · checks every unique HTTP and HTTPS destination";
-  const resultPriority = ["broken", "server", "client-error", "rate-limited", "restricted", "unavailable", "permission", "ok"];
-  const resultLabels = { broken: "Broken", server: "Server error", "client-error": "HTTP error", "rate-limited": "Rate limited", restricted: "Restricted", unavailable: "Could not verify", permission: "Permission needed", ok: "Working" };
+      : `${linkCheck.completed || 0} of ${linkCheck.totalFound || 0} processed · ${linkCheck.okay || 0} working · ${linkCheck.broken || 0} broken · ${linkCheck.liveNotFound || 0} live versions not found · ${responseErrors} errors · ${couldNotVerify} could not verify`
+    : "Not checked yet";
+  const resultPriority = ["broken", "live-not-found", "server", "client-error", "rate-limited", "restricted", "redirect", "sign-in", "unavailable", "permission", "live-ok", "ok"];
+  const resultLabels = {
+    broken: "Broken",
+    "live-not-found": "Live version not found",
+    server: "Server error",
+    "client-error": "HTTP error",
+    "rate-limited": "Rate limited",
+    restricted: "Restricted",
+    redirect: "Redirect could not be verified",
+    "sign-in": "Sign-in may be required",
+    unavailable: "Could not verify",
+    permission: "Website access needed",
+    "live-ok": "Live version working",
+    ok: "Working"
+  };
   const renderLinkResult = result => `
     <li class="link-result ${escapeHtml(result.status)}">
       <div class="link-result-heading"><span class="status-label ${escapeHtml(result.status)}">${escapeHtml(resultLabels[result.status] || result.status)}</span>${result.code ? `<strong>HTTP ${result.code}</strong>` : ""}${result.link.occurrences > 1 ? `<span>${result.link.occurrences} occurrences</span>` : ""}</div>
       <strong>${escapeHtml(result.link.text || "[No accessible name]")}</strong>
       ${result.link.location ? `<span class="link-redirect">Under: ${escapeHtml(result.link.location)}</span>` : ""}
       <span class="link-destination">${escapeHtml(result.link.href)}</span>
-      ${result.redirected && result.finalUrl ? `<span class="link-redirect">Redirects to ${escapeHtml(result.finalUrl)}</span>` : ""}
+      ${result.qaLive && result.checkedUrl ? `<span class="link-redirect">Checked live version: ${escapeHtml(result.checkedUrl)}</span>` : result.redirected && result.finalUrl && result.finalUrl !== result.link.href ? `<span class="link-redirect">Redirects to ${escapeHtml(result.finalUrl)}</span>` : ""}
       ${result.error ? `<span class="link-error">${escapeHtml(result.error)}</span>` : ""}
       <div class="link-result-actions">${result.link.selector ? `<button class="button tertiary compact detail-jump" type="button" data-selector="${escapeHtml(result.link.selector)}">${workspaceSurface ? "Show in source tab" : "Show on page"}</button>` : ""}<button class="button tertiary compact open-background-link" type="button" data-url="${escapeHtml(result.link.href)}">Open in background</button></div>
     </li>`;
   const linkResultGroups = linkCheck && Array.isArray(linkCheck.results) ? resultPriority.map(status => {
     const results = linkCheck.results.filter(result => result.status === status);
     if (!results.length) return "";
-    const opensByDefault = ["broken", "server", "client-error", "permission"].includes(status);
+    const opensByDefault = ["broken", "live-not-found", "server", "client-error", "permission"].includes(status);
     return `<details class="link-result-group ${escapeHtml(status)}"${opensByDefault ? " open" : ""}><summary><span>${escapeHtml(resultLabels[status])}</span><strong>${results.length}</strong></summary><ul class="link-results">${results.map(renderLinkResult).join("")}</ul></details>`;
   }).join("") : "";
   const back = section === "overview" ? "" : `<button class="text-button detail-section-back" type="button" data-detail-section="overview">← Page details</button>`;
 
   if (section === "overview") {
-    const brokenSummary = linkCheck ? `${linkCheck.broken || 0} broken · ${couldNotVerify} could not verify` : "Status check has not been run";
+    const brokenSummary = linkCheck ? `${linkCheck.broken || 0} broken · ${linkCheck.liveNotFound || 0} live versions not found · ${couldNotVerify} could not verify` : "Link check has not been run";
     const grade = report.stats.readingGrade === null ? "Not enough prose" : `Estimated grade ${report.stats.readingGrade}`;
     elements["page-details"].innerHTML = `
       <p class="eyebrow">Inspect the page</p><h2>Page details</h2>
@@ -1499,11 +1819,11 @@ function renderPageDetails(section = "overview") {
   }
 
   if (section === "links") {
-    const linkCheckButtonLabel = linkCheck && linkCheck.state === "permission-denied" ? "Allow access and check links" : linkCheck ? "Check again" : "Check all links";
+    const linkCheckButtonLabel = linkCheck && linkCheck.state === "permission-denied" ? "Allow access and check links" : linkCheck ? "Check again" : "Check links";
     const permissionHelp = linkCheck && linkCheck.state === "permission-denied"
       ? `<p class="detail-help permission-warning"><strong>No links were checked.</strong> Select “Allow access and check links” and approve the browser prompt.</p>`
-      : `<p class="detail-help">Requests omit cookies and browser sign-in details. Some destinations may block automated checks.</p>`;
-    elements["page-details"].innerHTML = `${back}<h2>Links and assets</h2><section class="link-check-panel"><div><strong>HTTP link status</strong><span>${linkCheckText}</span></div>${linkCheck ? `<progress class="link-check-progress" max="${Math.max(1, linkCheck.totalFound || 1)}" value="${linkCheck.completed || 0}">${linkCheck.completed || 0} of ${linkCheck.totalFound || 0}</progress>` : ""}<div class="link-check-actions">${state.linkCheckRunning ? `<button class="button secondary compact link-check-pause" type="button">${state.linkCheckPaused ? "Resume" : "Pause"}</button><button class="button tertiary compact link-check-stop" type="button">Stop</button>` : `<button class="button primary compact link-check-button" type="button">${linkCheckButtonLabel}</button>`}<button class="button secondary compact manage-permissions-button" type="button">Website access</button></div>${permissionHelp}</section>${linkCheck ? (linkResultGroups || `<div class="empty-state">No individual link results are available.</div>`) : `<div class="empty-state">Run the link check to see each destination and its result.</div>`}<details class="detail-section"><summary>All page links (${details.links.length})</summary><ul class="detail-list">${details.links.length ? details.links.map(link => { const asset = assetBySelector.get(link.selector); const verification = asset ? ` · asset ${String(asset.verificationStatus || "not checked").replace(/-/g, " ")}${asset.actualSize ? ` · ${displayBytes(asset.actualSize)}` : ""}` : ""; return `<li><button class="detail-jump" type="button" data-selector="${escapeHtml(link.selector)}"><strong>${escapeHtml(link.text)}</strong><br><span class="component-note">${escapeHtml(link.location || "Page content")} · ${escapeHtml(link.href)}${escapeHtml(verification)}</span></button></li>`; }).join("") : `<li class="detail-empty-row">No visible links found.</li>`}</ul></details>`;
+      : `<p class="detail-help">Checks web links without using your browser sign-in. Links to www2.qa.gov.bc.ca are checked against the matching live www2.gov.bc.ca address. Same-origin redirects are followed automatically. Redirects to another website are followed when that website is included in the granted access; otherwise the final destination may remain unverified.</p>`;
+    elements["page-details"].innerHTML = `${back}<h2>Links and assets</h2><section class="link-check-panel"><div><strong>Check whether links work</strong><span>${linkCheckText}</span></div>${linkCheck ? `<progress class="link-check-progress" max="${Math.max(1, linkCheck.totalFound || 1)}" value="${linkCheck.completed || 0}">${linkCheck.completed || 0} of ${linkCheck.totalFound || 0}</progress>` : ""}<div class="link-check-actions">${state.linkCheckRunning ? `<button class="button secondary compact link-check-pause" type="button">${state.linkCheckPaused ? "Resume" : "Pause"}</button><button class="button tertiary compact link-check-stop" type="button">Stop</button>` : `<button class="button primary compact link-check-button" type="button">${linkCheckButtonLabel}</button>`}<button class="button secondary compact manage-permissions-button" type="button">Website access</button></div>${permissionHelp}</section>${linkCheck ? (linkResultGroups || `<div class="empty-state">No individual link results are available.</div>`) : `<div class="empty-state">Check the links to see each destination and its result.</div>`}<details class="detail-section"><summary>All page links (${details.links.length})</summary><ul class="detail-list">${details.links.length ? details.links.map(link => { const asset = assetBySelector.get(link.selector); const verification = asset ? ` · asset ${String(asset.verificationStatus || "not checked").replace(/-/g, " ")}${asset.actualSize ? ` · ${displayBytes(asset.actualSize)}` : ""}` : ""; return `<li><button class="detail-jump" type="button" data-selector="${escapeHtml(link.selector)}"><strong>${escapeHtml(link.text || "[No accessible name]")}</strong><br><span class="component-note">${escapeHtml(link.location || "Page content")} · ${escapeHtml(link.href)}${escapeHtml(verification)}</span></button></li>`; }).join("") : `<li class="detail-empty-row">No visible links found.</li>`}</ul></details>`;
     return;
   }
 
@@ -1521,6 +1841,149 @@ function renderPageDetails(section = "overview") {
   elements["page-details"].innerHTML = `${back}<h2>Page overlays</h2><p class="hint">Use these temporary labels to understand the live page. Clear them when you finish.</p><div class="audit-tools"><button type="button" data-overlay="headings">Heading levels</button><button type="button" data-overlay="alts">Image alt text</button><button type="button" data-overlay="links">Link destinations</button><button type="button" data-overlay="clear">Clear overlays</button></div>`;
 }
 
+async function revealFindingElements(selectedSelectors) {
+const clearExisting = () => {
+  document.querySelectorAll("[data-bc-style-checker-highlight]").forEach(old => {
+    old.style.outline = old.dataset.bcStyleCheckerOutline || "";
+    old.style.outlineOffset = old.dataset.bcStyleCheckerOffset || "";
+    delete old.dataset.bcStyleCheckerHighlight;
+    delete old.dataset.bcStyleCheckerOutline;
+    delete old.dataset.bcStyleCheckerOffset;
+  });
+};
+clearExisting();
+const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+let elements = selectedSelectors.map(selected => {
+  try { return document.querySelector(selected); } catch (_) { return null; }
+}).filter(Boolean);
+if (!elements.length) return false;
+const ancestors = [];
+elements.forEach(element => {
+  let current = element.parentElement;
+  while (current) {
+    if ((current.tagName === "DETAILS" || current.matches(".collapse,.panel-collapse,[class*='collapse' i],[class*='accordion' i] [aria-hidden='true']")) && !ancestors.includes(current)) ancestors.push(current);
+    current = current.parentElement;
+  }
+});
+ancestors.sort((first, second) => {
+  if (first.contains(second)) return -1;
+  if (second.contains(first)) return 1;
+  return 0;
+});
+const triggerFor = ancestor => {
+  const id = ancestor.id || "";
+  const escape = value => globalThis.CSS && CSS.escape ? CSS.escape(value) : String(value).replace(/["\\]/g, "\\$&");
+  const escapedId = escape(id);
+  const candidates = [];
+  if (id) {
+    [
+      `[aria-controls="${escapedId}"]`,
+      `a[href="#${escapedId}"]`,
+      `[data-target="#${escapedId}"]`,
+      `[data-bs-target="#${escapedId}"]`
+    ].forEach(query => { try { candidates.push(...document.querySelectorAll(query)); } catch (_) {} });
+  }
+  const labelledBy = ancestor.getAttribute("aria-labelledby") || "";
+  if (labelledBy) {
+    labelledBy.split(/\s+/).filter(Boolean).forEach(labelId => {
+      const label = document.getElementById(labelId);
+      if (label) candidates.push(label.matches("button,a,[role='button']") ? label : label.querySelector("button,a,[role='button']"));
+    });
+  }
+  const container = ancestor.closest(".panel,.accordion-item,.card,[class*='accordion' i]");
+  if (container) candidates.push(container.querySelector("[aria-expanded],[data-toggle='collapse'],[data-bs-toggle='collapse'],.accordion-toggle,.panel-title a,.accordion-button,button,a[role='button']"));
+  return candidates.find(candidate => candidate && candidate !== ancestor) || null;
+};
+const isCollapsed = (ancestor, trigger) => {
+  if (ancestor.tagName === "DETAILS") return !ancestor.open;
+  const style = getComputedStyle(ancestor);
+  const rect = ancestor.getBoundingClientRect();
+  const collapsedBySize = (ancestor.classList.contains("collapse") || ancestor.classList.contains("collapsing")) && rect.height <= 1;
+  return ancestor.hidden
+    || ancestor.getAttribute("aria-hidden") === "true"
+    || (ancestor.classList.contains("collapse") && !ancestor.classList.contains("show") && !ancestor.classList.contains("in"))
+    || ancestor.classList.contains("collapsing")
+    || style.display === "none"
+    || style.visibility === "hidden"
+    || collapsedBySize
+    || (trigger && trigger.getAttribute("aria-expanded") === "false");
+};
+const waitUntilOpen = async (ancestor, trigger) => {
+  const started = Date.now();
+  while (Date.now() - started < 900) {
+    if (!isCollapsed(ancestor, trigger)) return true;
+    await wait(60);
+  }
+  return !isCollapsed(ancestor, trigger);
+};
+for (const ancestor of ancestors) {
+  if (ancestor.tagName === "DETAILS") {
+    if (!ancestor.open) { ancestor.open = true; await wait(40); }
+    continue;
+  }
+  const trigger = triggerFor(ancestor);
+  if (!isCollapsed(ancestor, trigger)) continue;
+  if (trigger) {
+    try { trigger.click(); } catch (_) {}
+    if (await waitUntilOpen(ancestor, trigger)) continue;
+  }
+  // Fallback for CMS/Bootstrap panels whose normal collapse script is unavailable
+  // from the extension execution world. This only exposes the controlled panel so
+  // the reviewer can see the finding; it does not change saved page content.
+  ancestor.hidden = false;
+  ancestor.removeAttribute("aria-hidden");
+  ancestor.classList.remove("collapsing");
+  ancestor.classList.add("show", "in");
+  ancestor.style.setProperty("display", "block", "important");
+  ancestor.style.setProperty("height", "auto", "important");
+  ancestor.style.setProperty("max-height", "none", "important");
+  ancestor.style.setProperty("overflow", "visible", "important");
+  ancestor.style.setProperty("visibility", "visible", "important");
+  if (trigger) {
+    trigger.setAttribute("aria-expanded", "true");
+    trigger.classList.remove("collapsed");
+  }
+  await wait(60);
+}
+elements = selectedSelectors.map(selected => {
+  try { return document.querySelector(selected); } catch (_) { return null; }
+}).filter(Boolean);
+if (!elements.length) return false;
+const hasVisibleBox = element => {
+  if (!element || !element.getBoundingClientRect) return false;
+  const style = getComputedStyle(element);
+  if (style.display === "none" || style.visibility === "hidden") return false;
+  const rect = element.getBoundingClientRect();
+  return rect.width > 1 && rect.height > 1;
+};
+let usedContainerFallback = false;
+const highlightElements = [];
+elements.forEach(element => {
+  let target = element;
+  if (!hasVisibleBox(target)) {
+    const semanticContainer = element.closest("li,h1,h2,h3,h4,h5,h6,p,dd,dt,figcaption,blockquote,td,th");
+    if (semanticContainer && hasVisibleBox(semanticContainer)) target = semanticContainer;
+    else {
+      let current = element.parentElement;
+      while (current && !hasVisibleBox(current)) current = current.parentElement;
+      if (current) target = current;
+    }
+    usedContainerFallback = target !== element;
+  }
+  if (target && !highlightElements.includes(target)) highlightElements.push(target);
+});
+if (!highlightElements.length) return false;
+highlightElements.forEach(element => {
+  element.dataset.bcStyleCheckerOutline = element.style.outline;
+  element.dataset.bcStyleCheckerOffset = element.style.outlineOffset;
+  element.dataset.bcStyleCheckerHighlight = "true";
+  element.style.outline = "4px solid #fcba19";
+  element.style.outlineOffset = "3px";
+});
+highlightElements[0].scrollIntoView({ behavior: "smooth", block: "center" });
+return usedContainerFallback ? "container" : true;
+}
+
 async function highlightSelector(selector, requireReport, activateTab = false) {
   try {
     const tab = await currentReviewTab();
@@ -1528,45 +1991,30 @@ async function highlightSelector(selector, requireReport, activateTab = false) {
       showToast("Open the scanned page to show this finding.");
       return;
     }
-    await chrome.scripting.executeScript({
+    const selectors = (Array.isArray(selector) ? selector : [selector]).filter(Boolean);
+    if (!selectors.length) return;
+    const results = await chrome.scripting.executeScript({
       target: { tabId: tab.id },
-      args: [selector],
-      func: selected => {
-        const old = document.querySelector("[data-bc-style-checker-highlight]");
-        if (old) {
-          old.style.outline = old.dataset.bcStyleCheckerOutline || "";
-          old.style.outlineOffset = old.dataset.bcStyleCheckerOffset || "";
-          delete old.dataset.bcStyleCheckerHighlight;
-          delete old.dataset.bcStyleCheckerOutline;
-          delete old.dataset.bcStyleCheckerOffset;
-        }
-        const element = document.querySelector(selected);
-        if (!element) return;
-        const details = element.closest("details");
-        if (details) details.open = true;
-        const collapsed = element.closest(".collapse,[class*='collapse' i],[class*='accordion' i],.panel");
-        if (collapsed) {
-          const id = collapsed.id;
-          const trigger = id
-            ? document.querySelector(`[aria-controls="${globalThis.CSS && CSS.escape ? CSS.escape(id) : id}"]`)
-            : collapsed.querySelector("[aria-expanded='false'],.collapsed");
-          if (trigger && trigger.getAttribute("aria-expanded") !== "true") trigger.click();
-        }
-        element.dataset.bcStyleCheckerOutline = element.style.outline;
-        element.dataset.bcStyleCheckerOffset = element.style.outlineOffset;
-        element.dataset.bcStyleCheckerHighlight = "true";
-        element.style.outline = "4px solid #fcba19";
-        element.style.outlineOffset = "3px";
-        element.scrollIntoView({ behavior: "smooth", block: "center" });
-      }
+      args: [selectors],
+      func: revealFindingElements
     });
+    const revealResult = results[0] && results[0].result;
+    if (revealResult === "container") showToast("The exact element is invisible. Its nearest visible container is highlighted.");
+    else if (revealResult !== true) showToast("The page changed. Rescan it to refresh this location.");
     if (activateTab) await chrome.tabs.update(tab.id, { active: true });
   } catch (_) {
     showToast("The page changed. Rescan it to refresh locations.");
   }
 }
 
-function locateFinding(selector) { return highlightSelector(selector, true, workspaceSurface); }
+function findingSelectors(finding) {
+  if (!finding) return "";
+  return Array.isArray(finding.selectors) && finding.selectors.length ? finding.selectors : finding.selector;
+}
+
+function locateFinding(value) {
+  return highlightSelector(value && typeof value === "object" ? findingSelectors(value) : value, true, workspaceSurface);
+}
 
 async function clearFindingHighlight() {
   try {
@@ -1575,13 +2023,13 @@ async function clearFindingHighlight() {
     await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       func: () => {
-        const element = document.querySelector("[data-bc-style-checker-highlight]");
-        if (!element) return;
-        element.style.outline = element.dataset.bcStyleCheckerOutline || "";
-        element.style.outlineOffset = element.dataset.bcStyleCheckerOffset || "";
-        delete element.dataset.bcStyleCheckerHighlight;
-        delete element.dataset.bcStyleCheckerOutline;
-        delete element.dataset.bcStyleCheckerOffset;
+        document.querySelectorAll("[data-bc-style-checker-highlight]").forEach(element => {
+          element.style.outline = element.dataset.bcStyleCheckerOutline || "";
+          element.style.outlineOffset = element.dataset.bcStyleCheckerOffset || "";
+          delete element.dataset.bcStyleCheckerHighlight;
+          delete element.dataset.bcStyleCheckerOutline;
+          delete element.dataset.bcStyleCheckerOffset;
+        });
       }
     });
   } catch (_) {}
@@ -1618,14 +2066,13 @@ async function runPageOverlay(mode) {
       const badges = [];
       const cleanup = () => {
         badges.forEach(badge => badge.remove());
-        const temporaryHighlight = document.querySelector("[data-bc-style-checker-highlight]");
-        if (temporaryHighlight) {
+        document.querySelectorAll("[data-bc-style-checker-highlight]").forEach(temporaryHighlight => {
           temporaryHighlight.style.outline = temporaryHighlight.dataset.bcStyleCheckerOutline || "";
           temporaryHighlight.style.outlineOffset = temporaryHighlight.dataset.bcStyleCheckerOffset || "";
           delete temporaryHighlight.dataset.bcStyleCheckerHighlight;
           delete temporaryHighlight.dataset.bcStyleCheckerOutline;
           delete temporaryHighlight.dataset.bcStyleCheckerOffset;
-        }
+        });
         touched.forEach(element => {
           element.style.outline = element.dataset.bcWsgOverlayOutline || "";
           element.style.outlineOffset = element.dataset.bcWsgOverlayOffset || "";
@@ -1739,16 +2186,29 @@ function clearSelectedSection() {
 
 function openExceptionDialog(finding) {
   state.pendingExceptionFinding = finding;
-  elements["exception-rule-name"].textContent = finding.title;
+  const pageOnly = finding.ruleId === "proofreading-pubic";
+  elements["exception-dialog-heading"].textContent = pageOnly ? "Ignore this wording on this page" : "Always allow an exact term";
+  elements["exception-dialog-intro"].innerHTML = pageOnly
+    ? `This exact wording will be ignored for <strong id="exception-rule-name">${escapeHtml(finding.title)}</strong> on this page only.`
+    : `This term will be ignored only for <strong id="exception-rule-name">${escapeHtml(finding.title)}</strong>.`;
+  elements["exception-rule-name"] = $("exception-rule-name");
   const proposed = finding.proposedPhrase || finding.flaggedToken || "";
   const unsafeBareBc = finding.ruleId === "bc-abbreviation" && normalizeSpace(proposed) === "BC";
   elements["exception-phrase"].value = unsafeBareBc ? "" : proposed;
+  elements["exception-phrase"].readOnly = pageOnly;
   elements["exception-validation"].textContent = unsafeBareBc ? "Enter the complete formal name. ‘BC’ by itself cannot be allowed." : "";
-  const siteRadio = document.querySelector("input[name='exception-scope'][value='site']");
-  if (siteRadio) siteRadio.checked = true;
+  elements["exception-page-scope"].hidden = !pageOnly;
+  elements["exception-site-scope"].hidden = pageOnly;
+  elements["exception-all-scope"].hidden = pageOnly;
+  elements["exception-guardrail"].textContent = pageOnly
+    ? "This ignores ‘pubic’ in any capitalization on this page only. Other proofreading and style checks remain active."
+    : "Capitalization and wording must match exactly. Single-word formal names and acronyms are allowed. ‘BC’ by itself cannot be allowed. A single-word exception applies to every exact match for this rule within the selected scope. Structure, accessibility and sentence-case checks remain active.";
+  elements["exception-submit"].textContent = pageOnly ? "Ignore on this page" : "Allow exact term";
+  const selectedRadio = document.querySelector(`input[name='exception-scope'][value='${pageOnly ? "page" : "site"}']`);
+  if (selectedRadio) selectedRadio.checked = true;
   elements["exception-dialog"].showModal();
   elements["exception-phrase"].focus();
-  elements["exception-phrase"].select();
+  if (!pageOnly) elements["exception-phrase"].select();
 }
 
 function openNoteDialog(finding) {
@@ -1893,6 +2353,12 @@ function feedbackContextPreview(context) {
 }
 
 async function openFeedbackDialog(finding = null, existingNote = null) {
+  if (!existingNote && feedbackEmailBatchPlan().blocked) {
+    renderFeedback();
+    switchView("feedback");
+    showToast("Send the current feedback batch before adding another note.");
+    return;
+  }
   state.feedbackReturnFocus = document.activeElement;
   state.pendingFeedbackId = existingNote ? existingNote.id : "";
   state.pendingFeedbackContext = existingNote ? existingNote.context : await captureFeedbackContext(finding);
@@ -1912,6 +2378,13 @@ function closeFeedbackDialog() {
   elements["feedback-dialog"].close();
   const target = state.feedbackReturnFocus;
   state.feedbackReturnFocus = null;
+  if (state.pendingFeedbackPageChange) {
+    state.pendingFeedbackPageChange = false;
+    state.feedbackPreviousView = "current";
+    switchView("current");
+    requestAnimationFrame(() => { if (document.scrollingElement) document.scrollingElement.scrollTop = 0; });
+    return;
+  }
   if (target && target.isConnected) requestAnimationFrame(() => target.focus());
 }
 
@@ -1941,7 +2414,10 @@ async function saveFeedbackNote(event) {
   closeFeedbackDialog();
   renderFeedback();
   if (state.reviewMode === "detail") renderReviewView();
-  showToast(`Feedback note saved. ${readyFeedbackNotes().length} ready to email.`);
+  const plan = feedbackEmailBatchPlan();
+  showToast(plan.blocked
+    ? "Feedback note saved. Send the current feedback batch to continue adding notes."
+    : `Feedback note saved. ${readyFeedbackNotes().length} unsent.`);
 }
 
 function feedbackCard(note, archived = false) {
@@ -1949,7 +2425,7 @@ function feedbackCard(note, archived = false) {
   return `<article class="feedback-note-card${note.important ? " is-important" : ""}" data-feedback-id="${escapeHtml(note.id)}">
     <div class="feedback-note-top"><span class="feedback-note-type">${escapeHtml(feedbackTypeLabel(note.type))}</span>${note.important ? `<span class="profile-badge feedback-important">Important</span>` : ""}</div>
     <p>${escapeHtml(note.text)}</p>
-    <span class="feedback-context-status">${note.includeContext ? "Page context included" : context.pageUrl ? "Page context excluded from email and export" : "No page context captured"}</span>
+    <span class="feedback-context-status">${note.includeContext ? "Page context included" : context.pageUrl ? "Page context excluded from reports" : "No page context captured"}</span>
     <div class="feedback-note-actions">
       ${archived ? `<button class="text-button restore-feedback" type="button">Restore</button>` : `<button class="text-button edit-feedback" type="button">Edit</button>`}
       <button class="text-button delete-feedback" type="button">Delete</button>
@@ -1971,19 +2447,61 @@ function feedbackGroups(notes, archived = false) {
   </section>`).join("");
 }
 
+function feedbackMailtoHref(notes) {
+  const subject = feedbackSubject(notes);
+  const body = feedbackReportText(notes);
+  return `mailto:${FEEDBACK_RECIPIENTS.join(",")}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
+
+function feedbackEmailBatchPlan(notes = readyFeedbackNotes()) {
+  const ordered = notes.slice();
+  if (!ordered.length) return { batch: [], overflow: [], blocked: false, oversized: false, uriLength: 0 };
+  let batch = [];
+  let uriLength = 0;
+  for (const note of ordered) {
+    const candidate = [...batch, note];
+    const length = feedbackMailtoHref(candidate).length;
+    if (length > MAILTO_SAFE_URI_LIMIT) break;
+    batch = candidate;
+    uriLength = length;
+  }
+  const oversized = batch.length === 0 && ordered.length > 0;
+  const overflow = ordered.slice(batch.length);
+  return {
+    batch,
+    overflow,
+    blocked: overflow.length > 0 || oversized,
+    oversized,
+    uriLength
+  };
+}
+
 function renderFeedback() {
   const ready = readyFeedbackNotes();
   const archived = archivedFeedbackNotes();
   const readyCount = ready.length;
+  const plan = feedbackEmailBatchPlan(ready);
   elements["feedback-header-count"].textContent = String(readyCount);
   elements["feedback-header-count"].hidden = readyCount === 0;
-  elements["feedback-ready-count"].textContent = `${readyCount} saved`;
-  elements["feedback-empty"].hidden = readyCount > 0;
+  elements["feedback-ready-count"].textContent = `${readyCount} unsent${archived.length ? ` · ${archived.length} sent` : ""}`;
+  elements["feedback-empty"].hidden = state.feedbackNotes.length > 0;
   elements["feedback-list"].innerHTML = feedbackGroups(ready);
-  elements["feedback-send-status"].innerHTML = `<strong>${readyCount} feedback note${readyCount === 1 ? " is" : "s are"} saved on this device.</strong> ${readyCount === 1 ? "It has" : "They have"} not been sent.`;
-  elements["create-feedback-email"].disabled = readyCount === 0;
-  elements["copy-feedback-report"].disabled = readyCount === 0;
-  elements["export-feedback-csv"].disabled = readyCount === 0;
+  if (plan.oversized) {
+    elements["feedback-send-status"].innerHTML = `<strong>Send feedback before continuing.</strong> The first unsent note is too large to fit safely in one complete email. Edit that note to shorten it.`;
+  } else if (plan.blocked) {
+    elements["feedback-send-status"].innerHTML = `<strong>Send feedback to continue recording notes.</strong> ${plan.batch.length} of ${readyCount} unsent note${readyCount === 1 ? "" : "s"} fit safely in the next complete email. ${plan.overflow.length} newer note${plan.overflow.length === 1 ? " stays" : "s stay"} saved for the next batch.`;
+  } else if (readyCount) {
+    elements["feedback-send-status"].innerHTML = `<strong>${readyCount} unsent feedback note${readyCount === 1 ? " is" : "s are"} saved on this device.</strong> The next email will include all of them.`;
+  } else {
+    elements["feedback-send-status"].innerHTML = `<strong>No unsent feedback.</strong>${archived.length ? ` ${archived.length} sent note${archived.length === 1 ? " remains" : "s remain"} available in the archive.` : ""}`;
+  }
+  elements["add-feedback-button"].disabled = plan.blocked;
+  elements["create-feedback-email"].disabled = readyCount === 0 || plan.oversized;
+  elements["create-feedback-email"].textContent = plan.blocked && plan.batch.length
+    ? `Create email with ${plan.batch.length} note${plan.batch.length === 1 ? "" : "s"}`
+    : "Create feedback email";
+  elements["copy-feedback-report"].disabled = state.feedbackNotes.length === 0;
+  elements["export-feedback-csv"].disabled = state.feedbackNotes.length === 0;
   elements["archived-feedback"].hidden = archived.length === 0;
   elements["archived-feedback-count"].textContent = archived.length ? `(${archived.length})` : "";
   elements["archived-feedback-list"].innerHTML = feedbackGroups(archived, true);
@@ -2046,46 +2564,82 @@ function feedbackReportText(notes = readyFeedbackNotes()) {
   return lines.join("\n");
 }
 
-function feedbackEmailSummary(notes, filename) {
-  const lines = [
-    "Web Style Guide Checker feedback",
-    "",
-    `${notes.length} saved feedback note${notes.length === 1 ? " is" : "s are"} included in the attached report: ${filename}`,
-    "",
-    "Attach the downloaded report to this email before sending.",
-    "",
-    "Notes in this report:"
-  ];
-  notes.slice(0, 30).forEach((note, index) => {
-    const context = note.includeContext && note.context ? note.context : {};
-    const page = context.pageTitle || context.domain || "Page context not included";
-    const summary = normalizeSpace(note.text).slice(0, 140);
-    lines.push(`${index + 1}. ${feedbackTypeLabel(note.type)} — ${page} — ${summary}${normalizeSpace(note.text).length > 140 ? "…" : ""}`);
-  });
-  if (notes.length > 30) lines.push(`Plus ${notes.length - 30} more note${notes.length - 30 === 1 ? "" : "s"} in the attached report.`);
-  lines.push("", `Extension version: ${chrome.runtime.getManifest().version}`, `Created: ${feedbackReportDate()}`);
-  return lines.join("\n");
-}
-
-async function copyFeedbackReport() {
-  const notes = readyFeedbackNotes();
+async function copyFeedbackNotes(notes) {
   if (!notes.length) return;
   await navigator.clipboard.writeText(feedbackReportText(notes));
   showToast(`${notes.length} feedback note${notes.length === 1 ? "" : "s"} copied.`);
 }
 
+function feedbackCopyChoiceLabel(note) {
+  const context = note.context || {};
+  const page = context.pageTitle || context.domain || "General feedback";
+  const noteText = normalizeSpace(note.text);
+  return `${feedbackTypeLabel(note.type)} — ${page} — ${noteText.slice(0, 120)}${noteText.length > 120 ? "…" : ""}`;
+}
+
+function renderFeedbackCopySelection() {
+  const notes = state.feedbackNotes;
+  elements["feedback-copy-list"].innerHTML = notes.map(note => `<label class="feedback-copy-note"><input type="checkbox" data-feedback-copy-id="${escapeHtml(note.id)}"> <span><strong>${note.archivedAt ? "Sent" : "Unsent"}</strong> · ${escapeHtml(feedbackCopyChoiceLabel(note))}</span></label>`).join("");
+  updateFeedbackCopyCount();
+}
+
+function selectedFeedbackCopyNotes() {
+  const selected = new Set(Array.from(elements["feedback-copy-list"].querySelectorAll("[data-feedback-copy-id]:checked")).map(input => input.dataset.feedbackCopyId));
+  return state.feedbackNotes.filter(note => selected.has(note.id));
+}
+
+function updateFeedbackCopyCount() {
+  const count = selectedFeedbackCopyNotes().length;
+  elements["feedback-copy-count"].textContent = `${count} selected`;
+  elements["feedback-copy-selected"].disabled = count === 0;
+}
+
+function setFeedbackCopySelection(mode) {
+  elements["feedback-copy-list"].querySelectorAll("[data-feedback-copy-id]").forEach(input => {
+    const note = state.feedbackNotes.find(item => item.id === input.dataset.feedbackCopyId);
+    input.checked = mode === "all" || (mode === "unsent" && note && !note.archivedAt) || (mode === "sent" && note && Boolean(note.archivedAt));
+  });
+  updateFeedbackCopyCount();
+}
+
+function openFeedbackCopyDialog() {
+  if (!state.feedbackNotes.length) return;
+  elements["feedback-copy-selection"].hidden = true;
+  elements["feedback-copy-options"].hidden = false;
+  elements["feedback-copy-dialog"].showModal();
+}
+
+async function handleFeedbackCopyMode(mode) {
+  if (mode === "unsent") {
+    await copyFeedbackNotes(readyFeedbackNotes());
+    elements["feedback-copy-dialog"].close();
+    return;
+  }
+  if (mode === "all") {
+    await copyFeedbackNotes(state.feedbackNotes);
+    elements["feedback-copy-dialog"].close();
+    return;
+  }
+  if (mode === "choose") {
+    elements["feedback-copy-options"].hidden = true;
+    elements["feedback-copy-selection"].hidden = false;
+    renderFeedbackCopySelection();
+    setFeedbackCopySelection("unsent");
+  }
+}
+
 const FEEDBACK_CSV_HEADER = [
-  "Note ID", "Created", "Feedback type", "Important", "Feedback note", "Include page context", "Page title", "Page URL", "Domain", "Detected site profile", "Scan scope", "Page section",
+  "Note ID", "Created", "Sent", "Sent at", "Feedback type", "Important", "Feedback note", "Include page context", "Page title", "Page URL", "Domain", "Detected site profile", "Scan scope", "Page section",
   "Selected page text", "Finding", "Rule ID", "Category", "Review level", "Flagged wording", "Finding evidence", "Extension version", "Rules version", "Browser"
 ];
 
-function feedbackCsvRows(notes = readyFeedbackNotes()) {
+function feedbackCsvRows(notes = state.feedbackNotes) {
   return notes.map(note => {
     const context = note.context || {};
     const finding = context.finding || {};
     const included = note.includeContext;
     return [
-      note.id, note.createdAt, feedbackTypeLabel(note.type), note.important ? "Yes" : "No", note.text, included ? "Yes" : "No",
+      note.id, note.createdAt, note.archivedAt ? "Yes" : "No", note.archivedAt || "", feedbackTypeLabel(note.type), note.important ? "Yes" : "No", note.text, included ? "Yes" : "No",
       included ? context.pageTitle || "" : "", included ? context.pageUrl || "" : "", included ? context.domain || "" : "", included ? context.detectedProfile || "" : "",
       included ? context.scanScope || "" : "", included ? context.pageSection || "" : "", included ? context.selectedText || "" : "", included ? finding.title || "" : "",
       included ? finding.ruleId || "" : "", included ? finding.category || "" : "", included ? finding.severity || "" : "", included ? finding.flaggedWording || "" : "",
@@ -2095,33 +2649,33 @@ function feedbackCsvRows(notes = readyFeedbackNotes()) {
 }
 
 function exportFeedbackCsv() {
-  const notes = readyFeedbackNotes();
+  const notes = state.feedbackNotes;
   if (!notes.length) return;
   downloadCsvRows(feedbackCsvRows(notes), `web-style-guide-checker-feedback-${feedbackReportDate()}.csv`, FEEDBACK_CSV_HEADER);
 }
 
 async function createFeedbackEmail() {
-  const notes = readyFeedbackNotes();
-  if (!notes.length) return;
+  const plan = feedbackEmailBatchPlan();
+  const notes = plan.batch;
+  if (!notes.length) {
+    showToast(plan.oversized ? "Shorten the first unsent feedback note before creating the email." : "No unsent feedback is ready to email.");
+    return;
+  }
   const report = feedbackReportText(notes);
-  const completeInEmail = report.length <= MAILTO_REPORT_LIMIT;
-  const filename = `web-style-guide-checker-feedback-${feedbackReportDate()}.txt`;
-  if (!completeInEmail) downloadTextFile(report, filename);
-  try {
-    await navigator.clipboard.writeText(report);
-  } catch (_) {}
-  const subject = feedbackSubject(notes);
-  const body = completeInEmail ? report : feedbackEmailSummary(notes, filename);
+  const href = feedbackMailtoHref(notes);
+  if (href.length > MAILTO_SAFE_URI_LIMIT) {
+    showToast("This feedback batch is too large to email safely. Edit a note to shorten it.");
+    return;
+  }
+  try { await navigator.clipboard.writeText(report); } catch (_) {}
   const anchor = document.createElement("a");
-  anchor.href = `mailto:${FEEDBACK_RECIPIENTS.join(",")}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  anchor.href = href;
   anchor.hidden = true;
   document.body.append(anchor);
   anchor.click();
   anchor.remove();
   state.preparedFeedbackIds = notes.map(note => note.id);
-  elements["feedback-email-message"].textContent = completeInEmail
-    ? "The complete feedback report is in the email draft. Review it, then select Send in your email app."
-    : `The complete report was downloaded as ${filename}. Attach that file to the email draft, review the email, then select Send.`;
+  elements["feedback-email-message"].textContent = `The complete feedback batch (${notes.length} note${notes.length === 1 ? "" : "s"}) is in the email draft. Review it and send it from your email app.`;
   elements["feedback-email-dialog"].showModal();
 }
 
@@ -2133,7 +2687,7 @@ async function archivePreparedFeedback() {
   state.preparedFeedbackIds = [];
   elements["feedback-email-dialog"].close();
   renderFeedback();
-  showToast("Prepared feedback notes archived.");
+  showToast(`${prepared.size} feedback note${prepared.size === 1 ? "" : "s"} marked sent.`);
 }
 
 async function restoreFeedbackNote(id) {
@@ -2194,16 +2748,19 @@ async function saveException(event) {
     ruleTitle: finding.title,
     phrase: validation.phrase,
     domain: scope === "all" ? "*" : state.activeReport.page.hostname,
+    page: scope === "page" ? canonicalUrl(state.activeReport.page.url) : "",
     createdAt: new Date().toISOString()
   };
-  const duplicate = state.exceptions.some(item => item.ruleId === exception.ruleId && item.phrase === exception.phrase && item.domain === exception.domain);
+  const duplicate = state.exceptions.some(item => item.ruleId === exception.ruleId && (exception.ruleId === "proofreading-pubic" ? String(item.phrase).toLowerCase() === String(exception.phrase).toLowerCase() : item.phrase === exception.phrase) && item.domain === exception.domain && (item.page || "") === (exception.page || ""));
   if (!duplicate) state.exceptions.push(exception);
   await saveKey(STORAGE_KEYS.exceptions, state.exceptions);
   elements["exception-dialog"].close();
   renderTerms();
   await scanCurrentPage({ preserveReview: true });
   continueAfterAllowedTerm(continuation);
-  showToast(duplicate ? "That exact-term exception already exists." : `Allowed “${exception.phrase}” for this rule.`);
+  showToast(duplicate
+    ? (finding.ruleId === "proofreading-pubic" ? "‘Pubic’ is already ignored on this page." : "That exact-term exception already exists.")
+    : (finding.ruleId === "proofreading-pubic" ? "Ignored ‘pubic’ on this page." : `Allowed “${exception.phrase}” for this rule.`));
 }
 
 function continueAfterAllowedTerm(continuation) {
@@ -2243,14 +2800,74 @@ function renderTerms() {
   elements["personal-term-count"].textContent = `${state.exceptions.length} saved`;
   elements["personal-terms"].innerHTML = state.exceptions.length ? state.exceptions.map(item => `
     <div class="term-row">
-      <div><strong>${escapeHtml(item.phrase)}</strong><small>${escapeHtml(item.ruleTitle || item.ruleId)} · ${item.domain === "*" ? "All sites" : item.domain}</small></div>
+      <div><strong>${escapeHtml(item.phrase)}</strong><small>${escapeHtml(item.ruleTitle || item.ruleId)} · ${item.page ? "This page" : item.domain === "*" ? "All sites" : item.domain}</small></div>
       <button class="small-button remove-term" type="button" data-id="${escapeHtml(item.id)}">Remove</button>
     </div>`).join("") : `<div class="empty-state">No personal allowed terms yet.</div>`;
   elements["built-in-terms-list"].innerHTML = globalThis.BCWebStyleGuideChecker.builtInTerms.map(term => `<span class="term-chip">${escapeHtml(term)}</span>`).join("");
 }
 
+const ATTENTION_RANK = {
+  "nothing-flagged": 0,
+  "worth-checking": 1,
+  "needs-attention": 2,
+  "review-first": 3
+};
+
+const ATTENTION_LABEL = {
+  "review-first": "Review first",
+  "needs-attention": "Needs attention",
+  "worth-checking": "Worth checking",
+  "nothing-flagged": "Nothing flagged"
+};
+
+const STRUCTURE_RULES = new Set([
+  "h1-count", "heading-skip", "heading-deep", "heading-empty", "heading-empty-sequence",
+  "on-this-page-missing", "on-this-page-format", "on-this-page-links", "section-heading-density",
+  "fake-list", "list-depth", "faq-content"
+]);
+
+const PLAIN_LANGUAGE_RULES = new Set([
+  "paragraph-long", "sentence-long", "reading-level", "section-reading-level", "complex-phrase", "filler-phrase",
+  "passive-voice", "negative-contraction", "undefined-acronym", "latin-abbreviation", "canadian-spelling",
+  "canadian-spelling-context", "formal-sentence-starter", "acronym-in-heading"
+]);
+
+const ACCESSIBILITY_REVIEW_FIRST = new Set([
+  "document-language", "main-landmark", "skip-link-target", "disclosure-state", "image-alt-missing",
+  "linked-image-alt", "form-label", "table-headers", "table-accordion"
+]);
+const ACCESSIBILITY_NEEDS = new Set(["contrast", "broken-image", "image-alt-meaningless"]);
+const ACCESSIBILITY_CONTEXTUAL_ALT = new Set(["image-alt-empty", "image-alt-length", "image-alt-prefix"]);
+
+const LINKS_REVIEW_FIRST = new Set(["broken-http-link", "broken-anchor", "staging-url", "empty-link"]);
+const LINKS_NEEDS = new Set([
+  "generic-link", "split-link", "email-link-text", "phone-unlinked", "phone-link-format", "file-link-label",
+  "file-link-type", "file-link-size", "file-link-label-format", "file-link-size-spacing", "file-link-type-mismatch",
+  "punctuation-only-link"
+]);
+
+const HIGH_IMPACT_STYLE_RULES = new Set(["all-caps", "underline", "strikethrough", "bold-block"]);
+
+function findingOccurrences(finding) {
+  return Math.max(1, Number(finding && finding.occurrenceCount) || 1);
+}
+
 function findingsForExport(report, includeReviewed) {
-  return report.issues.filter(finding => includeReviewed || effectiveStatus(finding) === "open");
+  return (report.issues || []).filter(finding => includeReviewed || effectiveStatus(finding) === "open");
+}
+
+function openFindings(report) {
+  return (report.issues || []).filter(finding => effectiveStatus(finding) === "open");
+}
+
+function findingArea(finding) {
+  if (!finding) return "Style and proofreading";
+  if (finding.category === "Page information") return "Page information";
+  if (STRUCTURE_RULES.has(finding.ruleId)) return "Structure and navigation";
+  if (PLAIN_LANGUAGE_RULES.has(finding.ruleId) || finding.category === "Plain language") return "Plain language";
+  if (finding.category === "Accessibility" || finding.category === "Tables") return "Accessibility";
+  if (finding.category === "Links") return "Links and documents";
+  return "Style and proofreading";
 }
 
 function groupedFindingsForExport(report, includeReviewed) {
@@ -2262,59 +2879,359 @@ function groupedFindingsForExport(report, includeReviewed) {
     const group = groups.get(key);
     const note = auditNote(finding);
     group.items.push(finding);
-    group.occurrenceCount += finding.occurrenceCount || 1;
+    group.occurrenceCount += findingOccurrences(finding);
     group.important = group.important || Boolean(note.important);
     if (note.text && !group.notes.includes(note.text)) group.notes.push(note.text);
   });
   return Array.from(groups.values());
 }
 
+function countRule(findings, ruleId) {
+  return findings.filter(finding => finding.ruleId === ruleId).reduce((total, finding) => total + findingOccurrences(finding), 0);
+}
+
+function distinctSelectors(findings) {
+  return new Set(findings.map(finding => finding.selector || finding.fingerprint || finding.id).filter(Boolean)).size;
+}
+
+function numericEvidenceValue(finding, pattern) {
+  if (!finding) return null;
+  const match = String(finding.evidence || "").match(pattern);
+  return match ? Number(match[1]) : null;
+}
+
+function profileArea(name) {
+  return { name, level: "nothing-flagged", reason: "" };
+}
+
+function raiseAttention(area, level, reason) {
+  if (ATTENTION_RANK[level] > ATTENTION_RANK[area.level]) {
+    area.level = level;
+    area.reason = reason || "";
+  } else if (ATTENTION_RANK[level] === ATTENTION_RANK[area.level] && !area.reason && reason) area.reason = reason;
+}
+
+function pageReviewProfile(report) {
+  const findings = openFindings(report);
+  const byArea = {
+    "Page information": profileArea("Page information"),
+    "Plain language": profileArea("Plain language"),
+    "Structure and navigation": profileArea("Structure and navigation"),
+    "Accessibility": profileArea("Accessibility"),
+    "Links and documents": profileArea("Links and documents"),
+    "Style and proofreading": profileArea("Style and proofreading")
+  };
+
+  const pageInfo = findings.filter(finding => findingArea(finding) === "Page information");
+  if (pageInfo.some(finding => finding.ruleId === "page-title-missing")) raiseAttention(byArea["Page information"], "review-first", "No page title");
+  else if (pageInfo.length) raiseAttention(byArea["Page information"], "worth-checking", pageInfo[0].title);
+
+  const plain = findings.filter(finding => findingArea(finding) === "Plain language");
+  const readingWords = Number(report.stats && (report.stats.readingWords ?? report.stats.words)) || 0;
+  const grade = Number(report.stats && report.stats.readingGrade);
+  if (Number.isFinite(grade)) {
+    if (readingWords >= 75) {
+      if (grade >= 12) raiseAttention(byArea["Plain language"], "review-first", `Estimated reading grade ${grade}`);
+      else if (grade >= 10) raiseAttention(byArea["Plain language"], "needs-attention", `Estimated reading grade ${grade}`);
+      else if (grade >= 9) raiseAttention(byArea["Plain language"], "worth-checking", `Estimated reading grade ${grade}`);
+    } else if (readingWords >= 40) {
+      if (grade >= 14) raiseAttention(byArea["Plain language"], "review-first", `Estimated reading grade ${grade}`);
+      else if (grade >= 12) raiseAttention(byArea["Plain language"], "needs-attention", `Estimated reading grade ${grade}`);
+    }
+  }
+  const longSentences = countRule(plain, "sentence-long");
+  const sentences = Number(report.stats && report.stats.sentences) || 0;
+  const longSentencePct = sentences ? longSentences / sentences : 0;
+  if (longSentences >= 4 && longSentencePct >= 0.5) raiseAttention(byArea["Plain language"], "review-first", `${longSentences} of ${sentences} sentences are over 20 words`);
+  else if (longSentences >= 3 && longSentencePct >= 0.3) raiseAttention(byArea["Plain language"], "needs-attention", `${longSentences} of ${sentences} sentences are over 20 words`);
+  else if (longSentences) raiseAttention(byArea["Plain language"], "worth-checking", `${longSentences} long sentence${longSentences === 1 ? "" : "s"}`);
+
+  const sectionReadability = plain.filter(finding => finding.ruleId === "section-reading-level").map(finding => ({
+    finding,
+    grade: Number.isFinite(finding.analysisGrade) ? finding.analysisGrade : numericEvidenceValue(finding, /reading grade:\s*([0-9.]+)/i),
+    words: Number.isFinite(finding.analysisWords) ? finding.analysisWords : null
+  }));
+  const substantive = sectionReadability.filter(item => item.words !== null && item.words >= 75);
+  if (substantive.some(item => item.grade >= 14) || substantive.filter(item => item.grade >= 12).length >= 2) {
+    raiseAttention(byArea["Plain language"], "review-first", `${sectionReadability.length} difficult section${sectionReadability.length === 1 ? "" : "s"}`);
+  } else if (sectionReadability.length) raiseAttention(byArea["Plain language"], "needs-attention", `${sectionReadability.length} difficult section${sectionReadability.length === 1 ? "" : "s"}`);
+
+  const longParagraphs = countRule(plain, "paragraph-long");
+  if (longParagraphs >= 3) raiseAttention(byArea["Plain language"], "needs-attention", `${longParagraphs} long paragraphs`);
+  else if (longParagraphs) raiseAttention(byArea["Plain language"], "worth-checking", `${longParagraphs} long paragraph${longParagraphs === 1 ? "" : "s"}`);
+  const contextualPlain = plain.filter(finding => !["reading-level", "section-reading-level", "sentence-long", "paragraph-long", "section-heading-density"].includes(finding.ruleId));
+  if (contextualPlain.length) raiseAttention(byArea["Plain language"], "worth-checking", contextualPlain[0].title);
+
+  const structure = findings.filter(finding => findingArea(finding) === "Structure and navigation");
+  if (countRule(structure, "h1-count")) raiseAttention(byArea["Structure and navigation"], "review-first", "Missing or multiple H1 headings");
+  if (countRule(structure, "on-this-page-links")) raiseAttention(byArea["Structure and navigation"], "review-first", "‘On this page’ navigation does not match its H2 destinations");
+  const headingSkips = countRule(structure, "heading-skip");
+  if (headingSkips >= 3) raiseAttention(byArea["Structure and navigation"], "review-first", `${headingSkips} heading-level skips`);
+  else if (headingSkips) raiseAttention(byArea["Structure and navigation"], "needs-attention", `${headingSkips} heading-level skip${headingSkips === 1 ? "" : "s"}`);
+  const densityFindings = structure.filter(finding => finding.ruleId === "section-heading-density");
+  const longestDensity = densityFindings.reduce((max, finding) => Math.max(max, Number.isFinite(finding.analysisWords) ? finding.analysisWords : numericEvidenceValue(finding, /^(\d+) words/i) || 0), 0);
+  if (longestDensity >= 400) raiseAttention(byArea["Structure and navigation"], "review-first", `${longestDensity} words without a heading break`);
+  else if (longestDensity >= 300) raiseAttention(byArea["Structure and navigation"], "needs-attention", `${longestDensity} words without a heading break`);
+  else if (longestDensity >= 200) raiseAttention(byArea["Structure and navigation"], "worth-checking", `${longestDensity} words without a heading break`);
+  const structureNeeds = new Set(["heading-empty", "on-this-page-format", "fake-list", "heading-empty-sequence", "list-depth"]);
+  const needsStructure = structure.filter(finding => structureNeeds.has(finding.ruleId));
+  if (needsStructure.length) raiseAttention(byArea["Structure and navigation"], "needs-attention", needsStructure[0].title);
+  const structureWorth = structure.filter(finding => ["heading-deep", "on-this-page-missing", "faq-content"].includes(finding.ruleId));
+  if (structureWorth.length) raiseAttention(byArea["Structure and navigation"], "worth-checking", structureWorth[0].title);
+
+  const accessibility = findings.filter(finding => findingArea(finding) === "Accessibility");
+  const accessibilityBarrier = accessibility.find(finding => ACCESSIBILITY_REVIEW_FIRST.has(finding.ruleId));
+  if (accessibilityBarrier) raiseAttention(byArea.Accessibility, "review-first", accessibilityBarrier.title);
+  const accessibilityNeed = accessibility.find(finding => ACCESSIBILITY_NEEDS.has(finding.ruleId));
+  if (accessibilityNeed) raiseAttention(byArea.Accessibility, "needs-attention", accessibilityNeed.title);
+  const contextualAlt = accessibility.filter(finding => ACCESSIBILITY_CONTEXTUAL_ALT.has(finding.ruleId));
+  const imageCount = Number(report.pageDetails && report.pageDetails.counts && report.pageDetails.counts.images) || Number(report.stats && report.stats.images) || 0;
+  const affectedAltImages = distinctSelectors(contextualAlt);
+  if (affectedAltImages >= 2 && imageCount && affectedAltImages / imageCount >= 0.5) raiseAttention(byArea.Accessibility, "needs-attention", `${affectedAltImages} of ${imageCount} images have alt-text review findings`);
+  else if (accessibility.length) raiseAttention(byArea.Accessibility, "worth-checking", accessibility[0].title);
+
+  const links = findings.filter(finding => findingArea(finding) === "Links and documents");
+  const linkBarrier = links.find(finding => LINKS_REVIEW_FIRST.has(finding.ruleId));
+  if (linkBarrier) raiseAttention(byArea["Links and documents"], "review-first", linkBarrier.title);
+  const linkNeed = links.find(finding => LINKS_NEEDS.has(finding.ruleId));
+  if (linkNeed) raiseAttention(byArea["Links and documents"], "needs-attention", linkNeed.title);
+  if (links.length) raiseAttention(byArea["Links and documents"], "worth-checking", links[0].title);
+
+  const style = findings.filter(finding => findingArea(finding) === "Style and proofreading");
+  const fixStyle = style.filter(finding => finding.severity === "fix");
+  const fixCount = fixStyle.reduce((total, finding) => total + findingOccurrences(finding), 0);
+  const distinctFixRules = new Set(fixStyle.map(finding => finding.ruleId)).size;
+  const highImpactCounts = Array.from(HIGH_IMPACT_STYLE_RULES).map(ruleId => ({ ruleId, count: countRule(style, ruleId) })).sort((a, b) => b.count - a.count);
+  const mostPervasive = highImpactCounts[0] || { ruleId: "", count: 0 };
+  if ((fixCount >= 8 && distinctFixRules >= 4) || mostPervasive.count >= 4) {
+    const reason = mostPervasive.count >= 4
+      ? `${mostPervasive.count} ${style.find(finding => finding.ruleId === mostPervasive.ruleId)?.title.toLowerCase() || "high-impact formatting"} findings`
+      : `${fixCount} high-confidence fixes across ${distinctFixRules} style rules`;
+    raiseAttention(byArea["Style and proofreading"], "review-first", reason);
+  } else if ((fixCount >= 5 && distinctFixRules >= 2) || mostPervasive.count >= 2) {
+    const reason = mostPervasive.count >= 2
+      ? `${mostPervasive.count} ${style.find(finding => finding.ruleId === mostPervasive.ruleId)?.title.toLowerCase() || "high-impact formatting"} findings`
+      : `${fixCount} high-confidence fixes across ${distinctFixRules} style rules`;
+    raiseAttention(byArea["Style and proofreading"], "needs-attention", reason);
+  } else if (style.length) raiseAttention(byArea["Style and proofreading"], "worth-checking", style[0].title);
+
+  return Object.values(byArea);
+}
+
+function attentionCounts(profile) {
+  const output = { "review-first": 0, "needs-attention": 0, "worth-checking": 0, "nothing-flagged": 0 };
+  profile.forEach(area => { output[area.level] += 1; });
+  return output;
+}
+
+function pageReviewPriority(profile) {
+  const levels = (profile || []).map(area => area.level);
+  if (levels.includes("review-first")) return "Review first";
+  if (levels.includes("needs-attention")) return "Needs attention";
+  if (levels.includes("worth-checking")) return "Worth checking";
+  return "Nothing flagged";
+}
+
+function mainConcerns(profile, limit = 3) {
+  return profile
+    .filter(area => area.level !== "nothing-flagged")
+    .sort((a, b) => ATTENTION_RANK[b.level] - ATTENTION_RANK[a.level])
+    .slice(0, limit)
+    .map(area => area.reason ? `${area.name}: ${area.reason}` : `${area.name}: ${ATTENTION_LABEL[area.level]}`);
+}
+
+function pagePriorityCompare(first, second) {
+  const firstCounts = attentionCounts(first.profile || pageReviewProfile(first.report));
+  const secondCounts = attentionCounts(second.profile || pageReviewProfile(second.report));
+  if (secondCounts["review-first"] !== firstCounts["review-first"]) return secondCounts["review-first"] - firstCounts["review-first"];
+  if (secondCounts["needs-attention"] !== firstCounts["needs-attention"]) return secondCounts["needs-attention"] - firstCounts["needs-attention"];
+  const firstFixes = openFindings(first.report).filter(finding => finding.severity === "fix").reduce((total, finding) => total + findingOccurrences(finding), 0);
+  const secondFixes = openFindings(second.report).filter(finding => finding.severity === "fix").reduce((total, finding) => total + findingOccurrences(finding), 0);
+  if (secondFixes !== firstFixes) return secondFixes - firstFixes;
+  if (secondCounts["worth-checking"] !== firstCounts["worth-checking"]) return secondCounts["worth-checking"] - firstCounts["worth-checking"];
+  return String(first.report.page.title || "").localeCompare(String(second.report.page.title || ""));
+}
+
+function linkCheckCoverage(report) {
+  const check = report && report.linkCheck;
+  if (!check) return "Not checked";
+  if (check.state === "permission-denied") return "Website access declined";
+  if (check.state === "complete" && (check.completed || 0) >= (check.totalFound || 0)) return "Complete";
+  if ((check.completed || 0) > 0) return "Partially checked";
+  return "Not checked";
+}
+
 function reportText(report, includeReviewed) {
-  const counts = reportCounts(report);
+  return issueSummaryText(report, includeReviewed);
+}
+
+function issueSummaryText(report, includeReviewed) {
+  const findings = findingsForExport(report, includeReviewed);
+  const groups = groupedFindingsForExport(report, includeReviewed);
   const lines = [
-    "B.C. Web Style Guide review",
+    "B.C. Web Style Guide issue summary",
     report.page.title,
     report.page.url,
     `Checked: ${formatDate(report.scannedAt)}`,
-    `Reviewed: ${report.settings.scope === "whole" ? "The whole website" : "The page content"} · ${report.settings.profileLabel}`,
+    `Automated findings: ${findings.reduce((total, finding) => total + findingOccurrences(finding), 0)} · Issue types: ${new Set(findings.map(finding => finding.ruleId)).size}`,
     "",
-    `Open findings: ${counts.fix} fix · ${counts.check} check · ${counts.review} review`,
-    `${report.stats.words} words · Reading estimate: ${report.stats.readingGrade === null ? "not available" : "Grade " + report.stats.readingGrade}`,
+    "Automated findings identify items to review. They are not confirmed compliance failures.",
     ""
   ];
-  groupedFindingsForExport(report, includeReviewed).forEach((group, index) => {
+  groups.forEach((group, index) => {
     const finding = group.finding;
-    lines.push(`${index + 1}. ${finding.title} — ${finding.severity} · ${group.status}${group.important ? " · important" : ""}`);
+    lines.push(`${index + 1}. ${finding.title} — ${sentenceLabel(finding.severity)} · ${sentenceLabel(group.status)}${group.important ? " · Important" : ""}`);
+    lines.push(`   Area: ${findingArea(finding)}`);
+    lines.push(`   Findings: ${group.occurrenceCount}`);
     lines.push(`   Where: ${Array.from(new Set(group.items.map(item => item.location || "Page"))).join("; ")}`);
-    lines.push(`   Why it matters: ${finding.why}`);
     lines.push(`   What to do: ${finding.suggestion}`);
-    if (group.items.length) lines.push(`   Examples: ${group.items.slice(0, 4).map(item => item.evidence).join(" | ")}${group.items.length > 4 ? ` | ${group.items.length - 4} more` : ""}`);
-    if (group.notes.length) lines.push(`   Note: ${group.notes.join(" | ")}`);
+    if (group.items.length) lines.push(`   Example: ${group.items[0].evidence}`);
+    if (group.notes.length) lines.push(`   Audit note: ${group.notes.join(" | ")}`);
     lines.push(`   Guidance: ${finding.sourceUrl}`);
     lines.push("");
   });
   return lines.join("\n");
 }
 
-const ACTION_HEADER = [
-  "ID", "Page", "URL", "Where on the page", "Category", "Issue", "Why it matters", "Recommended action",
-  "Review level", "Who can fix it", "Status", "Important", "Audit note", "Examples", "Occurrences", "Guidance"
+function detailedFindingsText(report, includeReviewed) {
+  const findings = findingsForExport(report, includeReviewed);
+  const lines = [
+    "B.C. Web Style Guide findings detail",
+    report.page.title,
+    report.page.url,
+    `Checked: ${formatDate(report.scannedAt)}`,
+    `Finding rows: ${findings.length} · Occurrences: ${findings.reduce((total, finding) => total + findingOccurrences(finding), 0)}`,
+    ""
+  ];
+  findings.forEach((finding, index) => {
+    const note = auditNote(finding);
+    lines.push(`${index + 1}. ${finding.title} — ${sentenceLabel(finding.severity)} · ${sentenceLabel(effectiveStatus(finding))}`);
+    lines.push(`   Where: ${finding.location || "Page"}`);
+    lines.push(`   Evidence: ${finding.evidence || ""}`);
+    if (findingOccurrences(finding) > 1) lines.push(`   Occurrences: ${findingOccurrences(finding)}`);
+    if (finding.flaggedToken || finding.matchText) lines.push(`   Flagged wording: ${finding.flaggedToken || finding.matchText}`);
+    lines.push(`   What to do: ${finding.suggestion}`);
+    lines.push(`   Why it matters: ${finding.why}`);
+    if (note.important) lines.push("   Important: Yes");
+    if (note.text) lines.push(`   Audit note: ${note.text}`);
+    lines.push(`   Guidance: ${finding.sourceUrl}`);
+    lines.push("");
+  });
+  return lines.join("\n");
+}
+
+const FINDING_DETAIL_HEADER = [
+  "Finding ID", "Page", "Page URL", "Where on the page", "Area", "Category", "Issue", "Review level",
+  "Status", "Evidence", "Flagged wording", "Recommended action", "Why it matters", "Important",
+  "Audit note", "Guidance", "Rule ID", "Occurrences"
 ];
 
-function actionRows(report, includeReviewed, submittedUrl, pageNumber) {
+const ISSUE_SUMMARY_HEADER = [
+  "Issue", "Area", "Category", "Review level", "Status", "Findings", "Sections affected", "Example evidence",
+  "Recommended action", "Guidance", "Rule ID"
+];
+
+function findingDetailRows(report, includeReviewed, submittedUrl, pageNumber) {
   const prefix = `P${String(pageNumber || 1).padStart(3, "0")}`;
-  return groupedFindingsForExport(report, includeReviewed).map((group, index) => {
-    const finding = group.finding;
+  return findingsForExport(report, includeReviewed).map((finding, index) => {
+    const note = auditNote(finding);
     return [
-      `${prefix}-${String(index + 1).padStart(3, "0")}`, report.page.title, report.page.url || submittedUrl,
-      Array.from(new Set(group.items.map(item => item.location || "Page"))).join("; "), finding.category, finding.title,
-      finding.why, finding.suggestion, sentenceLabel(finding.severity), finding.responsibility, sentenceLabel(group.status),
-      group.important ? "Yes" : "", group.notes.join(" | "),
-      group.items.slice(0, 6).map(item => item.evidence).join(" | "), group.occurrenceCount, finding.sourceUrl
+      `${prefix}-F${String(index + 1).padStart(3, "0")}`, report.page.title, report.page.url || submittedUrl,
+      finding.location || "Page", findingArea(finding), finding.category, finding.title, sentenceLabel(finding.severity),
+      sentenceLabel(effectiveStatus(finding)), finding.evidence || "", finding.flaggedToken || finding.matchText || "",
+      finding.suggestion, finding.why, note.important ? "Yes" : "", note.text || "", finding.sourceUrl, finding.ruleId, findingOccurrences(finding)
     ];
   });
 }
 
+function issueSummaryRows(report, includeReviewed) {
+  return groupedFindingsForExport(report, includeReviewed)
+    .slice()
+    .sort((a, b) => b.occurrenceCount - a.occurrenceCount || a.finding.title.localeCompare(b.finding.title))
+    .map(group => [
+    group.finding.title, findingArea(group.finding), group.finding.category, sentenceLabel(group.finding.severity), sentenceLabel(group.status),
+    group.occurrenceCount, Array.from(new Set(group.items.map(item => item.location || "Page"))).join("; "),
+    group.items[0] ? group.items[0].evidence : "", group.finding.suggestion, group.finding.sourceUrl, group.finding.ruleId
+  ]);
+}
+
+// Backwards-compatible names used by the CSV action and older tests.
+const ACTION_HEADER = FINDING_DETAIL_HEADER;
+function actionRows(report, includeReviewed, submittedUrl, pageNumber) {
+  return findingDetailRows(report, includeReviewed, submittedUrl, pageNumber);
+}
+
+function sheetRow(values, kind = "body") {
+  return { values, kind };
+}
+
+function summarySheetRows(report) {
+  const profile = pageReviewProfile(report);
+  const open = openFindings(report);
+  const fix = open.filter(finding => finding.severity === "fix").reduce((total, finding) => total + findingOccurrences(finding), 0);
+  const check = open.filter(finding => finding.severity === "check").reduce((total, finding) => total + findingOccurrences(finding), 0);
+  const review = open.filter(finding => finding.severity === "review").reduce((total, finding) => total + findingOccurrences(finding), 0);
+  const longSentences = countRule(open, "sentence-long");
+  const longParagraphs = countRule(open, "paragraph-long");
+  const difficultSections = countRule(open, "section-reading-level");
+  const longestWithoutHeading = open.filter(finding => finding.ruleId === "section-heading-density")
+    .reduce((max, finding) => Math.max(max, Number.isFinite(finding.analysisWords) ? finding.analysisWords : numericEvidenceValue(finding, /^(\d+) words/i) || 0), 0);
+  const rows = [
+    sheetRow(["B.C. Web Style Guide review"], "title"),
+    sheetRow(["Page", report.page.title]),
+    sheetRow(["URL", report.page.url]),
+    sheetRow(["Checked", formatDate(report.scannedAt)]),
+    sheetRow(["Scope", `${report.settings.scope === "whole" ? "Whole website" : "Page content"} · ${report.settings.profileLabel}`]),
+    sheetRow(["Link check", linkCheckCoverage(report)]),
+    sheetRow(["Link check results", linkCheckResultSummary(report)]),
+    sheetRow(["Automated review profile"], "section"),
+    sheetRow(["Area", "Attention", "Main reason"], "header"),
+    ...profile.map(area => sheetRow([area.name, ATTENTION_LABEL[area.level], area.reason || "—"], `status-${area.level}`)),
+    sheetRow(["Page measures"], "section"),
+    sheetRow(["Measure", "Value", "Context"], "header"),
+    sheetRow(["Estimated reading grade", report.stats.readingGrade === null ? "Not available" : report.stats.readingGrade, `${report.stats.readingWords || report.stats.words || 0} words included in estimate`]),
+    sheetRow(["Words", report.stats.words || 0, "Scanned content"]),
+    sheetRow(["Sentences checked", report.stats.sentences || 0, longSentences ? `${longSentences} sentences with over 20 words` : "No long-sentence findings"]),
+    sheetRow(["Long paragraphs", longParagraphs, "Automated paragraph-length findings"]),
+    sheetRow(["Difficult sections", difficultSections, "Separate section-readability findings"]),
+    sheetRow(["Longest content without heading", longestWithoutHeading || 0, longestWithoutHeading ? "words" : "No heading-density finding"]),
+    sheetRow(["Open automated findings"], "section"),
+    sheetRow(["Review level", "Findings"], "header"),
+    sheetRow(["Fix", fix]),
+    sheetRow(["Check", check]),
+    sheetRow(["Review", review]),
+    sheetRow(["Total", fix + check + review]),
+    sheetRow(["Issue types", new Set(open.map(finding => finding.ruleId)).size]),
+    sheetRow(["How to interpret this report"], "section"),
+    sheetRow([fix + check + review
+      ? "Automated findings identify items to review; they are not confirmed compliance failures. “Nothing flagged” means the checker did not flag anything in that area, not that the page passed an accessibility or quality assessment."
+      : "No automated findings were recorded. This does not mean the page passed an accessibility, quality or compliance assessment; the checker covers only the rules it can evaluate."], "note")
+  ];
+  return rows;
+}
+
+function pageDetailsRows(report) {
+  const details = report.pageDetails || { counts: {}, headings: [] };
+  const counts = details.counts || {};
+  return [
+    ["Measure", "Value"],
+    ["Words", report.stats.words || 0],
+    ["Sentences checked", report.stats.sentences || 0],
+    ["Estimated reading grade", report.stats.readingGrade === null ? "" : report.stats.readingGrade],
+    ["Authored headings", (details.headings || []).filter(heading => report.settings.profile !== "cms-lite" || !heading.component).length],
+    ["CMS-generated headings", report.settings.profile === "cms-lite" ? (details.headings || []).filter(heading => heading.component).length : 0],
+    ["Links", counts.links || 0],
+    ["Images", counts.images || 0],
+    ["Images missing alt", counts.imagesMissingAlt || 0],
+    ["Document/asset links", counts.assets || 0],
+    ["Lists", counts.lists || 0],
+    ["Tables", counts.tables || 0],
+    ["Forms", counts.forms || 0],
+    ["Accordions", counts.accordions || 0],
+    ["Link check coverage", linkCheckCoverage(report)],
+    ["Rules version", report.ruleVersion || ""]
+  ];
+}
 function downloadCsvRows(rows, filename, header) {
   const csv = [header || ACTION_HEADER, ...rows].map(row => row.map(csvCell).join(",")).join("\r\n");
   const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
@@ -2347,17 +3264,88 @@ function columnName(index) {
   return output;
 }
 
-function worksheetXml(rows) {
+function isWorkbookUrl(value) {
+  return /^https?:\/\//i.test(String(value || "").trim());
+}
+
+function workbookCellStyle(kind, rowIndex, value) {
+  if (isWorkbookUrl(value) && kind !== "header" && kind !== "title") return 9;
+  if (value === "Review first" || value === "Scan failed") return 5;
+  if (value === "Needs attention" || value === "Website access declined") return 6;
+  if (value === "Worth checking") return 7;
+  if (value === "Nothing flagged") return 8;
+  if (kind === "title") return 2;
+  if (kind === "section") return 3;
+  if (kind === "note") return 4;
+  if (kind === "status-review-first") return 5;
+  if (kind === "status-needs-attention") return 6;
+  if (kind === "status-worth-checking") return 7;
+  if (kind === "status-nothing-flagged") return 8;
+  if (kind === "header" || rowIndex === 0) return 1;
+  return 0;
+}
+
+function normalizeSheetRows(sheet) {
+  return (sheet.rows || []).map(row => Array.isArray(row) ? { values: row, kind: "body" } : row);
+}
+
+function estimatedWorkbookRowHeight(row, widths) {
+  const kind = row.kind || "body";
+  const base = kind === "title" ? 30 : kind === "section" ? 22 : kind === "header" ? 26 : 18;
+  const maxLines = (row.values || []).reduce((max, cell, index) => {
+    const width = Math.max(8, Number(widths[index]) || 12);
+    const lines = String(cell ?? "").split(/\r?\n/).reduce((total, line) => total + Math.max(1, Math.ceil(line.length / Math.max(8, width - 1))), 0);
+    return Math.max(max, lines);
+  }, 1);
+  const cap = kind === "note" ? 4 : kind === "title" ? 2 : kind === "header" || kind === "section" ? 2 : 3;
+  return Math.max(base, Math.min(kind === "note" ? 72 : 54, 18 * Math.min(maxLines, cap)));
+}
+
+function worksheetHyperlinks(sheet) {
+  const rows = normalizeSheetRows(sheet);
+  const links = [];
+  rows.forEach((row, rowIndex) => (row.values || []).forEach((cell, columnIndex) => {
+    if (!isWorkbookUrl(cell)) return;
+    links.push({ ref: `${columnName(columnIndex)}${rowIndex + 1}`, target: String(cell).trim() });
+  }));
+  return links;
+}
+
+function worksheetXml(sheet) {
+  const rows = normalizeSheetRows(sheet);
   const widths = [];
-  rows.forEach(row => row.forEach((cell, index) => { widths[index] = Math.min(55, Math.max(widths[index] || 9, String(cell ?? "").length + 2)); }));
+  rows.forEach(row => (row.values || []).forEach((cell, index) => {
+    const text = String(cell ?? "");
+    const longestLine = text.split(/\r?\n/).reduce((max, line) => Math.max(max, line.length), 0);
+    widths[index] = Math.min((sheet.maxColumnWidth || 42), Math.max(widths[index] || 9, Math.min(longestLine + 2, sheet.maxColumnWidth || 42)));
+  }));
+  (sheet.widths || []).forEach((width, index) => { if (Number.isFinite(width)) widths[index] = width; });
   const cols = widths.map((width, index) => `<col min="${index + 1}" max="${index + 1}" width="${width}" customWidth="1"/>`).join("");
-  const data = rows.map((row, rowIndex) => `<row r="${rowIndex + 1}">${row.map((cell, columnIndex) => {
-    const reference = `${columnName(columnIndex)}${rowIndex + 1}`;
-    if (typeof cell === "number" && Number.isFinite(cell)) return `<c r="${reference}"${rowIndex === 0 ? ' s="1"' : ""}><v>${cell}</v></c>`;
-    return `<c r="${reference}" t="inlineStr"${rowIndex === 0 ? ' s="1"' : ""}><is><t xml:space="preserve">${xmlEscape(cell)}</t></is></c>`;
-  }).join("")}</row>`).join("");
-  const last = rows.length && rows[0].length ? `${columnName(rows[0].length - 1)}${rows.length}` : "A1";
-  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><cols>${cols}</cols><sheetData>${data}</sheetData><autoFilter ref="A1:${last}"/></worksheet>`;
+  const data = rows.map((row, rowIndex) => {
+    const kind = row.kind || "body";
+    const height = estimatedWorkbookRowHeight(row, widths);
+    return `<row r="${rowIndex + 1}" ht="${height}" customHeight="1">${(row.values || []).map((cell, columnIndex) => {
+      const reference = `${columnName(columnIndex)}${rowIndex + 1}`;
+      const cellStyle = workbookCellStyle(kind, rowIndex, cell);
+      if (typeof cell === "number" && Number.isFinite(cell)) return `<c r="${reference}" s="${cellStyle}"><v>${cell}</v></c>`;
+      if (typeof cell === "boolean") return `<c r="${reference}" s="${cellStyle}" t="b"><v>${cell ? 1 : 0}</v></c>`;
+      return `<c r="${reference}" t="inlineStr" s="${cellStyle}"><is><t xml:space="preserve">${xmlEscape(cell)}</t></is></c>`;
+    }).join("")}</row>`;
+  }).join("");
+  const maxColumns = rows.reduce((max, row) => Math.max(max, (row.values || []).length), 0);
+  const last = rows.length && maxColumns ? `${columnName(maxColumns - 1)}${rows.length}` : "A1";
+  const filterRow = Number(sheet.filterRow) || 0;
+  const filterLast = filterRow && maxColumns ? `${columnName(maxColumns - 1)}${rows.length}` : "";
+  const autoFilter = filterRow && rows.length >= filterRow ? `<autoFilter ref="A${filterRow}:${filterLast}"/>` : "";
+  const hyperlinks = worksheetHyperlinks(sheet);
+  const hyperlinkXml = hyperlinks.length ? `<hyperlinks>${hyperlinks.map((link, index) => `<hyperlink ref="${link.ref}" r:id="rId${index + 1}"/>`).join("")}</hyperlinks>` : "";
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheetViews><sheetView workbookViewId="0"/></sheetViews><sheetFormatPr defaultRowHeight="18"/><cols>${cols}</cols><sheetData>${data}</sheetData>${autoFilter}${hyperlinkXml}<pageMargins left="0.35" right="0.35" top="0.5" bottom="0.5" header="0.2" footer="0.2"/></worksheet>`;
+}
+
+function worksheetRelationshipsXml(sheet) {
+  const hyperlinks = worksheetHyperlinks(sheet);
+  if (!hyperlinks.length) return "";
+  return `<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${hyperlinks.map((link, index) => `<Relationship Id="rId${index + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="${xmlEscape(link.target)}" TargetMode="External"/>`).join("")}</Relationships>`;
 }
 
 function crc32(bytes) {
@@ -2391,7 +3379,7 @@ function zipStore(files) {
   return new Blob([...parts, ...central, end], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
 }
 
-function downloadWorkbook(sheets, filename) {
+function buildWorkbookBlob(sheets) {
   const used = new Set();
   const normalized = sheets.filter(sheet => sheet && sheet.rows && sheet.rows.length).map(sheet => {
     const base = String(sheet.name || "Sheet").replace(/[\\/?*\[\]:]/g, " ").trim().slice(0, 31) || "Sheet";
@@ -2399,42 +3387,48 @@ function downloadWorkbook(sheets, filename) {
     let number = 2;
     while (used.has(name)) { name = `${base.slice(0, 27)} ${number}`; number += 1; }
     used.add(name);
-    return { name, rows: sheet.rows };
+    return { ...sheet, name };
   });
-  if (!normalized.length) { showToast("Choose at least one workbook section."); return; }
+  if (!normalized.length) return null;
   const files = [];
   const typeOverrides = normalized.map((_, index) => `<Override PartName="/xl/worksheets/sheet${index + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join("");
   files.push({ name: "[Content_Types].xml", data: `<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>${typeOverrides}</Types>` });
   files.push({ name: "_rels/.rels", data: `<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>` });
   files.push({ name: "xl/workbook.xml", data: `<?xml version="1.0" encoding="UTF-8"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${normalized.map((sheet, index) => `<sheet name="${xmlEscape(sheet.name)}" sheetId="${index + 1}" r:id="rId${index + 1}"/>`).join("")}</sheets></workbook>` });
   files.push({ name: "xl/_rels/workbook.xml.rels", data: `<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${normalized.map((_, index) => `<Relationship Id="rId${index + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${index + 1}.xml"/>`).join("")}<Relationship Id="rId${normalized.length + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>` });
-  files.push({ name: "xl/styles.xml", data: `<?xml version="1.0" encoding="UTF-8"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font><sz val="11"/><name val="BC Sans"/></font><font><b/><color rgb="FFFFFFFF"/><sz val="11"/><name val="BC Sans"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF013366"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment wrapText="1"/></xf></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>` });
-  normalized.forEach((sheet, index) => files.push({ name: `xl/worksheets/sheet${index + 1}.xml`, data: worksheetXml(sheet.rows) }));
-  const url = URL.createObjectURL(zipStore(files));
+  files.push({ name: "xl/styles.xml", data: `<?xml version="1.0" encoding="UTF-8"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="5"><font><sz val="11"/><name val="BC Sans"/></font><font><b/><color rgb="FFFFFFFF"/><sz val="11"/><name val="BC Sans"/></font><font><b/><color rgb="FF013366"/><sz val="16"/><name val="BC Sans"/></font><font><i/><color rgb="FF4A5568"/><sz val="10"/><name val="BC Sans"/></font><font><u/><color rgb="FF0563C1"/><sz val="11"/><name val="BC Sans"/></font></fonts><fills count="8"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF013366"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFE8F1F8"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFDECEC"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFFF3CD"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFEAF2F8"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFF2F2F2"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="10"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf><xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf><xf numFmtId="0" fontId="0" fillId="3" borderId="0" xfId="0" applyFill="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf><xf numFmtId="0" fontId="3" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf><xf numFmtId="0" fontId="0" fillId="4" borderId="0" xfId="0" applyFill="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf><xf numFmtId="0" fontId="0" fillId="5" borderId="0" xfId="0" applyFill="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf><xf numFmtId="0" fontId="0" fillId="6" borderId="0" xfId="0" applyFill="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf><xf numFmtId="0" fontId="0" fillId="7" borderId="0" xfId="0" applyFill="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf><xf numFmtId="0" fontId="4" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>` });
+  normalized.forEach((sheet, index) => {
+    files.push({ name: `xl/worksheets/sheet${index + 1}.xml`, data: worksheetXml(sheet) });
+    const relationships = worksheetRelationshipsXml(sheet);
+    if (relationships) files.push({ name: `xl/worksheets/_rels/sheet${index + 1}.xml.rels`, data: relationships });
+  });
+  return zipStore(files);
+}
+
+function downloadWorkbook(sheets, filename) {
+  const blob = buildWorkbookBlob(sheets);
+  if (!blob) { showToast("Choose at least one workbook section."); return false; }
+  const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
   anchor.download = filename;
   anchor.click();
   setTimeout(() => URL.revokeObjectURL(url), 1500);
+  return true;
 }
 
-async function copyCurrentReport() {
+async function copyCurrentDetailedFindings() {
   if (!state.activeReport) return;
-  await navigator.clipboard.writeText(reportText(state.activeReport, elements["current-export-reviewed"].checked));
-  showToast("Report copied.");
+  await navigator.clipboard.writeText(detailedFindingsText(state.activeReport, elements["current-export-reviewed"].checked));
+  showToast("Detailed findings copied.");
 }
 
 const BATCH_METADATA_HEADER = [
-  "Page", "Submitted URL", "Final URL", "Domain", "Scanned at", "HTML title", "Meta description", "Keywords", "Canonical URL", "Robots", "Page language", "JSON-LD blocks",
+  "Page", "Submitted URL", "Final URL", "Domain", "Scanned at", "HTML title", "Meta description", "Keywords", "Robots", "Page language",
   "Open Graph title", "Open Graph description", "Twitter title", "Twitter description", "Alternate languages", "Additional published metadata"
 ];
 
-const BATCH_STATS_HEADER = [
-  "Page", "Submitted URL", "Final URL", "Domain", "Scanned at", "Scope", "Site profile", "Word count", "Sentence count", "Reading grade", "Authored headings", "CMS-generated headings", "Links", "Images",
-  "Images missing alt", "Asset links", "Lists", "Tables", "Forms", "Accordions", "Open fixes", "Open checks", "Open reviews"
-];
-
-const LINK_EXPORT_HEADER = ["Page", "Page URL", "Where on the page", "Link text", "Destination", "Status", "HTTP code", "Final destination", "Occurrences"];
+const LINK_EXPORT_HEADER = ["Page", "Page URL", "Where on the page", "Link text", "Destination", "Check result", "HTTP code", "Checked destination", "Final destination", "Detail", "Occurrences"];
 
 function metadataCustomValue(metadata, name) {
   return (metadata.custom || []).filter(item => String(item.name).toLowerCase() === name.toLowerCase()).map(item => item.value).join("; ");
@@ -2443,26 +3437,16 @@ function metadataCustomValue(metadata, name) {
 function batchMetadataValues(report) {
   const metadata = (report.pageDetails && report.pageDetails.metadata) || {};
   const individuallyExported = new Set(["keywords", "robots", "og:title", "og:description", "twitter:title", "twitter:description"]);
+  const additional = [
+    metadata.jsonLdCount ? `JSON-LD blocks: ${metadata.jsonLdCount}` : "",
+    ...(metadata.custom || []).filter(item => !individuallyExported.has(String(item.name).toLowerCase())).map(item => `${item.name}: ${item.value}`)
+  ].filter(Boolean).join("; ");
   return [
-    metadata.documentTitle || "", metadata.description || "", metadata.keywords || "", metadata.canonical || "", metadata.robots || "",
-    metadata.language || "", metadata.jsonLdCount || 0, metadataCustomValue(metadata, "og:title"), metadataCustomValue(metadata, "og:description"),
+    metadata.documentTitle || "", metadata.description || "", metadata.keywords || "", metadata.robots || "",
+    metadata.language || "", metadataCustomValue(metadata, "og:title"), metadataCustomValue(metadata, "og:description"),
     metadataCustomValue(metadata, "twitter:title"), metadataCustomValue(metadata, "twitter:description"),
     (metadata.alternates || []).map(item => `${item.language}: ${item.href}`).join("; "),
-    (metadata.custom || []).filter(item => !individuallyExported.has(String(item.name).toLowerCase())).map(item => `${item.name}: ${item.value}`).join("; ")
-  ];
-}
-
-function batchStatsValues(report) {
-  const details = report.pageDetails || { headings: [], counts: {} };
-  const counts = details.counts || {};
-  const resultCounts = reportCounts(report);
-  const cms = report.settings.profile === "cms-lite";
-  return [
-    report.stats.words, report.stats.sentences, report.stats.readingGrade === null ? "" : report.stats.readingGrade,
-    (details.headings || []).filter(heading => !cms || !heading.component).length,
-    cms ? (details.headings || []).filter(heading => heading.component).length : 0,
-    counts.links || 0, counts.images || 0, counts.imagesMissingAlt || 0, counts.assets || 0, counts.lists || 0,
-    counts.tables || 0, counts.forms || 0, counts.accordions || 0, resultCounts.fix, resultCounts.check, resultCounts.review
+    additional
   ];
 }
 
@@ -2470,33 +3454,446 @@ function metadataRow(report, submittedUrl) {
   return [report.page.title, submittedUrl || report.page.url, report.page.url, report.page.hostname, report.scannedAt, ...batchMetadataValues(report)];
 }
 
-function pageInventoryRow(report, submittedUrl) {
-  return [report.page.title, submittedUrl || report.page.url, report.page.url, report.page.hostname, report.scannedAt,
-    report.settings.scope === "whole" ? "Whole website" : "Page content", report.settings.profileLabel, ...batchStatsValues(report)];
+function linkResultLabel(status) {
+  return ({
+    ok: "Working",
+    "live-ok": "Live version working",
+    broken: "Broken",
+    "live-not-found": "Live version not found",
+    redirect: "Redirect could not be verified",
+    "sign-in": "Sign-in may be required",
+    permission: "Website access needed",
+    server: "Server error",
+    restricted: "Could not verify",
+    "rate-limited": "Could not verify",
+    "client-error": "Could not verify",
+    unavailable: "Could not verify"
+  })[status] || sentenceLabel(status || "Not checked");
+}
+
+function linkCheckResultSummary(report) {
+  const check = report && report.linkCheck;
+  if (!check) return "Not checked";
+  if (!(check.totalFound || 0)) return "No web destinations to check";
+  const parts = [];
+  if (check.okay) parts.push(`${check.okay} working`);
+  if (check.broken) parts.push(`${check.broken} broken`);
+  if (check.liveNotFound) parts.push(`${check.liveNotFound} live version${check.liveNotFound === 1 ? "" : "s"} not found`);
+  if (check.redirects) parts.push(`${check.redirects} redirect${check.redirects === 1 ? "" : "s"} to review`);
+  if (check.signInRequired) parts.push(`${check.signInRequired} may require sign-in`);
+  if (check.serverErrors) parts.push(`${check.serverErrors} server error${check.serverErrors === 1 ? "" : "s"}`);
+  const couldNotVerify = (check.permissionRequired || 0) + (check.restricted || 0) + (check.rateLimited || 0) + (check.clientErrors || 0) + (check.unavailable || 0);
+  if (couldNotVerify) parts.push(`${couldNotVerify} could not be verified`);
+  if (check.pending) parts.push(`${check.pending} not checked`);
+  return parts.join(" · ") || linkCheckCoverage(report);
+}
+
+function aggregateLinkCheckResultSummary(reports) {
+  const checks = (reports || []).map(report => report && report.linkCheck).filter(Boolean);
+  if (!checks.length) return "Not checked";
+  const total = key => checks.reduce((sum, check) => sum + (Number(check[key]) || 0), 0);
+  const totalFound = total("totalFound");
+  if (!totalFound) return "No web destinations to check";
+  const okay = total("okay");
+  const broken = total("broken");
+  const liveNotFound = total("liveNotFound");
+  const redirects = total("redirects");
+  const signInRequired = total("signInRequired");
+  const serverErrors = total("serverErrors");
+  const couldNotVerify = total("permissionRequired") + total("restricted") + total("rateLimited") + total("clientErrors") + total("unavailable");
+  const pending = total("pending");
+  const parts = [];
+  if (okay) parts.push(`${okay} working`);
+  if (broken) parts.push(`${broken} broken`);
+  if (liveNotFound) parts.push(`${liveNotFound} live version${liveNotFound === 1 ? "" : "s"} not found`);
+  if (redirects) parts.push(`${redirects} redirect${redirects === 1 ? "" : "s"} to review`);
+  if (signInRequired) parts.push(`${signInRequired} may require sign-in`);
+  if (serverErrors) parts.push(`${serverErrors} server error${serverErrors === 1 ? "" : "s"}`);
+  if (couldNotVerify) parts.push(`${couldNotVerify} could not be verified`);
+  if (pending) parts.push(`${pending} not checked`);
+  return parts.join(" · ") || "Checked";
 }
 
 function linkRows(report) {
-  if (report.linkCheck && Array.isArray(report.linkCheck.results)) return report.linkCheck.results.map(result => [
-    report.page.title, report.page.url, result.link.location || "Page", result.link.text || "[No accessible name]", result.link.href, result.status,
-    result.code || "", result.finalUrl || "", result.link.occurrences || 1
+  const allLinks = (((report.pageDetails || {}).links) || []);
+  const results = report.linkCheck && Array.isArray(report.linkCheck.results) ? report.linkCheck.results : [];
+  const resultByDestination = new Map();
+  results.forEach(result => {
+    const key = canonicalUrl(result.checkedUrl || (result.link && (result.link.checkUrl || result.link.href)) || "");
+    if (key) resultByDestination.set(key, result);
+  });
+  return allLinks.map(link => {
+    const prepared = prepareRemoteLink(link, report.page.url);
+    const result = prepared ? resultByDestination.get(canonicalUrl(prepared.checkUrl || prepared.href)) : null;
+    let checkResult = "Not checked";
+    let detail = "";
+    if (result) {
+      checkResult = linkResultLabel(result.status);
+      detail = result.error || "";
+    } else if (String(link.rawHref || "").startsWith("#")) checkResult = "Checked on page";
+    else if (link.kind === "email") checkResult = "Email link · not a web check";
+    else if (link.kind === "phone") checkResult = "Phone link · not a web check";
+    else if (!prepared && /^https?:/i.test(String(link.href || ""))) checkResult = "Same-page link · not a web check";
+    return [
+      report.page.title, report.page.url, link.location || "Page", link.text || "[No accessible name]", link.href || link.rawHref || "",
+      checkResult, result ? (result.code || "") : "", result ? (result.checkedUrl || "") : "", result ? (result.finalUrl || "") : "", detail, 1
+    ];
+  });
+}
+
+function checkedSheetNames(ids) {
+  return new Set(ids.filter(id => elements[id] && elements[id].checked).map(id => elements[id].dataset.sheet).filter(Boolean));
+}
+
+function currentCustomSheetNames() {
+  return checkedSheetNames([
+    "current-custom-summary", "current-custom-issues", "current-custom-findings",
+    "current-custom-page-details", "current-custom-links", "current-custom-metadata"
   ]);
-  return (((report.pageDetails || {}).links) || []).map(link => [report.page.title, report.page.url, link.location || "Page", link.text, link.href, "Not checked", "", "", 1]);
+}
+
+const CURRENT_LINK_SENSITIVE_SHEETS = new Set(["Summary", "Issue summary", "Findings detail", "Page details", "Links"]);
+
+function workbookSheetsNeedLinkCheck(sheetNames) {
+  return Array.from(sheetNames || []).some(name => CURRENT_LINK_SENSITIVE_SHEETS.has(name));
+}
+
+function currentWorkbookNeedsLinkCheck() {
+  const preset = elements["current-export-preset"].value || "full";
+  if (preset === "full") return true;
+  if (preset === "custom") return workbookSheetsNeedLinkCheck(currentCustomSheetNames());
+  return true;
+}
+
+function batchCustomSheetNames() {
+  return checkedSheetNames([
+    "batch-custom-summary", "batch-custom-pages", "batch-custom-site-wide", "batch-custom-issues-page",
+    "batch-custom-findings", "batch-custom-links", "batch-custom-metadata", "batch-custom-scan-log"
+  ]);
 }
 
 function currentWorkbookSheets() {
   if (!state.activeReport) return [];
   const report = state.activeReport;
   const includeReviewed = elements["current-export-reviewed"].checked;
-  return [
-    elements["current-export-findings"].checked ? { name: "Action report", rows: [ACTION_HEADER, ...actionRows(report, includeReviewed)] } : null,
-    elements["current-export-metadata"].checked ? { name: "Metadata", rows: [BATCH_METADATA_HEADER, metadataRow(report)] } : null,
-    elements["current-export-stats"].checked ? { name: "Page inventory", rows: [BATCH_STATS_HEADER, pageInventoryRow(report)] } : null,
-    elements["current-export-links"].checked ? { name: "Links", rows: [LINK_EXPORT_HEADER, ...linkRows(report)] } : null
-  ].filter(Boolean);
+  const preset = elements["current-export-preset"].value || "full";
+  const allSheets = [
+    { name: "Summary", rows: summarySheetRows(report), widths: [40, 24, 72], maxColumnWidth: 72 },
+    { name: "Issue summary", rows: [ISSUE_SUMMARY_HEADER, ...issueSummaryRows(report, includeReviewed)], filterRow: 1, widths: [34, 24, 22, 14, 14, 10, 36, 60, 60, 54, 24], maxColumnWidth: 60 },
+    { name: "Findings detail", rows: [FINDING_DETAIL_HEADER, ...findingDetailRows(report, includeReviewed)], filterRow: 1, widths: [14, 32, 48, 34, 24, 20, 36, 14, 14, 64, 24, 64, 64, 12, 40, 54, 24, 12], maxColumnWidth: 64 },
+    { name: "Page details", rows: pageDetailsRows(report), filterRow: 1, widths: [34, 54], maxColumnWidth: 54 },
+    { name: "Links", rows: [LINK_EXPORT_HEADER, ...linkRows(report)], filterRow: 1, widths: [30, 48, 32, 40, 55, 28, 12, 55, 55, 45, 12], maxColumnWidth: 55 },
+    { name: "Metadata", rows: [BATCH_METADATA_HEADER, metadataRow(report)], filterRow: 1, maxColumnWidth: 48 }
+  ];
+  if (preset === "custom") {
+    const selected = currentCustomSheetNames();
+    return allSheets.filter(sheet => selected.has(sheet.name));
+  }
+  return allSheets;
 }
 
 function downloadCurrentWorkbook() {
   downloadWorkbook(currentWorkbookSheets(), `bc-web-style-audit-${new Date().toISOString().slice(0, 10)}.xlsx`);
+}
+
+function updateCurrentExportDialog() {
+  if (!state.activeReport) return;
+  const report = state.activeReport;
+  const includeReviewed = elements["current-export-reviewed"].checked;
+  const preset = elements["current-export-preset"].value || "full";
+  const findings = findingsForExport(report, includeReviewed);
+  const occurrenceCount = findings.reduce((total, finding) => total + findingOccurrences(finding), 0);
+  const findingCount = findings.length;
+  elements["copy-detailed-findings"].textContent = occurrenceCount === findingCount
+    ? `Copy detailed findings — ${findingCount} finding${findingCount === 1 ? "" : "s"}`
+    : `Copy detailed findings — ${findingCount} rows · ${occurrenceCount} occurrences`;
+  elements["current-export-preset-description"].textContent = preset === "custom"
+    ? "Choose exactly which sheets to include."
+    : "Complete workbook with the review summary, grouped issues, every finding, page details, links and metadata.";
+  elements["current-export-custom"].hidden = preset !== "custom";
+
+  const needsLinkCheck = currentWorkbookNeedsLinkCheck();
+  const coverage = linkCheckCoverage(report);
+  const remoteCount = remoteLinksForReport(report).length;
+  const status = elements["current-export-status"];
+  const checkButton = elements["check-links-and-download-current"];
+  const downloadButton = elements["download-current-workbook"];
+  status.hidden = !needsLinkCheck;
+  status.classList.toggle("is-complete", needsLinkCheck && (coverage === "Complete" || remoteCount === 0));
+  checkButton.hidden = !needsLinkCheck || coverage === "Complete" || remoteCount === 0;
+  checkButton.disabled = state.linkCheckRunning;
+
+  if (!needsLinkCheck) {
+    status.textContent = "";
+    downloadButton.textContent = "Download workbook";
+    downloadButton.className = "button primary";
+    return;
+  }
+
+  if (!remoteCount) {
+    status.textContent = "No web links need a network check. In-page links are checked as part of the page scan.";
+    downloadButton.textContent = "Download workbook";
+    downloadButton.className = "button primary";
+  } else if (state.linkCheckRunning) {
+    const check = report.linkCheck || {};
+    status.textContent = `Checking links: ${check.completed || 0} of ${check.totalFound || remoteCount} processed. You can download the current results or wait for the check to finish.`;
+    checkButton.textContent = "Checking links…";
+    downloadButton.textContent = "Download current results";
+    downloadButton.className = "button secondary";
+  } else if (coverage === "Complete") {
+    status.textContent = `Link status check complete: ${report.linkCheck.totalFound || 0} unique web destination${(report.linkCheck.totalFound || 0) === 1 ? "" : "s"} processed.`;
+    downloadButton.textContent = "Download workbook";
+    downloadButton.className = "button primary";
+  } else {
+    status.textContent = coverage === "Website access declined"
+      ? "Website access was declined. The report can still be exported, but unchecked web links will not appear as broken-link findings."
+      : coverage === "Partially checked"
+        ? "Link status was only partly checked. The report will show that coverage; unchecked web links will not be treated as working."
+        : "Link status has not been checked. Broken web links will not appear as findings unless the link check is run.";
+    checkButton.textContent = coverage === "Website access declined" ? "Allow access, check links and download" : "Check links and download";
+    downloadButton.textContent = coverage === "Partially checked" ? "Download current results" : "Download without checking";
+    downloadButton.className = "button secondary";
+  }
+}
+
+async function checkLinksAndDownloadCurrentWorkbook() {
+  if (!state.activeReport || state.linkCheckRunning) return;
+  if (!currentWorkbookNeedsLinkCheck()) {
+    downloadCurrentWorkbook();
+    return;
+  }
+  elements["check-links-and-download-current"].disabled = true;
+  elements["check-links-and-download-current"].textContent = "Checking links…";
+  await checkHttpLinks({ quiet: true });
+  updateCurrentExportDialog();
+  downloadCurrentWorkbook();
+}
+
+function openCurrentExportDialog() {
+  updateCurrentExportDialog();
+  elements["export-dialog"].showModal();
+}
+
+const BATCH_PAGES_HEADER = [
+  "Page ID", "Page", "URL", "Review priority", "Main reasons", "Page information", "Plain language", "Structure and navigation",
+  "Accessibility", "Links and documents", "Style and proofreading", "Reading grade", "Difficult sections", "Longest content without heading",
+  "Long sentences", "Sentences checked", "Long-sentence %", "Words", "Fix", "Check", "Review", "Findings", "Issue types", "Link check coverage", "Link results",
+  "Links", "Links flagged", "Images", "Images flagged", "Headings", "Lists", "Scope", "Site profile", "Scan status", "Scanned at", "Rules version"
+];
+
+const SITE_WIDE_HEADER = [
+  "Issue", "Area", "Category", "Review level", "Status", "Affected pages", "% of scanned pages", "Findings", "Most affected pages",
+  "Recommended action", "Guidance", "Rule ID"
+];
+
+const ISSUES_BY_PAGE_HEADER = [
+  "Page ID", "Page", "URL", "Issue", "Area", "Category", "Review level", "Status", "Findings", "Sections affected",
+  "Example evidence", "Recommended action", "Guidance", "Rule ID"
+];
+
+function profileValue(profile, name) {
+  const area = profile.find(item => item.name === name);
+  return area ? ATTENTION_LABEL[area.level] : "Nothing flagged";
+}
+
+function batchPageRecords(records) {
+  return records.map((record, index) => ({ ...record, pageNumber: index + 1, profile: record.status === "complete" ? pageReviewProfile(record.report) : [] }));
+}
+
+function pageExportMetrics(record) {
+  const report = record.report;
+  const open = openFindings(report);
+  const profile = record.profile || pageReviewProfile(report);
+  const profileCounts = attentionCounts(profile);
+  const details = report.pageDetails || { headings: [], counts: {} };
+  const counts = details.counts || {};
+  const longSentences = countRule(open, "sentence-long");
+  const sentences = Number(report.stats.sentences) || 0;
+  const difficultSections = countRule(open, "section-reading-level");
+  const longestWithoutHeading = open.filter(finding => finding.ruleId === "section-heading-density")
+    .reduce((max, finding) => Math.max(max, Number.isFinite(finding.analysisWords) ? finding.analysisWords : numericEvidenceValue(finding, /^(\d+) words/i) || 0), 0);
+  const fixes = open.filter(finding => finding.severity === "fix").reduce((total, finding) => total + findingOccurrences(finding), 0);
+  const checks = open.filter(finding => finding.severity === "check").reduce((total, finding) => total + findingOccurrences(finding), 0);
+  const reviews = open.filter(finding => finding.severity === "review").reduce((total, finding) => total + findingOccurrences(finding), 0);
+  const linkFindings = open.filter(finding => findingArea(finding) === "Links and documents");
+  const imageFindings = open.filter(finding => ["image-alt-missing", "image-alt-empty", "image-alt-length", "image-alt-prefix", "image-alt-meaningless", "linked-image-alt", "broken-image"].includes(finding.ruleId));
+  return {
+    profile,
+    profileCounts,
+    reviewPriority: pageReviewPriority(profile),
+    mainConcerns: mainConcerns(profile),
+    readingGrade: report.stats.readingGrade === null ? "" : report.stats.readingGrade,
+    difficultSections,
+    longestWithoutHeading,
+    longSentences,
+    sentences,
+    longSentencePct: sentences ? `${Math.round((longSentences / sentences) * 100)}%` : "",
+    words: report.stats.words || 0,
+    fixes,
+    checks,
+    reviews,
+    total: fixes + checks + reviews,
+    issueTypes: new Set(open.map(finding => finding.ruleId)).size,
+    linkCheck: linkCheckCoverage(report),
+    linkResults: linkCheckResultSummary(report),
+    links: counts.links || 0,
+    linksFlagged: distinctSelectors(linkFindings),
+    images: counts.images || report.stats.images || 0,
+    imagesFlagged: distinctSelectors(imageFindings),
+    headings: (details.headings || []).filter(heading => report.settings.profile !== "cms-lite" || !heading.component).length,
+    lists: counts.lists || 0
+  };
+}
+
+function batchPagesRows(records) {
+  const complete = records.filter(record => record.status === "complete").map(record => ({ ...record, metrics: pageExportMetrics(record) }));
+  const completeRows = complete.sort(pagePriorityCompare).map(record => {
+    const report = record.report;
+    const m = record.metrics;
+    return [
+      `P${String(record.pageNumber).padStart(3, "0")}`, report.page.title, report.page.url,
+      m.reviewPriority,
+      m.mainConcerns.join(" | "), profileValue(m.profile, "Page information"), profileValue(m.profile, "Plain language"),
+      profileValue(m.profile, "Structure and navigation"), profileValue(m.profile, "Accessibility"), profileValue(m.profile, "Links and documents"),
+      profileValue(m.profile, "Style and proofreading"), m.readingGrade, m.difficultSections, m.longestWithoutHeading, m.longSentences, m.sentences,
+      m.longSentencePct, m.words, m.fixes, m.checks, m.reviews, m.total, m.issueTypes, m.linkCheck, m.linkResults, m.links, m.linksFlagged,
+      m.images, m.imagesFlagged, m.headings, m.lists, report.settings.scope === "whole" ? "Whole website" : "Page content", report.settings.profileLabel,
+      "Complete", formatDate(report.scannedAt), report.ruleVersion || ""
+    ];
+  });
+  const failedRows = records.filter(record => record.status !== "complete").map(record => {
+    const row = Array(BATCH_PAGES_HEADER.length).fill("");
+    row[BATCH_PAGES_HEADER.indexOf("Page ID")] = `P${String(record.pageNumber).padStart(3, "0")}`;
+    row[BATCH_PAGES_HEADER.indexOf("Page")] = "[Scan failed]";
+    row[BATCH_PAGES_HEADER.indexOf("URL")] = record.submittedUrl || "";
+    row[BATCH_PAGES_HEADER.indexOf("Main reasons")] = record.error || "Scan failed";
+    row[BATCH_PAGES_HEADER.indexOf("Review priority")] = "Scan failed";
+    row[BATCH_PAGES_HEADER.indexOf("Scan status")] = "Failed";
+    row[BATCH_PAGES_HEADER.indexOf("Scanned at")] = formatDate(record.scannedAt || "");
+    return row;
+  });
+  return [...completeRows, ...failedRows];
+}
+
+function siteWideIssueRecords(records, includeReviewed) {
+  const complete = records.filter(record => record.status === "complete");
+  const groups = new Map();
+  complete.forEach(record => groupedFindingsForExport(record.report, includeReviewed).forEach(group => {
+    const key = `${group.status}|${group.finding.ruleId}`;
+    if (!groups.has(key)) groups.set(key, { finding: group.finding, status: group.status, pages: new Map(), occurrences: 0 });
+    const site = groups.get(key);
+    const current = site.pages.get(record.report.page.url) || { title: record.report.page.title, count: 0 };
+    current.count += group.occurrenceCount;
+    site.pages.set(record.report.page.url, current);
+    site.occurrences += group.occurrenceCount;
+  }));
+  return Array.from(groups.values()).sort((a, b) => b.pages.size - a.pages.size || b.occurrences - a.occurrences || a.finding.title.localeCompare(b.finding.title));
+}
+
+function siteWideRows(records, includeReviewed) {
+  const completeCount = records.filter(record => record.status === "complete").length;
+  return siteWideIssueRecords(records, includeReviewed).map(item => {
+    const mostAffected = Array.from(item.pages.values()).sort((a, b) => b.count - a.count || a.title.localeCompare(b.title)).slice(0, 3);
+    return [
+      item.finding.title, findingArea(item.finding), item.finding.category, sentenceLabel(item.finding.severity), sentenceLabel(item.status), item.pages.size,
+      completeCount ? `${Math.round((item.pages.size / completeCount) * 100)}%` : "", item.occurrences,
+      mostAffected.map(page => `${page.title} (${page.count})`).join("; "), item.finding.suggestion, item.finding.sourceUrl, item.finding.ruleId
+    ];
+  });
+}
+
+function issuesByPageRows(records, includeReviewed) {
+  return records.filter(record => record.status === "complete").flatMap(record => {
+    const pageId = `P${String(record.pageNumber).padStart(3, "0")}`;
+    return issueSummaryRows(record.report, includeReviewed).map(row => [pageId, record.report.page.title, record.report.page.url, ...row]);
+  });
+}
+
+function batchSummaryRows(records, includeReviewed) {
+  const complete = records.filter(record => record.status === "complete");
+  const failed = records.filter(record => record.status !== "complete");
+  const profiles = complete.map(record => record.profile || pageReviewProfile(record.report));
+  const areaNames = ["Page information", "Plain language", "Structure and navigation", "Accessibility", "Links and documents", "Style and proofreading"];
+  const exportedFindings = complete.flatMap(record => findingsForExport(record.report, includeReviewed));
+  const totalFindings = exportedFindings.reduce((total, finding) => total + findingOccurrences(finding), 0);
+  const fixFindings = exportedFindings.filter(finding => finding.severity === "fix").reduce((total, finding) => total + findingOccurrences(finding), 0);
+  const checkFindings = exportedFindings.filter(finding => finding.severity === "check").reduce((total, finding) => total + findingOccurrences(finding), 0);
+  const reviewFindings = exportedFindings.filter(finding => finding.severity === "review").reduce((total, finding) => total + findingOccurrences(finding), 0);
+  const allIssueTypes = new Set(exportedFindings.map(finding => finding.ruleId));
+  const linkCoverageCounts = complete.reduce((map, record) => { const label = linkCheckCoverage(record.report); map[label] = (map[label] || 0) + 1; return map; }, {});
+  const linkCoverageText = ["Complete", "Partially checked", "Website access declined", "Not checked"]
+    .filter(label => linkCoverageCounts[label])
+    .map(label => `${label}: ${linkCoverageCounts[label]} page${linkCoverageCounts[label] === 1 ? "" : "s"}`)
+    .join(" · ") || "No scanned pages";
+  const prioritized = complete.filter(record => (record.profile || pageReviewProfile(record.report)).some(area => area.level !== "nothing-flagged")).sort(pagePriorityCompare);
+  const pageLimit = Math.min(10, prioritized.length);
+  const widespread = siteWideIssueRecords(records, includeReviewed).filter(item => item.pages.size >= 2).slice(0, 10);
+  const rows = [
+    sheetRow(["B.C. Web Style Guide batch review", "", "", "", "", ""], "title"),
+    sheetRow(["Scan overview", "", "", "", "", ""], "section"),
+    sheetRow(["Measure", "Value", "", "", "", "Detail"], "header"),
+    sheetRow(["Pages requested", records.length, "", "", "", ""]),
+    sheetRow(["Pages scanned", complete.length, "", "", "", ""]),
+    sheetRow(["Pages failed", failed.length, "", "", "", failed.length ? "See Scan log for details" : ""]),
+    sheetRow(["Automated findings", totalFindings, "", "", "", "Items identified by automated checks"]),
+    sheetRow(["Fix", fixFindings, "", "", "", "High-confidence problems that usually need a change"]),
+    sheetRow(["Check", checkFindings, "", "", "", "Likely concerns where context affects the action"]),
+    sheetRow(["Review", reviewFindings, "", "", "", "Editorial judgement may be needed"]),
+    sheetRow(["Issue types", allIssueTypes.size, "", "", "", "Distinct checker rules with findings"]),
+    sheetRow(["Link check coverage", linkCoverageText, "", "", "", ""]),
+    sheetRow(["Link check results", aggregateLinkCheckResultSummary(complete.map(record => record.report)), "", "", "", ""]),
+    sheetRow([totalFindings
+      ? "Automated findings identify items to review; they are not confirmed compliance failures."
+      : "No automated findings were recorded. This does not mean the pages passed an accessibility, quality or compliance assessment.", "", "", "", "", ""], "note"),
+    sheetRow(["Review priorities by area", "", "", "", "", ""], "section"),
+    sheetRow(["Area", "Review first (pages)", "Needs attention (pages)", "Worth checking (pages)", "Nothing flagged (pages)", ""], "header"),
+    ...areaNames.map(name => {
+      const counts = { "review-first": 0, "needs-attention": 0, "worth-checking": 0, "nothing-flagged": 0 };
+      profiles.forEach(profile => { const area = profile.find(item => item.name === name); counts[area ? area.level : "nothing-flagged"] += 1; });
+      return sheetRow([name, counts["review-first"], counts["needs-attention"], counts["worth-checking"], counts["nothing-flagged"], ""]);
+    }),
+    sheetRow(["Pages to review first", "", "", "", "", ""], "section"),
+    sheetRow(["Page", "Review priority", "Fix", "Check", "Review", "Main reasons"], "header"),
+    ...prioritized.slice(0, pageLimit).map(record => {
+      const metrics = pageExportMetrics(record);
+      return sheetRow([record.report.page.title, metrics.reviewPriority, metrics.fixes, metrics.checks, metrics.reviews, metrics.mainConcerns.join(" | ")]);
+    })
+  ];
+  if (!prioritized.length) rows.push(sheetRow(["No scanned page has an area marked Review first, Needs attention or Worth checking.", "", "", "", "", ""], "note"));
+  else if (prioritized.length > pageLimit) rows.push(sheetRow([`Showing ${pageLimit} of ${prioritized.length} pages with automated review priorities. See the Pages sheet for the complete list.`, "", "", "", "", ""], "note"));
+  rows.push(sheetRow(["Most common findings", "", "", "", "", ""], "section"));
+  rows.push(sheetRow(["Issue", "Review level", "Affected pages", "% pages", "Findings", "Recommended action"], "header"));
+  if (widespread.length) widespread.forEach(item => rows.push(sheetRow([
+    item.finding.title, sentenceLabel(item.finding.severity), item.pages.size,
+    complete.length ? `${Math.round((item.pages.size / complete.length) * 100)}%` : "", item.occurrences, item.finding.suggestion
+  ])));
+  else rows.push(sheetRow(["No finding type was flagged on 2 or more scanned pages.", "", "", "", "", ""], "note"));
+  return rows;
+}
+
+function batchWorkbookSheets(records, includeReviewed, preset, customSelection) {
+  const pages = batchPagesRows(records);
+  const scanLogHeader = ["Submitted URL", "Result", "Page title", "Final URL", "Scanned at", "Message"];
+  const scanLogRows = records.map(record => record.status === "complete"
+    ? [record.submittedUrl, "Complete", record.report.page.title, record.report.page.url, formatDate(record.report.scannedAt), ""]
+    : [record.submittedUrl, "Failed", "", "", formatDate(record.scannedAt || ""), record.error || "Unknown error"]);
+  const allSheets = [
+    { name: "Summary", rows: batchSummaryRows(records, includeReviewed), widths: [38, 22, 18, 18, 18, 72], maxColumnWidth: 72 },
+    { name: "Pages", rows: [BATCH_PAGES_HEADER, ...pages], filterRow: 1, widths: [12, 34, 48, 18, 62, 18, 18, 24, 18, 22, 22, 14, 16, 20, 14, 18, 16, 12, 10, 10, 10, 12, 12, 22, 42, 10, 14, 10, 14, 10, 10, 18, 18, 14, 22, 14], maxColumnWidth: 62 },
+    { name: "Site-wide findings", rows: [SITE_WIDE_HEADER, ...siteWideRows(records, includeReviewed)], filterRow: 1, widths: [36, 24, 20, 14, 14, 14, 16, 12, 54, 60, 54, 24], maxColumnWidth: 60 },
+    { name: "Page issue summary", rows: [ISSUES_BY_PAGE_HEADER, ...issuesByPageRows(records, includeReviewed)], filterRow: 1, widths: [12, 34, 48, 36, 24, 20, 14, 14, 12, 40, 60, 60, 54, 24], maxColumnWidth: 60 },
+    { name: "Findings detail", rows: [FINDING_DETAIL_HEADER, ...records.filter(record => record.status === "complete").flatMap(record => findingDetailRows(record.report, includeReviewed, record.submittedUrl, record.pageNumber))], filterRow: 1, widths: [14, 32, 48, 34, 24, 20, 36, 14, 14, 64, 24, 64, 64, 12, 40, 54, 24, 12], maxColumnWidth: 64 },
+    { name: "Links", rows: [LINK_EXPORT_HEADER, ...records.filter(record => record.status === "complete").flatMap(record => linkRows(record.report))], filterRow: 1, maxColumnWidth: 55 },
+    { name: "Metadata", rows: [BATCH_METADATA_HEADER, ...records.filter(record => record.status === "complete").map(record => metadataRow(record.report, record.submittedUrl))], filterRow: 1, widths: [32, 48, 48, 24, 22, 34, 60, 28, 16, 14, 34, 60, 34, 60, 42, 60], maxColumnWidth: 60 },
+    { name: "Scan log", rows: [scanLogHeader, ...scanLogRows], filterRow: 1, widths: [52, 14, 34, 52, 24, 60], maxColumnWidth: 60 }
+  ];
+  const byName = new Map(allSheets.map(sheet => [sheet.name, sheet]));
+  if (preset === "full") return allSheets;
+  if (preset === "custom") {
+    const selected = customSelection instanceof Set ? customSelection : new Set(customSelection || []);
+    return allSheets.filter(sheet => selected.has(sheet.name));
+  }
+  return allSheets;
 }
 
 function parseBatchUrls() {
@@ -2611,29 +4008,235 @@ async function scanBatchUrl(url, settings) {
   }
 }
 
+function batchLinkPlan(records) {
+  const perRecord = new Map();
+  const destinations = new Map();
+  records.filter(record => record.status === "complete" && record.report).forEach(record => {
+    const pageLinks = remoteLinksForReport(record.report);
+    perRecord.set(record, pageLinks);
+    pageLinks.forEach(link => {
+      const key = canonicalUrl(link.checkUrl || link.href);
+      if (!destinations.has(key)) destinations.set(key, { key, checkUrl: link.checkUrl || link.href, signInRequired: Boolean(link.signInRequired) });
+    });
+  });
+  return { perRecord, destinations };
+}
+
+function batchLinkPermissionOrigins(plan) {
+  return Array.from(new Set(Array.from(plan.destinations.values())
+    .filter(item => !item.signInRequired)
+    .flatMap(item => permissionOriginsForRemoteUrl(item.checkUrl))
+    .filter(Boolean)));
+}
+
+async function batchLinkPermissionsGranted(origins) {
+  if (!origins.length) return true;
+  try { return await chrome.permissions.contains({ origins }); } catch (_) { return false; }
+}
+
+function applyBatchLinkPermissionDenied(plan) {
+  plan.perRecord.forEach((links, record) => {
+    const results = links.map(link => linkResultFromRemote(link, link.signInRequired
+      ? { status: "sign-in", finalUrl: link.checkUrl || link.href, error: "This destination may require browser sign-in." }
+      : { status: "permission", finalUrl: link.checkUrl || link.href, error: "Website access was not granted." }));
+    record.report.linkCheck = {
+      state: "permission-denied",
+      permissionDeclined: true,
+      startedAt: new Date().toISOString(),
+      checkedAt: "",
+      results,
+      ...summarizeLinkCheck(links.length, results)
+    };
+  });
+}
+
+async function runBatchLinkChecks(plan) {
+  const batch = state.batch;
+  const destinations = Array.from(plan.destinations.values());
+  batch.phase = "links";
+  batch.running = true;
+  batch.linkCheckTotal = destinations.length;
+  batch.linkCheckCompleted = 0;
+  await persistBatchState();
+  renderBatchProgress();
+
+  if (!destinations.length) {
+    plan.perRecord.forEach((links, record) => {
+      record.report.linkCheck = {
+        state: "complete",
+        startedAt: new Date().toISOString(),
+        checkedAt: new Date().toISOString(),
+        results: [],
+        ...summarizeLinkCheck(0, [])
+      };
+    });
+    return;
+  }
+
+  const resultByDestination = new Map();
+  let index = 0;
+  const worker = async () => {
+    while (index < destinations.length && !batch.cancelled) {
+      await waitForResume();
+      if (batch.cancelled) break;
+      const destination = destinations[index];
+      index += 1;
+      const result = destination.signInRequired
+        ? { status: "sign-in", finalUrl: destination.checkUrl, error: "This destination may require browser sign-in." }
+        : await checkRemoteUrl(destination.checkUrl, 10000);
+      resultByDestination.set(destination.key, result);
+      batch.linkCheckCompleted = resultByDestination.size;
+      renderBatchProgress();
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(4, destinations.length) }, worker));
+
+  plan.perRecord.forEach((links, record) => {
+    const results = links.map(link => {
+      const key = canonicalUrl(link.checkUrl || link.href);
+      const remoteResult = resultByDestination.get(key) || { status: "unavailable", finalUrl: link.checkUrl || link.href, error: "The batch link check stopped before this destination was checked." };
+      return linkResultFromRemote(link, remoteResult);
+    });
+    addHttpLinkFindings(record.report, results);
+    record.report.linkCheck = {
+      state: batch.cancelled ? "stopped" : "complete",
+      startedAt: new Date().toISOString(),
+      checkedAt: new Date().toISOString(),
+      results,
+      ...summarizeLinkCheck(links.length, results)
+    };
+  });
+}
+
+async function prepareBatchLinkCheck({ requestPermissions = false } = {}) {
+  const plan = batchLinkPlan(state.batch.records);
+  const origins = batchLinkPermissionOrigins(plan);
+  state.batch.linkCheckTotal = plan.destinations.size;
+  state.batch.linkCheckCompleted = 0;
+
+  let granted = false;
+  if (requestPermissions) {
+    try { granted = !origins.length || await chrome.permissions.request({ origins }); } catch (_) { granted = false; }
+  } else {
+    granted = await batchLinkPermissionsGranted(origins);
+    if (!granted) return { plan, origins, needsPermission: true };
+  }
+  if (!granted) {
+    applyBatchLinkPermissionDenied(plan);
+    state.batch.linkCheckCompleted = plan.destinations.size;
+    return { plan, origins, permissionDeclined: true };
+  }
+  await runBatchLinkChecks(plan);
+  return { plan, origins, complete: true };
+}
+
+function batchHasIncompletePageScan() {
+  const batch = state.batch;
+  return Boolean(batch.urls.length && batch.records.length < batch.urls.length && !batch.cancelled && ["scanning", "paused"].includes(batch.phase));
+}
+
+function batchLinkPermissionModeFromUi() {
+  return elements["batch-link-access-all"].checked ? "all" : "found";
+}
+
+function applyBatchStateToControls() {
+  const batch = state.batch;
+  if (batch.urls.length && !normalizeSpace(elements["batch-urls"].value)) elements["batch-urls"].value = batch.urls.join("\n");
+  if (batch.settings && batch.settings.scope) elements["batch-scope"].value = batch.settings.scope;
+  elements["batch-colour-control"].checked = batch.settings ? batch.settings.canControlColour !== false : true;
+  elements["batch-check-links"].checked = Boolean(batch.checkLinks);
+  elements["batch-link-access-all"].checked = batch.linkPermissionMode === "all";
+  elements["batch-link-access-found"].checked = batch.linkPermissionMode !== "all";
+  elements["batch-export-preset"].value = batch.exportPreset === "custom" ? "custom" : "full";
+  elements["batch-include-reviewed"].checked = Boolean(batch.includeReviewed);
+  const custom = new Set(batch.customSheets || []);
+  document.querySelectorAll("#batch-export-custom [data-sheet]").forEach(input => { input.checked = custom.has(input.dataset.sheet); });
+}
+
+function batchExportSnapshotFromUi() {
+  const preset = elements["batch-export-preset"].value === "custom" ? "custom" : "full";
+  return {
+    settings: { scope: elements["batch-scope"].value, canControlColour: elements["batch-colour-control"].checked },
+    checkLinks: elements["batch-check-links"].checked,
+    linkPermissionMode: batchLinkPermissionModeFromUi(),
+    exportPreset: preset,
+    customSheets: preset === "custom" ? Array.from(batchCustomSheetNames()) : [],
+    includeReviewed: elements["batch-include-reviewed"].checked
+  };
+}
+
+function updateBatchExportDescription() {
+  const preset = elements["batch-export-preset"].value === "custom" ? "custom" : "full";
+  elements["batch-export-description"].textContent = preset === "custom"
+    ? "Choose exactly which sheets to include."
+    : "Complete audit with summary, page review priorities, site-wide findings, page issue summary, detailed findings, links, metadata and scan log.";
+  elements["batch-export-custom"].hidden = preset !== "custom";
+}
+
 function updateBatchControls() {
-  const running = state.batch.running;
-  const hasExportSelection = elements["batch-export-findings"].checked || elements["batch-export-metadata"].checked || elements["batch-export-stats"].checked || elements["batch-export-links"].checked;
-  elements["batch-start-button"].disabled = running;
+  const batch = state.batch;
+  const running = batch.running;
+  const waitingForLinkAccess = batch.phase === "link-permission";
+  const resumable = batchHasIncompletePageScan();
+  const lockSetup = running || waitingForLinkAccess || resumable;
+  elements["batch-start-button"].disabled = running || waitingForLinkAccess;
+  elements["batch-start-button"].textContent = resumable ? `Resume batch scan · ${batch.records.length} of ${batch.urls.length}` : "Start batch scan";
   elements["batch-pause-button"].hidden = !running;
-  elements["batch-cancel-button"].hidden = !running;
-  elements["batch-pause-button"].textContent = state.batch.paused ? "Resume" : "Pause";
-  elements["batch-csv-button"].disabled = !state.batch.records.length || !hasExportSelection;
-  elements["batch-include-reviewed"].disabled = !elements["batch-export-findings"].checked;
+  elements["batch-cancel-button"].hidden = !running && !resumable;
+  elements["batch-cancel-button"].textContent = resumable && !running ? "Stop saved batch" : "Stop";
+  elements["batch-pause-button"].textContent = batch.paused ? "Resume" : "Pause";
+  elements["batch-csv-button"].disabled = running || waitingForLinkAccess || !batch.records.length;
+  elements["batch-csv-button"].textContent = batch.downloaded ? "Download again" : "Download workbook";
+  elements["batch-urls"].disabled = lockSetup;
+  elements["batch-scope"].disabled = lockSetup;
+  elements["batch-colour-control"].disabled = lockSetup;
+  elements["batch-check-links"].disabled = lockSetup;
+  elements["batch-link-access-found"].disabled = lockSetup;
+  elements["batch-link-access-all"].disabled = lockSetup;
+  elements["batch-link-access-options"].hidden = !elements["batch-check-links"].checked;
+  elements["batch-link-finish-actions"].hidden = !waitingForLinkAccess;
+  updateBatchExportDescription();
 }
 
 function renderBatchProgress() {
   const batch = state.batch;
   const done = batch.records.length;
-  elements["batch-progress-panel"].hidden = !batch.running && !done;
-  elements["batch-progress"].max = Math.max(1, batch.urls.length);
-  elements["batch-progress"].value = done;
-  elements["batch-progress-count"].textContent = `${done} of ${batch.urls.length}`;
+  const checkingLinks = batch.phase === "links";
+  const waitingForLinkAccess = batch.phase === "link-permission";
+  const resumable = batchHasIncompletePageScan();
+  elements["batch-progress-panel"].hidden = !batch.running && !done && !waitingForLinkAccess && !resumable && batch.phase !== "done";
+  elements["batch-progress"].max = checkingLinks ? Math.max(1, batch.linkCheckTotal || 0) : Math.max(1, batch.urls.length || 0);
+  elements["batch-progress"].value = checkingLinks ? batch.linkCheckCompleted : done;
+  elements["batch-progress-count"].textContent = checkingLinks
+    ? `${batch.linkCheckCompleted} of ${batch.linkCheckTotal} unique destination${batch.linkCheckTotal === 1 ? "" : "s"}`
+    : `${done} of ${batch.urls.length} page${batch.urls.length === 1 ? "" : "s"}`;
+
   if (batch.running) {
-    const current = batch.urls[batch.currentIndex] || "";
-    elements["batch-progress-label"].textContent = batch.paused ? "Batch scan paused" : `Checking ${hostnameFor(current) || current}`;
-  } else if (batch.cancelled) elements["batch-progress-label"].textContent = "Batch scan cancelled";
-  else if (done) elements["batch-progress-label"].textContent = "Batch scan complete";
+    if (checkingLinks) elements["batch-progress-label"].textContent = batch.paused ? "Link check paused" : "Checking links";
+    else {
+      const current = batch.urls[Math.max(0, batch.currentIndex)] || "";
+      elements["batch-progress-label"].textContent = batch.paused ? "Batch scan paused" : `Scanning ${hostnameFor(current) || current}`;
+    }
+  } else if (waitingForLinkAccess) {
+    elements["batch-progress-label"].textContent = "Pages scanned · website access needed to finish link checking";
+  } else if (resumable) {
+    elements["batch-progress-label"].textContent = `Batch scan paused · ${done} of ${batch.urls.length} pages`;
+  } else if (batch.cancelled) {
+    elements["batch-progress-label"].textContent = "Batch scan stopped";
+  } else if (batch.phase === "done" || done) {
+    const accessDeclined = batch.records.some(record => record.status === "complete" && record.report.linkCheck && record.report.linkCheck.state === "permission-denied");
+    elements["batch-progress-label"].textContent = accessDeclined
+      ? "Batch scan complete · website access declined"
+      : batch.checkLinks ? "Batch scan and link check complete" : "Batch scan complete";
+  }
+
+  if (batch.downloaded && batch.downloadFilename) {
+    elements["batch-download-status"].textContent = `Workbook downloaded: ${batch.downloadFilename}`;
+  } else if (batch.phase === "done" && done) {
+    elements["batch-download-status"].textContent = "Workbook ready to download.";
+  } else {
+    elements["batch-download-status"].textContent = "";
+  }
 
   const resultByUrl = new Map(batch.records.map(record => [record.submittedUrl, record]));
   elements["batch-results"].innerHTML = batch.urls.map((url, index) => {
@@ -2646,16 +4249,110 @@ function renderBatchProgress() {
   updateBatchControls();
 }
 
+async function requestAllWebsiteAccessForBatch() {
+  try {
+    return await chrome.permissions.request({ origins: ["http://*/*", "https://*/*"] });
+  } catch (_) {
+    return false;
+  }
+}
+
+async function continueBatchPageScan() {
+  const batch = state.batch;
+  batch.running = true;
+  batch.paused = false;
+  batch.cancelled = false;
+  batch.phase = "scanning";
+  await persistBatchState();
+  renderBatchProgress();
+
+  for (let index = batch.records.length; index < batch.urls.length; index += 1) {
+    if (batch.cancelled) break;
+    await waitForResume();
+    if (batch.cancelled) break;
+    batch.currentIndex = index;
+    renderBatchProgress();
+    const record = await scanBatchUrl(batch.urls[index], batch.settings);
+    batch.records.push(record);
+    batch.currentIndex = index;
+    await persistBatchState();
+    renderBatchProgress();
+  }
+
+  if (batch.cancelled) {
+    batch.running = false;
+    batch.phase = "cancelled";
+    await persistBatchState();
+    renderBatchProgress();
+    return;
+  }
+
+  if (batch.records.length < batch.urls.length) {
+    batch.running = false;
+    batch.phase = "paused";
+    await persistBatchState();
+    renderBatchProgress();
+    return;
+  }
+
+  if (batch.checkLinks) {
+    const linkResult = await prepareBatchLinkCheck({ requestPermissions: false });
+    if (batch.cancelled) {
+      batch.running = false;
+      batch.phase = "cancelled";
+      await persistBatchState();
+      renderBatchProgress();
+      return;
+    }
+    if (linkResult.needsPermission) {
+      batch.running = false;
+      batch.phase = "link-permission";
+      await persistBatchState();
+      renderBatchProgress();
+      return;
+    }
+  }
+  await finalizeBatchScan(true);
+}
+
 async function startBatchScan() {
-  const parsed = renderBatchValidation();
   elements["batch-error"].hidden = true;
+
+  if (batchHasIncompletePageScan()) {
+    try {
+      await continueBatchPageScan();
+    } catch (error) {
+      state.batch.running = false;
+      state.batch.phase = "paused";
+      await persistBatchState().catch(() => {});
+      elements["batch-error-message"].textContent = readableScanError(error);
+      elements["batch-error"].hidden = false;
+      renderBatchProgress();
+    }
+    return;
+  }
+
+  const parsed = renderBatchValidation();
   if (!parsed.valid.length) {
     elements["batch-error-message"].textContent = "Add at least one valid HTTP or HTTPS URL.";
     elements["batch-error"].hidden = false;
     return;
   }
+
+  const snapshot = batchExportSnapshotFromUi();
+  // The broad permission request must happen directly from this Start-button gesture.
+  let allWebsiteAccessGranted = false;
+  if (snapshot.checkLinks && snapshot.linkPermissionMode === "all") {
+    allWebsiteAccessGranted = await requestAllWebsiteAccessForBatch();
+    if (!allWebsiteAccessGranted) {
+      elements["batch-error-message"].textContent = "Access to all websites was not granted. Choose ‘Ask only for websites found in this scan’ and start again to request only the access needed for this batch.";
+      elements["batch-error"].hidden = false;
+      return;
+    }
+  }
+
   try {
-    await requestBatchPermissions(parsed.valid);
+    if (!allWebsiteAccessGranted) await requestBatchPermissions(parsed.valid);
   } catch (error) {
     elements["batch-error-message"].textContent = readableScanError(error);
     elements["batch-error"].hidden = false;
@@ -2663,35 +4360,47 @@ async function startBatchScan() {
   }
 
   state.batch = {
+    ...state.batch,
     running: true,
     paused: false,
     cancelled: false,
+    phase: "scanning",
     urls: parsed.valid,
     records: [],
     currentIndex: -1,
-    tempTabId: null
+    tempTabId: null,
+    checkLinks: snapshot.checkLinks,
+    linkPermissionMode: snapshot.linkPermissionMode,
+    linkCheckTotal: 0,
+    linkCheckCompleted: 0,
+    settings: snapshot.settings,
+    exportPreset: snapshot.exportPreset,
+    customSheets: snapshot.customSheets,
+    includeReviewed: snapshot.includeReviewed,
+    downloaded: false,
+    downloadFilename: "",
+    downloadedAt: ""
   };
-  updateBatchControls();
-  renderBatchProgress();
-  const settings = { scope: elements["batch-scope"].value, canControlColour: elements["batch-colour-control"].checked };
-
-  for (let index = 0; index < state.batch.urls.length; index += 1) {
-    if (state.batch.cancelled) break;
-    await waitForResume();
-    if (state.batch.cancelled) break;
-    state.batch.currentIndex = index;
-    renderBatchProgress();
-    const record = await scanBatchUrl(state.batch.urls[index], settings);
-    state.batch.records.push(record);
-    await saveKey(STORAGE_KEYS.batch, { urls: state.batch.urls, records: state.batch.records, savedAt: new Date().toISOString() }).catch(() => {});
+  await persistBatchState();
+  try {
+    await continueBatchPageScan();
+  } catch (error) {
+    state.batch.running = false;
+    state.batch.phase = state.batch.records.length < state.batch.urls.length ? "paused" : "done";
+    await persistBatchState().catch(() => {});
+    elements["batch-error-message"].textContent = readableScanError(error);
+    elements["batch-error"].hidden = false;
     renderBatchProgress();
   }
-  state.batch.running = false;
-  renderBatchProgress();
 }
 
 function toggleBatchPause() {
   state.batch.paused = !state.batch.paused;
+  if (!state.batch.running && batchHasIncompletePageScan()) {
+    startBatchScan();
+    return;
+  }
+  persistBatchState().catch(() => {});
   updateBatchControls();
   renderBatchProgress();
 }
@@ -2699,53 +4408,79 @@ function toggleBatchPause() {
 async function cancelBatch() {
   state.batch.cancelled = true;
   state.batch.paused = false;
+  state.batch.running = false;
+  state.batch.phase = "cancelled";
   if (state.batch.tempTabId) {
     try { await chrome.tabs.remove(state.batch.tempTabId); } catch (_) {}
   }
-  updateBatchControls();
+  await persistBatchState().catch(() => {});
+  renderBatchProgress();
+}
+
+async function requestBatchLinkAccessAndFinish() {
+  elements["batch-error"].hidden = true;
+  try {
+    const result = await prepareBatchLinkCheck({ requestPermissions: true });
+    if (result.permissionDeclined) {
+      elements["batch-error-message"].textContent = "Website access was not granted. The workbook will still be created, and link-check coverage will show that the destinations were not verified.";
+      elements["batch-error"].hidden = false;
+    }
+    await finalizeBatchScan(true);
+  } catch (error) {
+    state.batch.running = false;
+    state.batch.phase = "link-permission";
+    await persistBatchState().catch(() => {});
+    elements["batch-error-message"].textContent = `Link checking could not finish: ${readableScanError(error)}`;
+    elements["batch-error"].hidden = false;
+    renderBatchProgress();
+  }
+}
+
+async function finishBatchWithoutLinks() {
+  state.batch.checkLinks = false;
+  state.batch.linkCheckTotal = 0;
+  state.batch.linkCheckCompleted = 0;
+  await finalizeBatchScan(true);
+}
+
+async function finalizeBatchScan(autoDownload = false) {
+  state.batch.running = false;
+  state.batch.paused = false;
+  state.batch.cancelled = false;
+  state.batch.phase = "done";
+  state.batch.currentIndex = Math.max(-1, state.batch.urls.length - 1);
+  await persistBatchState();
+  renderBatchProgress();
+  if (autoDownload) await downloadBatchWorkbook({ auto: true });
+}
+
+async function downloadBatchWorkbook({ auto = false } = {}) {
+  const batch = state.batch;
+  const records = batchPageRecords(batch.records);
+  if (!records.length) { showToast("Run a batch scan before exporting."); return false; }
+  const preset = auto ? batch.exportPreset : (elements["batch-export-preset"].value === "custom" ? "custom" : "full");
+  const includeReviewed = auto ? batch.includeReviewed : elements["batch-include-reviewed"].checked;
+  const customSheets = preset === "custom" ? new Set(auto ? batch.customSheets : Array.from(batchCustomSheetNames())) : null;
+  const filename = `bc-web-style-batch-${new Date().toISOString().slice(0, 10)}.xlsx`;
+  const downloaded = downloadWorkbook(batchWorkbookSheets(records, includeReviewed, preset, customSheets), filename);
+  if (downloaded) {
+    batch.downloaded = true;
+    batch.downloadFilename = filename;
+    batch.downloadedAt = new Date().toISOString();
+    await persistBatchState().catch(() => {});
+    renderBatchProgress();
+    showToast(auto ? "Workbook downloaded." : "Workbook downloaded again.");
+    return true;
+  }
+  batch.downloaded = false;
+  batch.downloadFilename = "";
+  await persistBatchState().catch(() => {});
+  renderBatchProgress();
+  return false;
 }
 
 function downloadBatchCsv() {
-  const includeReviewed = elements["batch-include-reviewed"].checked;
-  const includeFindings = elements["batch-export-findings"].checked;
-  const includeMetadata = elements["batch-export-metadata"].checked;
-  const includeStats = elements["batch-export-stats"].checked;
-  const includeLinks = elements["batch-export-links"].checked;
-  if (!includeFindings && !includeMetadata && !includeStats && !includeLinks) {
-    showToast("Choose at least one workbook sheet.");
-    return;
-  }
-  const complete = state.batch.records.filter(record => record.status === "complete");
-  const action = complete.flatMap((record, index) => actionRows(record.report, includeReviewed, record.submittedUrl, index + 1));
-  const metadata = complete.map(record => metadataRow(record.report, record.submittedUrl));
-  const inventory = complete.map(record => pageInventoryRow(record.report, record.submittedUrl));
-  const links = complete.flatMap(record => linkRows(record.report));
-  const siteGroups = new Map();
-  complete.forEach(record => groupedFindingsForExport(record.report, includeReviewed).forEach(group => {
-    const key = `${group.status}|${group.finding.ruleId}`;
-    if (!siteGroups.has(key)) siteGroups.set(key, { group, pages: new Set(), occurrences: 0 });
-    const item = siteGroups.get(key);
-    item.pages.add(record.report.page.url);
-    item.occurrences += group.occurrenceCount;
-  }));
-  const siteWideHeader = ["Issue", "Category", "Review level", "Status", "Affected pages", "Occurrences", "Page URLs", "Recommended action"];
-  const siteWide = Array.from(siteGroups.values()).sort((first, second) => second.pages.size - first.pages.size || second.occurrences - first.occurrences).map(item => [
-    item.group.finding.title, item.group.finding.category, item.group.finding.severity, item.group.status, item.pages.size,
-    item.occurrences, Array.from(item.pages).join(" | "), item.group.finding.suggestion
-  ]);
-  const logHeader = ["Submitted URL", "Result", "Page title", "Final URL", "Scanned at", "Message"];
-  const logRows = state.batch.records.map(record => record.status === "complete"
-    ? [record.submittedUrl, "Complete", record.report.page.title, record.report.page.url, record.report.scannedAt, ""]
-    : [record.submittedUrl, "Failed", "", "", record.scannedAt || "", record.error || "Unknown error"]);
-  const sheets = [
-    includeFindings ? { name: "Action report", rows: [ACTION_HEADER, ...action] } : null,
-    includeFindings && complete.length > 1 ? { name: "Site-wide issues", rows: [siteWideHeader, ...siteWide] } : null,
-    includeStats ? { name: "Page inventory", rows: [BATCH_STATS_HEADER, ...inventory] } : null,
-    includeMetadata ? { name: "Metadata", rows: [BATCH_METADATA_HEADER, ...metadata] } : null,
-    includeLinks ? { name: "Links", rows: [LINK_EXPORT_HEADER, ...links] } : null,
-    { name: "Scan log", rows: [logHeader, ...logRows] }
-  ].filter(Boolean);
-  downloadWorkbook(sheets, `bc-web-style-batch-${new Date().toISOString().slice(0, 10)}.xlsx`);
+  return downloadBatchWorkbook({ auto: false });
 }
 
 function switchView(name) {
@@ -2784,7 +4519,7 @@ function handleFindingAction(event) {
   if (!button) return;
   const finding = findingFromButton(button);
   if (button.classList.contains("undo-decision")) undoDecision(button.dataset.fingerprint || (button.closest("[data-fingerprint]") || {}).dataset?.fingerprint);
-  else if (button.classList.contains("locate-button")) locateFinding(button.dataset.selector);
+  else if (button.classList.contains("locate-button")) locateFinding(finding || button.dataset.selector);
   else if (button.classList.contains("decision-button")) setDecision(finding, button.dataset.status);
   else if (button.classList.contains("reopen-button")) setDecision(finding, "open");
   else if (button.classList.contains("manage-term-button")) openWorkspace("terms");
@@ -2816,13 +4551,12 @@ function bindEvents() {
   elements["clear-section-button"].addEventListener("click", clearSelectedSection);
   elements["scan-button"].addEventListener("click", scanCurrentPage);
   elements["scan-permission-button"].addEventListener("click", openPermissionDialog);
-  elements["rescan-button"].addEventListener("click", () => { elements["more-dialog"].close(); scanCurrentPage(); });
-  elements["change-scan-button"].addEventListener("click", () => { elements["more-dialog"].close(); showScanSettings(); });
+  elements["rescan-button"].addEventListener("click", () => { elements["more-dialog"].close(); showRescanSettings(); });
+  elements["stale-rescan-button"].addEventListener("click", showRescanSettings);
   elements["cancel-settings-button"].addEventListener("click", hideScanSettings);
 
   elements["more-menu-button"].addEventListener("click", () => {
     elements["rescan-button"].hidden = !state.activeReport;
-    elements["change-scan-button"].hidden = !state.activeReport;
     elements["more-dialog"].showModal();
   });
   elements["more-close"].addEventListener("click", () => elements["more-dialog"].close());
@@ -2833,9 +4567,16 @@ function bindEvents() {
   elements["open-batch-button"].addEventListener("click", () => { elements["more-dialog"].close(); workspaceSurface ? switchView("batch") : openWorkspace("batch"); });
   elements["open-settings-button"].addEventListener("click", () => { elements["more-dialog"].close(); workspaceSurface ? switchView("terms") : openWorkspace("terms"); });
 
-  elements["csv-button"].addEventListener("click", () => elements["export-dialog"].showModal());
+  elements["csv-button"].addEventListener("click", openCurrentExportDialog);
   elements["export-close"].addEventListener("click", () => elements["export-dialog"].close());
-  elements["copy-button"].addEventListener("click", copyCurrentReport);
+  elements["copy-detailed-findings"].addEventListener("click", copyCurrentDetailedFindings);
+  elements["check-links-and-download-current"].addEventListener("click", checkLinksAndDownloadCurrentWorkbook);
+  elements["current-export-reviewed"].addEventListener("change", updateCurrentExportDialog);
+  elements["current-export-preset"].addEventListener("change", updateCurrentExportDialog);
+  [
+    "current-custom-summary", "current-custom-issues", "current-custom-findings",
+    "current-custom-page-details", "current-custom-links", "current-custom-metadata"
+  ].forEach(id => elements[id].addEventListener("change", updateCurrentExportDialog));
 
   elements["open-filter-button"].addEventListener("click", () => elements["filter-panel"].showModal());
   elements["filter-close"].addEventListener("click", () => elements["filter-panel"].close());
@@ -2900,7 +4641,7 @@ function bindEvents() {
   elements["follow-page"].addEventListener("change", () => {
     if (elements["follow-page"].checked && state.reviewMode === "detail") {
       const finding = guidedFindings()[state.guidedIndex];
-      if (finding && finding.selector) highlightSelector(finding.selector, true, false);
+      if (finding && finding.selector) highlightSelector(findingSelectors(finding), true, false);
     } else if (!elements["follow-page"].checked) clearFindingHighlight();
     persistReviewContext(state.activePageKey).catch(() => {});
   });
@@ -2910,7 +4651,7 @@ function bindEvents() {
     if (!button) return;
     if (button.dataset.detailSection) { renderPageDetails(button.dataset.detailSection); persistReviewContext(state.activePageKey).catch(() => {}); }
     else if (button.dataset.overlay) runPageOverlay(button.dataset.overlay);
-    else if (button.classList.contains("link-check-button")) checkHttpLinks(false);
+    else if (button.classList.contains("link-check-button")) checkHttpLinks();
     else if (button.classList.contains("link-check-pause")) toggleLinkCheckPause();
     else if (button.classList.contains("link-check-stop")) stopLinkCheck();
     else if (button.classList.contains("manage-permissions-button")) openPermissionDialog();
@@ -2937,12 +4678,26 @@ function bindEvents() {
   elements["feedback-form"].addEventListener("submit", saveFeedbackNote);
   elements["feedback-dialog-close"].addEventListener("click", closeFeedbackDialog);
   elements["feedback-cancel"].addEventListener("click", closeFeedbackDialog);
-  elements["copy-feedback-report"].addEventListener("click", copyFeedbackReport);
+  elements["copy-feedback-report"].addEventListener("click", openFeedbackCopyDialog);
   elements["export-feedback-csv"].addEventListener("click", exportFeedbackCsv);
   elements["create-feedback-email"].addEventListener("click", createFeedbackEmail);
   elements["feedback-email-close"].addEventListener("click", () => elements["feedback-email-dialog"].close());
   elements["keep-prepared-feedback"].addEventListener("click", () => elements["feedback-email-dialog"].close());
   elements["archive-prepared-feedback"].addEventListener("click", archivePreparedFeedback);
+  elements["feedback-copy-close"].addEventListener("click", () => elements["feedback-copy-dialog"].close());
+  elements["feedback-copy-options"].addEventListener("click", event => {
+    const button = event.target.closest("[data-feedback-copy-mode]");
+    if (button) handleFeedbackCopyMode(button.dataset.feedbackCopyMode);
+  });
+  elements["feedback-copy-list"].addEventListener("change", updateFeedbackCopyCount);
+  elements["feedback-select-all"].addEventListener("click", () => setFeedbackCopySelection("all"));
+  elements["feedback-select-unsent"].addEventListener("click", () => setFeedbackCopySelection("unsent"));
+  elements["feedback-select-sent"].addEventListener("click", () => setFeedbackCopySelection("sent"));
+  elements["feedback-select-none"].addEventListener("click", () => setFeedbackCopySelection("none"));
+  elements["feedback-copy-selected"].addEventListener("click", async () => {
+    await copyFeedbackNotes(selectedFeedbackCopyNotes());
+    elements["feedback-copy-dialog"].close();
+  });
   const handleFeedbackListClick = event => {
     const card = event.target.closest("[data-feedback-id]");
     if (!card) return;
@@ -2968,11 +4723,16 @@ function bindEvents() {
   elements["batch-pause-button"].addEventListener("click", toggleBatchPause);
   elements["batch-cancel-button"].addEventListener("click", cancelBatch);
   elements["batch-csv-button"].addEventListener("click", downloadBatchCsv);
-  ["batch-export-findings", "batch-export-metadata", "batch-export-stats", "batch-export-links"].forEach(id => elements[id].addEventListener("change", updateBatchControls));
+  elements["batch-check-links"].addEventListener("change", updateBatchControls);
+  elements["batch-link-access-found"].addEventListener("change", updateBatchControls);
+  elements["batch-link-access-all"].addEventListener("change", updateBatchControls);
+  elements["batch-link-access-button"].addEventListener("click", requestBatchLinkAccessAndFinish);
+  elements["batch-finish-without-links"].addEventListener("click", finishBatchWithoutLinks);
+  elements["batch-export-preset"].addEventListener("change", updateBatchControls);
   elements["download-current-workbook"].addEventListener("click", downloadCurrentWorkbook);
   elements["download-current-action-csv"].addEventListener("click", () => {
     if (!state.activeReport) return;
-    downloadCsvRows(actionRows(state.activeReport, elements["current-export-reviewed"].checked), `bc-web-style-action-report-${new Date().toISOString().slice(0, 10)}.csv`, ACTION_HEADER);
+    downloadCsvRows(actionRows(state.activeReport, elements["current-export-reviewed"].checked), `bc-web-style-findings-${new Date().toISOString().slice(0, 10)}.csv`, ACTION_HEADER);
   });
   document.addEventListener("keydown", event => {
     if (state.reviewMode !== "detail" || event.defaultPrevented || /INPUT|TEXTAREA|SELECT|BUTTON/.test(document.activeElement && document.activeElement.tagName)) return;
@@ -2992,9 +4752,20 @@ function bindEvents() {
   });
 }
 
+function syncStickyHeaderOffset() {
+  const header = document.querySelector(".app-header");
+  if (!header) return;
+  document.documentElement.style.setProperty("--app-header-height", `${Math.ceil(header.getBoundingClientRect().height)}px`);
+}
+
 async function init() {
   cacheElements();
   document.body.dataset.surface = workspaceSurface ? "workspace" : "panel";
+  syncStickyHeaderOffset();
+  if (typeof ResizeObserver === "function") {
+    const header = document.querySelector(".app-header");
+    if (header) new ResizeObserver(syncStickyHeaderOffset).observe(header);
+  }
   if (workspaceSurface) {
     elements["open-workspace-button"].hidden = true;
     elements["follow-page-control"].hidden = true;
@@ -3004,8 +4775,10 @@ async function init() {
   await loadState();
   renderFeedback();
   renderTerms();
-  if (state.batch.records.length) renderBatchProgress();
+  applyBatchStateToControls();
   renderBatchValidation();
+  if (state.batch.records.length || state.batch.urls.length) renderBatchProgress();
+  else updateBatchControls();
   await syncActiveTab();
   const requestedView = surfaceParams.get("view");
   if (workspaceSurface && ["current", "batch", "terms"].includes(requestedView)) switchView(requestedView);

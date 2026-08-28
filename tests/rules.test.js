@@ -2,7 +2,12 @@
 
 const assert = require("node:assert/strict");
 const path = require("node:path");
-const { chromium } = require("playwright");
+let chromium;
+try { ({ chromium } = require("playwright")); }
+catch (_) {
+  console.log("Style-guide rule tests skipped: Playwright package is not installed.");
+  process.exit(0);
+}
 
 async function scan(page, body, options = {}, language = "en-CA") {
   await page.setContent(`<html lang="${language}"><head><meta name="description" content="Test page"></head><body><main><h1>Rule test page</h1>${body}</main></body></html>`);
@@ -120,8 +125,22 @@ function has(report, ruleId) {
   assert.equal(has(report, "list-introduction"), true);
   report = await scan(page, "<p>Choose a service:</p><ul><li>Apply online</li><li>Call the office</li></ul>");
   assert.equal(has(report, "list-introduction"), false);
+  report = await scan(page, `<p>Write content that is easy to understand by focusing on grammar, spelling and tone.</p>
+    <div class="on-this-page-wrapper"><div data-component="heading"><h2>On this page</h2></div><div data-component="links"><ul>
+      <li><a href="#grammar">Grammar</a></li><li><a href="#spelling">Spelling and word choice</a></li><li><a href="#tone">Tone</a></li>
+    </ul></div></div>
+    <h2 id="grammar">Grammar</h2><p>Grammar content.</p><h2 id="spelling">Spelling and word choice</h2><p>Spelling content.</p><h2 id="tone">Tone</h2><p>Tone content.</p>`, { profile: "cms-lite" });
+  assert.equal(has(report, "list-introduction"), false);
   report = await scan(page, "<ul><li>Apply online. Keep a copy for your records</li></ul>");
   assert.equal(has(report, "list-multiple-sentences"), true);
+  report = await scan(page, "<ul><li>MPL British Columbia Distributors Inc. Agency Designation (2022)</li></ul>");
+  assert.equal(has(report, "list-multiple-sentences"), false, "Corporate suffixes inside titles must not create a false second sentence");
+  report = await scan(page, "<ul><li>Acme Inc. Apply online before Friday.</li></ul>");
+  assert.equal(has(report, "list-multiple-sentences"), true, "A real sentence boundary after a corporate suffix must still be recognized");
+  report = await scan(page, "<ul><li>Acme Inc. Employees must apply before Friday.</li></ul>");
+  assert.equal(has(report, "list-multiple-sentences"), true, "An uppercase sentence after a corporate suffix must still be recognized when the item continues as prose");
+  report = await scan(page, "<ul><li>Acme Inc. provides local services.</li></ul>");
+  assert.equal(has(report, "list-multiple-sentences"), false, "A corporate suffix inside an ordinary sentence must not create a false boundary");
 
   report = await scan(page, "<p>Therefore, applicants must provide documentation.</p>");
   assert.equal(has(report, "formal-sentence-starter"), true);
@@ -133,6 +152,237 @@ function has(report, ruleId) {
   ["accommodation", "individual", "request"].forEach(word => {
     assert.equal(report.issues.some(issue => issue.ruleId === "complex-phrase" && issue.flaggedToken && issue.flaggedToken.toLowerCase() === word), false);
   });
+
+  report = await scan(page, `<p>Several options were given consideration to by the team. The framework was utilized by the individuals who applied. Credits will be disbursed later. The program has been established. It was administered by another ministry. Contact the office for assistance.</p>`);
+  for (const wording of ["given consideration to", "utilized", "individuals", "disbursed", "established", "administered", "assistance"]) {
+    assert.equal(report.issues.some(issue => issue.ruleId === "complex-phrase" && issue.matchText && issue.matchText.toLowerCase() === wording), true, `Expected complex-phrase for: ${wording}`);
+  }
+  const repeatedSimpleTerms = Array.from({ length: 30 }, (_, index) => `<p>Approximately ${index + 1} applications were received.</p>`).join("");
+  report = await scan(page, `${repeatedSimpleTerms}<p>The program was administered by another ministry.</p>`);
+  assert.equal(report.issues.some(issue => issue.ruleId === "complex-phrase" && issue.matchText && issue.matchText.toLowerCase() === "administered"), true, "A distinct guide term must not disappear behind the per-rule repetition cap");
+
+  report = await scan(page, "<h2>1. Executive summary</h2><ul><li>Follow any of B.C.'s fire prohibitions and restrictions</li><li>Read B.C.'s campfire regulations (PDF, 1.7MB) poster</li></ul>");
+  assert.equal(has(report, "heading-title-case"), false);
+  assert.equal(has(report, "list-multiple-sentences"), false);
+
+  report = await scan(page, '<p>NOTE: potable water is unavailable. Email EMCR.ESS@gov.bc.ca. Closed until 1:00 PM. The KUU-US Crisis Line provides support.</p><h2>ON THIS PAGE</h2>');
+  ["NOTE", "EMCR", "PM", "US", "THIS"].forEach(token => {
+    assert.equal(report.issues.some(issue => ["undefined-acronym", "acronym-in-heading"].includes(issue.ruleId) && issue.flaggedToken === token), false);
+  });
+
+  report = await scan(page, '<p><a href="tel:+18442275422">1-844-227-5422</a> <a href="tel:911">9-1-1</a> <a href="tel:18442275422">1-844-227-5422</a></p>');
+  assert.equal(report.issues.filter(issue => issue.ruleId === "phone-link-format").length, 1);
+  assert.match(report.issues.find(issue => issue.ruleId === "phone-link-format").evidence, /tel:18442275422/);
+
+  report = await scan(page, '<p><a class="btn btn-primary" href="#destination">Search interactive map </a> <a href="#destination">Regular text link </a></p><h2 id="destination">Destination</h2>');
+  assert.equal(report.issues.filter(issue => issue.ruleId === "link-trailing-space").length, 1);
+
+  report = await scan(page, '<p>• Plan ahead and prepare • Take only photos • Control your pets</p><p>- first you get the form<br>- then you fill it out<br>- then you send it in</p>');
+  assert.equal(report.issues.filter(issue => issue.ruleId === "fake-list").length, 2);
+
+  report = await scan(page, '<img src="one.png" alt="image"><a href="/apply"><img src="two.png" alt="photo"></a>');
+  assert.equal(report.issues.filter(issue => issue.ruleId === "image-alt-meaningless").length, 1);
+  assert.equal(report.issues.filter(issue => issue.ruleId === "linked-image-alt").length, 1);
+
+  report = await scan(page, '<p>Contact the Pubic Service about pubic engagement and the the notice.</p>');
+  assert.equal(report.issues.filter(issue => issue.ruleId === "proofreading-pubic").length, 2);
+  assert.equal(report.issues.filter(issue => issue.ruleId === "proofreading-repeat").length, 1);
+
+  const sentenceWithWords = count => `${Array(count).fill("Simple").join(" ")}.`;
+  const paragraph4x25 = Array(4).fill(sentenceWithWords(25)).join(" ");
+  const paragraph5x20 = Array(5).fill(sentenceWithWords(20)).join(" ");
+  const paragraph5x23 = Array(5).fill(sentenceWithWords(23)).join(" ");
+  const paragraph6x8 = Array(6).fill(sentenceWithWords(8)).join(" ");
+  report = await scan(page, `<p id="p4">${paragraph4x25}</p><p id="p5100">${paragraph5x20}</p><p id="p5115">${paragraph5x23}</p><p id="p6">${paragraph6x8}</p>`);
+  const paragraphSelectors = new Set(report.issues.filter(issue => issue.ruleId === "paragraph-long").map(issue => issue.selector));
+  assert.equal(paragraphSelectors.has("#p4"), true);
+  assert.equal(paragraphSelectors.has("#p5100"), false);
+  assert.equal(paragraphSelectors.has("#p5115"), true);
+  assert.equal(paragraphSelectors.has("#p6"), true);
+
+  const seventyWords = `${Array(70).fill("clear").join(" ")}.`;
+  report = await scan(page, `<p>${seventyWords}</p><p>${seventyWords}</p><h3>Subsection</h3><p>${seventyWords}</p><h4>More detail</h4><p>${seventyWords}</p>`);
+  assert.equal(has(report, "section-heading-density"), false);
+  report = await scan(page, `<p>${Array(205).fill("clear").join(" ")}.</p>`);
+  assert.equal(has(report, "section-heading-density"), true);
+
+  const hardSection = Array(7).fill("Administrative institutionalization necessitates comprehensive interdisciplinary coordination.").join(" ");
+  const easySection = Array(40).fill("Use clear words. Help people.").join(" ");
+  report = await scan(page, `<h2>Hard section</h2><p>${hardSection}</p><h2>Easy section</h2><p>${easySection}</p>`);
+  assert.equal(has(report, "reading-level"), false);
+  assert.equal(has(report, "section-reading-level"), true);
+
+  const anotherHardSection = Array(8).fill("Institutional administrative requirements necessitate comprehensive multidisciplinary coordination.").join(" ");
+  report = await scan(page, `<h2>First hard section</h2><p>${hardSection}</p><h2>Second hard section</h2><p>${anotherHardSection}</p>`);
+  assert.equal(has(report, "reading-level"), true);
+  const difficultSectionFindings = report.issues.filter(issue => issue.ruleId === "section-reading-level");
+  assert.equal(difficultSectionFindings.length, 2);
+  difficultSectionFindings.forEach(issue => {
+    assert.match(issue.evidence, /^Estimated reading grade: /);
+    assert.equal((issue.diagnostics || []).length, 0);
+  });
+  const pageReadingFinding = report.issues.find(issue => issue.ruleId === "reading-level");
+  assert.equal((pageReadingFinding.diagnostics || []).length, 0);
+
+  const fourWordItem = "Administrative systems require coordination";
+  const fiveWordItem = "Administrative systems require comprehensive coordination";
+  report = await scan(page, `<h2>Short fragments</h2><ul>${Array(12).fill(`<li>${fourWordItem}</li>`).join("")}</ul>`);
+  assert.equal(report.stats.readingWords, 0);
+  report = await scan(page, `<h2>Substantial bullets</h2><ul>${Array(12).fill(`<li>${fiveWordItem}</li>`).join("")}</ul>`);
+  assert.equal(report.stats.readingWords, 60);
+
+
+  // v1.3 testing-correction regressions
+  report = await scan(page, "<h2>Small claims court - procedures and fees</h2><p>Details.</p>");
+  const headingDashFinding = report.issues.find(issue => issue.ruleId === "heading-dash");
+  assert.ok(headingDashFinding);
+  assert.equal(headingDashFinding.severity, "fix");
+
+  const rangeCases = [
+    "Open Monday-Friday.",
+    "The office is open 9 am - 5 pm.",
+    "Open Monday–Friday, 9:00 A.M. – 4:30 P.M. PST.",
+    "Closed 12 noon – 1:00 PM daily.",
+    "Open 9 a.m. – noon.",
+    "Closed midnight – 6:30 a.m.",
+    "Apply May 1-June 2.",
+    "Apply May 1-5.",
+    "Read reports from 2019-2020.",
+    "Review sections 3-5.",
+    "About 5%-10% qualify.",
+    "Temperatures range from 5°C-10°C.",
+    "Use 123 - 456 as the stated range."
+  ];
+  for (const text of rangeCases) {
+    report = await scan(page, `<p>${text}</p>`);
+    assert.equal(has(report, "range-dash"), true, `Expected range-dash for: ${text}`);
+  }
+  for (const text of [
+    "Read the 2020-21 annual report.",
+    "Call 1-800-663-7867.",
+    "Use 2026-08-27 in this table only.",
+    "Visit Unit 5 - 123 Main St.",
+    "The formula is x - y = 3.",
+    "Case 123 - 456 is the reference pair.",
+    "Compare 192.168.1.1 - 192.168.1.2 in the technical notes.",
+    "This is a long-term plan."
+  ]) {
+    report = await scan(page, `<p>${text}</p>`);
+    assert.equal(has(report, "dash-separator"), false, `Unexpected dash-separator for: ${text}`);
+  }
+  for (const text of [
+    "Open Monday–Friday, 9:00 A.M. – 4:30 P.M. PST.",
+    "Closed 12 noon – 1:00 PM daily."
+  ]) {
+    report = await scan(page, `<p>${text}</p>`);
+    assert.equal(has(report, "range-dash"), true, `Expected range-dash for: ${text}`);
+    assert.equal(has(report, "dash-separator"), false, `Time range must not become dash-separator: ${text}`);
+  }
+  report = await scan(page, "<p>Include a copy – if you cannot provide one, include the following information.</p>");
+  assert.equal(has(report, "dash-separator"), true);
+  report = await scan(page, "<ul><li>Ferrets - Do not pet under any circumstances</li></ul>");
+  assert.equal(has(report, "dash-separator"), true);
+  report = await scan(page, "<ul><li>Mental Health Services – Northern Health</li></ul>");
+  assert.equal(has(report, "dash-separator"), false);
+  report = await scan(page, "<p>backyard Hen Form – Part A – Section 1</p>");
+  assert.equal(has(report, "dash-separator"), false, "Label-style en dashes must not be treated as sentence separators merely because capitalization is inconsistent");
+  report = await scan(page, "<ul><li>Mental Health Services - Northern Health</li></ul>");
+  assert.equal(has(report, "dash-separator"), true);
+
+  for (const text of ["and/or", "and / or", "and/ or", "and /or"]) {
+    report = await scan(page, `<p>Choose ${text} apply.</p>`);
+    assert.equal(has(report, "slash"), true, `Expected slash finding for ${text}`);
+  }
+  report = await scan(page, "<p>Read https://example.com/and/or/index.html.</p>");
+  assert.equal(has(report, "slash"), false);
+
+  report = await scan(page, "<p>Public WIFI is available.</p>");
+  assert.equal(has(report, "wifi-format"), true);
+  assert.equal(report.issues.some(issue => issue.ruleId === "undefined-acronym" && issue.flaggedToken === "WIFI"), false);
+
+  report = await scan(page, "<p>Employees MUST complete the form before the deadline.</p>");
+  assert.equal(has(report, "all-caps"), true, "Common emphasis words in all caps should be flagged as formatting");
+  assert.equal(has(report, "undefined-acronym"), false, "A common all-caps word must not also be treated as an undefined acronym");
+  report = await scan(page, "<p>Employees DO NOT APPLY until instructed.</p>");
+  assert.equal(report.issues.filter(issue => issue.ruleId === "all-caps").length, 1, "Adjacent emphasis words should be one all-caps finding");
+  assert.match(report.issues.find(issue => issue.ruleId === "all-caps").matchText, /DO NOT APPLY/);
+  report = await scan(page, "<p>We hear appeals about BC SPCA animal custody decisions.</p>");
+  assert.equal(has(report, "all-caps"), false, "Formal organization names must not be treated as all-caps emphasis");
+  assert.equal(report.issues.some(issue => issue.ruleId === "undefined-acronym" && issue.flaggedToken === "SPCA"), false, "Acronyms inside a recognized formal organization name must not require expansion");
+  report = await scan(page, "<p>Download the PDF before applying.</p>");
+  assert.equal(has(report, "all-caps"), false, "Familiar acronyms should not be treated as all-caps emphasis");
+  report = await scan(page, "<p>Connect to COURT_WIFI when instructed.</p>");
+  assert.equal(has(report, "wifi-format"), false);
+  report = await scan(page, "<p>Read https://wifi.example.com/setup.</p>");
+  assert.equal(has(report, "wifi-format"), false);
+
+  report = await scan(page, "<p><a href='/one'>Find out how</a> <a href='/two'>Find out how to respond to a jury summons</a></p>");
+  assert.equal(report.issues.filter(issue => issue.ruleId === "generic-link").length, 1);
+  assert.equal(report.issues.find(issue => issue.ruleId === "generic-link").evidence, "Find out how");
+
+  report = await scan(page, "<ul><li>First item</li><li>Second item</li></ul><p><a class='btn btn-primary' href='/help'>Get help during an evacuation</a></p><ul></ul>");
+  assert.equal(report.issues.some(issue => issue.ruleId === "list-introduction" && /Get help during an evacuation/.test(issue.evidence)), false, "Empty CMS/editor lists must not create list-introduction findings");
+  assert.equal(report.pageDetails.counts.lists, 1, "Empty lists must not inflate the page list count");
+  report = await scan(page, "<p>Bring these items</p><ul><li>Photo identification</li><li>Your summons</li></ul>");
+  assert.equal(report.issues.some(issue => issue.ruleId === "list-introduction"), true, "Meaningful lists must retain the introduction check");
+
+  report = await scan(page, "<p><a href='/act'>Civil Resolution</a><a href='/act'> Tribunal Act</a></p>");
+  assert.equal(report.issues.filter(issue => issue.ruleId === "split-link").length, 1);
+  assert.equal(has(report, "link-trailing-space"), false);
+  report = await scan(page, "<p><a href='/act'>Find</a><a href='/act'> </a><a href='/act'> information</a></p>");
+  assert.equal(report.issues.filter(issue => issue.ruleId === "split-link").length, 1);
+  assert.equal(has(report, "empty-link"), false);
+  report = await scan(page, "<h4><a href='/complaint'></a><a href='/complaint'>What happens after filing</a></h4>");
+  assert.equal(report.issues.filter(issue => issue.ruleId === "split-link").length, 1, "Split links inside headings must be recognized");
+  assert.equal(has(report, "empty-link"), false, "The empty fragment of a same-destination split link must not also be reported");
+  report = await scan(page, "<ul><li><a href='/old-handout.pdf' target='_blank'></a><a href='/current-form.pdf'>Notice of Complaint Form (PDF, 142KB)</a></li></ul>");
+  assert.equal(report.issues.filter(issue => issue.ruleId === "empty-link").length, 1, "A different-destination invisible anchor is a real empty link");
+  assert.match(report.issues.find(issue => issue.ruleId === "empty-link").evidence, /Invisible link points to:/);
+  assert.equal(report.issues.some(issue => ["file-link-label", "file-link-type", "file-link-size", "file-link-label-format", "file-link-size-spacing", "new-tab"].includes(issue.ruleId) && /old-handout/.test(issue.evidence)), false, "Empty links must suppress secondary link-text and file-label findings");
+  assert.equal(report.assets.some(asset => /old-handout\.pdf/.test(asset.href)), true, "An empty document link should remain in the asset inventory");
+  report = await scan(page, "<p><a href='#one'>One</a><a href='#two'>Two</a></p><h2 id='one'>One</h2><p>Text.</p><h2 id='two'>Two</h2><p>Text.</p>");
+  assert.equal(has(report, "split-link"), false);
+  report = await scan(page, "<p><a class='btn btn-primary' href='/apply'>Apply</a><a class='btn btn-primary' href='/apply'>Apply now</a></p>");
+  assert.equal(has(report, "split-link"), false);
+  report = await scan(page, "<p><a href='/same'>One</a><br><a href='/same'>Two</a></p>");
+  assert.equal(has(report, "split-link"), false);
+
+  report = await scan(page, "<h2>Location</h2><h2>Contact information</h2><h2>Wi-Fi</h2>");
+  assert.equal(has(report, "heading-empty-sequence"), true);
+  report = await scan(page, "<h2>Location</h2><p>Victoria courthouse</p><h2>Contact information</h2><ul><li>Call the registry</li></ul><h2>Wi-Fi</h2>");
+  assert.equal(has(report, "heading-empty-sequence"), false);
+
+  const listHeavy = Array(18).fill(0).map((_, index) => `<li>${Array(12).fill("clear word").join(" ")} item ${index}</li>`).join("");
+  report = await scan(page, `<ul>${listHeavy}</ul>`);
+  assert.equal(has(report, "section-heading-density"), true);
+  const beforeAlert = `${Array(110).fill("clear").join(" ")}.`;
+  const alertWords = `${Array(220).fill("administrative").join(" ")}.`;
+  const afterAlert = `${Array(110).fill("simple").join(" ")}.`;
+  report = await scan(page, `<p>${beforeAlert}</p><div class="alert"><p>${alertWords}</p></div><p>${afterAlert}</p>`);
+  assert.equal(has(report, "section-heading-density"), false);
+
+  const hardForHighlight = Array(12).fill("Administrative institutionalization necessitates comprehensive interdisciplinary coordination.").join(" ");
+  const easyForHighlight = Array(30).fill("Use clear words. Help people.").join(" ");
+  report = await scan(page, `<h2>Hard section</h2><p id="hard-one">${hardForHighlight}</p><ul id="hard-list"><li>Administrative systems require comprehensive institutional coordination today</li><li>Administrative processes require multidisciplinary institutional coordination today</li></ul><p id="hard-two">Contact the office for help.</p><h2>Easy section</h2><p>${easyForHighlight}</p>`);
+  const sectionFinding = report.issues.find(issue => issue.ruleId === "section-reading-level");
+  assert.ok(sectionFinding);
+  assert.doesNotMatch(sectionFinding.evidence, /\bwords?\b/i);
+  assert.ok(sectionFinding.selectors.length >= 4);
+  assert.ok(sectionFinding.selectors.includes("#hard-one"));
+  assert.ok(sectionFinding.selectors.includes("#hard-list"));
+  assert.ok(sectionFinding.selectors.includes("#hard-two"));
+
+  const longEvidenceText = "You also have the option to file documents electronically through Court Services Online (CSO). To do so, you must have a registered account with CSO and either a BCeID account with a credit card or a BC Online account with access.";
+  report = await scan(page, `<p>${longEvidenceText}</p>`);
+  const bcEvidenceFinding = report.issues.find(issue => issue.ruleId === "bc-abbreviation" && issue.proposedPhrase === "BC Online");
+  assert.ok(bcEvidenceFinding);
+  assert.match(bcEvidenceFinding.evidence, /BCeID[\s\S]*BC Online/);
+  assert.equal(bcEvidenceFinding.evidence.slice(bcEvidenceFinding.evidenceMatchIndex, bcEvidenceFinding.evidenceMatchIndex + 2), "BC");
+  assert.equal(bcEvidenceFinding.evidence.indexOf("BC Online"), bcEvidenceFinding.evidenceMatchIndex);
+  report = await scan(page, "<p>Last updated on January 1, 2020</p><p>This page has moved to the new service page.</p>");
+  assert.equal(has(report, "moved-page-notice"), true, "An old explicit moved-page notice should be surfaced for review");
+  report = await scan(page, "<p>Last updated on January 1, 2020</p><p>Find the current service on another page.</p>");
+  assert.equal(has(report, "moved-page-notice"), false, "Ordinary links to other pages must not trigger the moved-page heuristic");
 
   await browser.close();
   console.log("Style-guide rule tests passed");

@@ -101,7 +101,8 @@
 
           <div id="stale-report-banner" class="notice warning" hidden role="status">
             <strong id="stale-report-title">This saved review may be out of date.</strong>
-            <span id="stale-report-message">Rescan the page to update the findings.</span>
+            <span id="stale-report-message">The saved findings may no longer match the current page.</span>
+            <button id="stale-rescan-button" class="text-button" type="button">Rescan page</button>
           </div>
 
           <div class="review-shell">
@@ -192,18 +193,18 @@
           <p class="eyebrow">Send your feedback</p>
           <h2 id="send-feedback-heading">Email your saved notes</h2>
           <p id="feedback-send-status"><strong>0 notes are saved on this device.</strong> They have not been sent.</p>
-          <p>Create a pre-addressed email. Short reports are included in the draft. For a long report, the extension downloads one text file for you to attach.</p>
+          <p>The extension keeps each email small enough to include the complete feedback batch. When a batch reaches the safe email size, send it before recording more notes.</p>
           <button id="create-feedback-email" class="button primary" type="button">Create feedback email</button>
           <div class="feedback-export-actions">
             <button id="copy-feedback-report" class="text-button" type="button">Copy report</button>
             <button id="export-feedback-csv" class="text-button" type="button">Export CSV</button>
           </div>
-          <p class="feedback-reminder">Send feedback after each site review or at the end of your testing day.</p>
+          <p class="feedback-reminder">Sent notes remain available below and do not take up space in the next feedback email.</p>
         </section>
 
         <details id="archived-feedback" class="archived-feedback" hidden>
-          <summary>Previously prepared notes <span id="archived-feedback-count"></span></summary>
-          <p>These notes were archived after an email was prepared. Restore a note if it still needs attention.</p>
+          <summary>Sent feedback <span id="archived-feedback-count"></span></summary>
+          <p>These notes were marked sent and stay available for copying or export. Restore a note if it still needs to be emailed again.</p>
           <div id="archived-feedback-list" class="feedback-list"></div>
         </details>
       </section>
@@ -216,7 +217,7 @@
 
         <section class="workspace-card batch-setup">
           <label for="batch-urls" class="field-label">Web addresses</label>
-          <textarea id="batch-urls" rows="10" placeholder="https://www2.gov.bc.ca/…&#10;https://antiracism.gov.bc.ca/…"></textarea>
+          <textarea id="batch-urls" rows="10" placeholder="https://www2.gov.bc.ca/gov/content/…&#10;https://www2.gov.bc.ca/gov/content/…"></textarea>
           <p id="batch-validation" class="hint" aria-live="polite"></p>
 
           <details class="options-disclosure">
@@ -229,14 +230,34 @@
                 </select>
               </label>
               <label class="check-row"><input id="batch-colour-control" type="checkbox" checked> Include content colour contrast outside CMS Lite</label>
-              <label class="check-row"><input id="batch-include-reviewed" type="checkbox"> Include ignored and resolved findings</label>
-              <fieldset class="batch-export-options">
-                <legend>Workbook sections</legend>
-                <label class="check-row"><input id="batch-export-findings" type="checkbox" checked> Action report</label>
-                <label class="check-row"><input id="batch-export-metadata" type="checkbox"> Metadata and SEO</label>
-                <label class="check-row"><input id="batch-export-stats" type="checkbox" checked> Page inventory</label>
-                <label class="check-row"><input id="batch-export-links" type="checkbox"> Link inventory and status</label>
+              <label class="check-row"><input id="batch-check-links" type="checkbox"> Check whether links work</label>
+              <p class="hint batch-option-note">Checks each unique web destination after the page scan. This takes longer and may ask for access to linked websites. QA links on www2.qa.gov.bc.ca are checked against the matching live www2.gov.bc.ca address.</p>
+              <fieldset id="batch-link-access-options" class="custom-export-options" hidden>
+                <legend>Website access for link checking</legend>
+                <label class="check-row"><input id="batch-link-access-found" type="radio" name="batch-link-access" value="found" checked> Ask only for websites found in this scan</label>
+                <p class="hint batch-option-note">More limited access. If new websites need access, the checker asks once after the page scan.</p>
+                <label class="check-row"><input id="batch-link-access-all" type="radio" name="batch-link-access" value="all"> Allow all websites when the scan starts</label>
+                <p class="hint batch-option-note">One-step link checking, but the browser grants broader website access until you remove it in Settings.</p>
               </fieldset>
+              <label>Workbook type
+                <select id="batch-export-preset">
+                  <option value="full" selected>Full audit</option>
+                  <option value="custom">Customize workbook</option>
+                </select>
+              </label>
+              <p id="batch-export-description" class="hint batch-option-note">Complete audit workbook, including link inventory, metadata and scan log.</p>
+              <fieldset id="batch-export-custom" class="custom-export-options" hidden>
+                <legend>Workbook sheets</legend>
+                <label class="check-row"><input id="batch-custom-summary" type="checkbox" data-sheet="Summary" checked> Summary</label>
+                <label class="check-row"><input id="batch-custom-pages" type="checkbox" data-sheet="Pages" checked> Pages</label>
+                <label class="check-row"><input id="batch-custom-site-wide" type="checkbox" data-sheet="Site-wide findings" checked> Site-wide findings</label>
+                <label class="check-row"><input id="batch-custom-issues-page" type="checkbox" data-sheet="Page issue summary" checked> Page issue summary</label>
+                <label class="check-row"><input id="batch-custom-findings" type="checkbox" data-sheet="Findings detail" checked> Findings detail</label>
+                <label class="check-row"><input id="batch-custom-links" type="checkbox" data-sheet="Links"> Links</label>
+                <label class="check-row"><input id="batch-custom-metadata" type="checkbox" data-sheet="Metadata"> Metadata</label>
+                <label class="check-row"><input id="batch-custom-scan-log" type="checkbox" data-sheet="Scan log" checked> Scan log</label>
+              </fieldset>
+              <label class="check-row"><input id="batch-include-reviewed" type="checkbox"> Include ignored and resolved findings</label>
             </div>
           </details>
 
@@ -250,6 +271,11 @@
         <section id="batch-progress-panel" class="workspace-card batch-progress" hidden aria-live="polite">
           <div class="progress-heading"><strong id="batch-progress-label">Preparing scan</strong><span id="batch-progress-count"></span></div>
           <progress id="batch-progress" max="1" value="0"></progress>
+          <div id="batch-link-finish-actions" class="button-row batch-link-finish-actions" hidden>
+            <button id="batch-link-access-button" class="button primary" type="button">Allow website access and finish</button>
+            <button id="batch-finish-without-links" class="button secondary" type="button">Finish without checking links</button>
+          </div>
+          <p id="batch-download-status" class="hint batch-download-status"></p>
         </section>
 
         <section id="batch-error" class="state-panel error" hidden role="alert"><p id="batch-error-message"></p></section>
@@ -303,8 +329,7 @@
       <form method="dialog">
         <div class="dialog-heading"><h2>Checker menu</h2><button id="more-close" class="icon-button" type="button" aria-label="Close checker menu">×</button></div>
         <div class="menu-actions">
-          <button id="rescan-button" class="menu-action" type="button"><strong>Rescan page</strong><span>Update the findings using the current scope</span></button>
-          <button id="change-scan-button" class="menu-action" type="button"><strong>Change scan scope</strong><span>Review a section, page content or the whole website</span></button>
+          <button id="rescan-button" class="menu-action" type="button"><strong>Rescan page</strong><span>Review the scan options before checking the page again</span></button>
           <button id="open-workspace-button" class="menu-action" type="button"><strong>Open full-page review</strong><span>Opens this review in a new browser tab</span></button>
           <button id="open-feedback-button" class="menu-action" type="button"><strong>Feedback notes</strong><span>Collect testing notes and create one feedback email</span></button>
           <button id="open-batch-button" class="menu-action" type="button"><strong>Start a batch scan</strong><span>Check several pages and create one report</span></button>
@@ -316,36 +341,49 @@
     <dialog id="export-dialog" class="sheet-dialog export-dialog">
       <form method="dialog">
         <div class="dialog-heading"><div><p class="eyebrow">Use the results elsewhere</p><h2>Export this page</h2></div><button id="export-close" class="icon-button" type="button" aria-label="Close export options">×</button></div>
-        <fieldset class="export-choices">
-          <legend>Include</legend>
-          <label class="check-row"><input id="current-export-findings" type="checkbox" checked> Action report</label>
-          <label class="check-row"><input id="current-export-metadata" type="checkbox"> Metadata and SEO</label>
-          <label class="check-row"><input id="current-export-stats" type="checkbox"> Page inventory</label>
-          <label class="check-row"><input id="current-export-links" type="checkbox"> Link inventory and status</label>
+        <div class="export-choices">
+          <label for="current-export-preset" class="field-label">Workbook type</label>
+          <select id="current-export-preset">
+            <option value="full" selected>Full audit</option>
+            <option value="custom">Customize workbook</option>
+          </select>
+          <p id="current-export-preset-description" class="hint">Complete workbook with the review summary, grouped issues, every finding, page details, links and metadata.</p>
+          <fieldset id="current-export-custom" class="custom-export-options" hidden>
+            <legend>Workbook sheets</legend>
+            <label class="check-row"><input id="current-custom-summary" type="checkbox" data-sheet="Summary" checked> Summary</label>
+            <label class="check-row"><input id="current-custom-issues" type="checkbox" data-sheet="Issue summary" checked> Issue summary</label>
+            <label class="check-row"><input id="current-custom-findings" type="checkbox" data-sheet="Findings detail" checked> Findings detail</label>
+            <label class="check-row"><input id="current-custom-page-details" type="checkbox" data-sheet="Page details"> Page details</label>
+            <label class="check-row"><input id="current-custom-links" type="checkbox" data-sheet="Links"> Links</label>
+            <label class="check-row"><input id="current-custom-metadata" type="checkbox" data-sheet="Metadata"> Metadata</label>
+          </fieldset>
           <label class="check-row"><input id="current-export-reviewed" type="checkbox"> Include ignored and resolved findings</label>
-        </fieldset>
+        </div>
+        <div id="current-export-status" class="export-status" role="status"></div>
         <div class="export-actions">
-          <button id="download-current-workbook" class="button primary" type="button">Download Excel workbook</button>
-          <button id="download-current-action-csv" class="button secondary" type="button">Download action report CSV</button>
-          <button id="copy-button" class="button tertiary" type="button">Copy plain-language report</button>
+          <button id="check-links-and-download-current" class="button primary" type="button">Check links and download</button>
+          <button id="download-current-workbook" class="button secondary" type="button">Download without checking</button>
+          <button id="download-current-action-csv" class="button tertiary" type="button">Download findings CSV</button>
+          <button id="copy-detailed-findings" class="button tertiary" type="button">Copy detailed findings</button>
         </div>
       </form>
     </dialog>
 
     <dialog id="exception-dialog">
       <form id="exception-form" method="dialog">
-        <h2>Always allow an exact term</h2>
-        <p>This term will be ignored only for <strong id="exception-rule-name"></strong>.</p>
+        <h2 id="exception-dialog-heading">Always allow an exact term</h2>
+        <p id="exception-dialog-intro">This term will be ignored only for <strong id="exception-rule-name"></strong>.</p>
         <label for="exception-phrase" class="field-label">Exact term</label>
         <input id="exception-phrase" type="text" autocomplete="off" required>
         <p id="exception-validation" class="hint error-text" aria-live="polite"></p>
         <fieldset>
           <legend>Apply it to</legend>
-          <label><input type="radio" name="exception-scope" value="site" checked> This website</label>
-          <label><input type="radio" name="exception-scope" value="all"> Every website</label>
+          <label id="exception-page-scope" hidden><input type="radio" name="exception-scope" value="page"> This page</label>
+          <label id="exception-site-scope"><input type="radio" name="exception-scope" value="site" checked> This website</label>
+          <label id="exception-all-scope"><input type="radio" name="exception-scope" value="all"> Every website</label>
         </fieldset>
-        <p class="guardrail">Capitalization and wording must match exactly. Single-word formal names and acronyms are allowed. “BC” by itself cannot be allowed. A single-word exception applies to every exact match for this rule within the selected scope. Structure, accessibility and sentence-case checks remain active.</p>
-        <div class="dialog-actions"><button id="exception-cancel" class="button secondary" type="button">Cancel</button><button class="button primary" type="submit">Allow exact term</button></div>
+        <p id="exception-guardrail" class="guardrail">Capitalization and wording must match exactly. Single-word formal names and acronyms are allowed. “BC” by itself cannot be allowed. A single-word exception applies to every exact match for this rule within the selected scope. Structure, accessibility and sentence-case checks remain active.</p>
+        <div class="dialog-actions"><button id="exception-cancel" class="button secondary" type="button">Cancel</button><button id="exception-submit" class="button primary" type="submit">Allow exact term</button></div>
       </form>
     </dialog>
 
@@ -416,11 +454,35 @@
       <form method="dialog">
         <div class="dialog-heading"><div><p class="eyebrow">Next step</p><h2>Email draft opened</h2></div><button id="feedback-email-close" class="icon-button" type="button" aria-label="Close email confirmation">×</button></div>
         <p id="feedback-email-message">Review the draft in your email app, then select <strong>Send</strong>.</p>
-        <p>Your notes remain saved here until you archive them.</p>
+        <p>The extension cannot tell whether your email app actually sent the message. Confirm below only after you send it.</p>
         <div class="email-confirm-actions">
-          <button id="archive-prepared-feedback" class="button primary" type="button">I sent the email — archive notes</button>
-          <button id="keep-prepared-feedback" class="button secondary" type="button">Keep notes for later</button>
+          <button id="archive-prepared-feedback" class="button primary" type="button">I sent it</button>
+          <button id="keep-prepared-feedback" class="button secondary" type="button">I didn’t send it</button>
         </div>
+      </form>
+    </dialog>
+
+    <dialog id="feedback-copy-dialog">
+      <form method="dialog">
+        <div class="dialog-heading"><div><p class="eyebrow">Copy feedback</p><h2>What do you want to copy?</h2></div><button id="feedback-copy-close" class="icon-button" type="button" aria-label="Close copy feedback options">×</button></div>
+        <div id="feedback-copy-options" class="feedback-copy-options">
+          <button class="menu-action" type="button" data-feedback-copy-mode="unsent"><strong>Unsent feedback</strong><span>Copy only notes waiting to be emailed</span></button>
+          <button class="menu-action" type="button" data-feedback-copy-mode="all"><strong>All feedback</strong><span>Copy unsent and sent notes together</span></button>
+          <button class="menu-action" type="button" data-feedback-copy-mode="choose"><strong>Choose feedback</strong><span>Select individual notes from either group</span></button>
+        </div>
+        <section id="feedback-copy-selection" hidden>
+          <div class="feedback-copy-toolbar">
+            <span id="feedback-copy-count">0 selected</span>
+            <div class="feedback-copy-quick-actions">
+              <button id="feedback-select-all" class="text-button" type="button">All</button>
+              <button id="feedback-select-unsent" class="text-button" type="button">Unsent</button>
+              <button id="feedback-select-sent" class="text-button" type="button">Sent</button>
+              <button id="feedback-select-none" class="text-button" type="button">None</button>
+            </div>
+          </div>
+          <div id="feedback-copy-list" class="feedback-copy-list"></div>
+          <div class="dialog-actions"><button id="feedback-copy-selected" class="button primary" type="button">Copy selected feedback</button></div>
+        </section>
       </form>
     </dialog>
 

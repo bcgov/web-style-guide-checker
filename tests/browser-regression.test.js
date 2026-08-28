@@ -2,7 +2,12 @@
 
 const assert = require("node:assert/strict");
 const path = require("node:path");
-const { chromium } = require("playwright");
+let chromium;
+try { ({ chromium } = require("playwright")); }
+catch (_) {
+  console.log("Browser regression tests skipped: Playwright package is not installed.");
+  process.exit(0);
+}
 
 async function scan(page, html, options = {}) {
   await page.setContent(html);
@@ -50,6 +55,18 @@ async function scan(page, html, options = {}) {
     </ul><h2 id="start">Start a business</h2><p>Start here.</p><h2 id="records">\u200bMaintain business records</h2><p>Keep records.</p><h2 id="close">Close a business</h2><p>Close it.</p></main>`);
   assert.equal(hiddenCharacterToc.issues.some(issue => issue.ruleId === "on-this-page-links"), false);
 
+  const wrappedCmsToc = await scan(page, `
+    <main class="topicMain__container"><h1>Grammar, spelling and tone</h1>
+      <p>Write content that is easy to understand by focusing on grammar, spelling and tone.</p>
+      <div class="on-this-page-wrapper"><div data-component="heading"><h2>On this page</h2></div><div data-component="links"><ul>
+        <li><a href="#grammar">Grammar</a></li><li><a href="#spelling">Spelling and word choice</a></li><li><a href="#tone">Tone</a></li>
+      </ul></div></div>
+      <h2 id="grammar">Grammar</h2><p>Grammar content.</p>
+      <h2 id="spelling">Spelling and word choice</h2><p>Spelling content.</p>
+      <h2 id="tone">Tone</h2><p>Tone content.</p>
+    </main>`, { profile: "cms-lite" });
+  assert.equal(wrappedCmsToc.issues.some(issue => issue.ruleId === "list-introduction"), false);
+
   const authoredTocLabel = await scan(page, `
     <main><h1>Service information</h1><p>On this page:</p><ul>
       <li><a href="#overview">Overview</a></li><li><a href="#eligibility">Eligibility</a></li><li><a href="#contact">Contact</a></li>
@@ -92,7 +109,7 @@ async function scan(page, html, options = {}) {
     </main>`);
   const ipFinding = exactAcronymHighlight.issues.find(issue => issue.ruleId === "undefined-acronym" && issue.flaggedToken === "IP");
   assert.ok(ipFinding, "IP should still be reviewed when only CIPO is defined");
-  assert.equal(ipFinding.contextText.slice(ipFinding.matchIndex, ipFinding.matchIndex + 2), "IP");
+  assert.equal(ipFinding.evidence.slice(ipFinding.evidenceMatchIndex, ipFinding.evidenceMatchIndex + 2), "IP");
 
   const whitespaceChecks = await scan(page, `
     <main><h1>Trail information</h1>
@@ -151,6 +168,19 @@ async function scan(page, html, options = {}) {
     </main>`, { profile: "cms-lite" });
   assert.equal(cmsComponents.issues.some(issue => issue.ruleId === "ampersand" && /Help & Support/.test(issue.evidence)), true);
   assert.equal(cmsComponents.issues.some(issue => issue.ruleId === "missing-space-after-ampersand" && /Apply &Pay/.test(issue.evidence)), true);
+
+  const malformedToc = await scan(page, `
+    <main><h1>Service information</h1><h5>ON THIS PAGE:</h5><ol>
+      <li><a href="#a">Wrong A</a></li><li><a href="#b">Wrong B</a></li><li><a href="#c">Wrong C</a></li>
+    </ol><h2 id="a">Alpha</h2><p>Text.</p><h2 id="b">Beta</h2><p>Text.</p><h2 id="c">Gamma</h2><p>Text.</p></main>`);
+  assert.equal(malformedToc.issues.some(issue => issue.ruleId === "on-this-page-missing"), false);
+  assert.equal(malformedToc.issues.some(issue => issue.ruleId === "on-this-page-format"), true);
+
+  const cmsMoreTopics = await scan(page, `
+    <main class="topicMain__container"><h1>CMS Lite content</h1><p>Authored content.</p>
+      <aside class="sideBar"><h2>MORE TOPICS</h2><ul><li><a href="/one">One</a><ul><li><a href="/two">Two</a><ul><li><a href="/three">Three</a></li></ul></li></ul></li></ul></aside>
+    </main>`, { profile: "cms-lite" });
+  assert.equal(cmsMoreTopics.issues.some(issue => issue.ruleId === "list-depth"), false);
 
   await browser.close();
   console.log("Browser regression tests passed");

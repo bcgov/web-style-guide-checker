@@ -14,7 +14,27 @@ Help a reviewer understand a webpage, decide what needs attention and finish an 
 - Preserve review position across pages, tabs and the larger workspace.
 - Keep common filters visible and place detailed filters in a dialog.
 - Use the larger workspace for batch scans, settings and wider reviews.
-- Group repeated findings in exports and record metadata once per page.
+- Keep individual findings as the authoritative export data. Derive grouped issue and page/site summaries from those findings, and record page metadata once per page.
+
+## Audit export structure
+
+- Use the same mental model for one page and many pages: automated review profile → page evidence → grouped issue summary → individual finding detail.
+- Keep **Findings detail** at one row per stored finding. If the scanner deliberately collapses exact duplicates, retain the number in an **Occurrences** field rather than expanding invented rows.
+- Keep grouped issue types separate from finding counts. Never present a grouped row count as the number of findings.
+- For a single page, keep workbook choices to **Full audit** and **Customize workbook**. Full audit contains **Summary**, **Issue summary**, **Findings detail**, **Page details**, **Links** and **Metadata**; Customize workbook allows explicit sheet selection.
+- Offer link checking for a single-page export only when at least one selected sheet uses link-check findings, coverage or results. A metadata-only custom workbook should download directly without asking to check links.
+- For batch scans, make **Full audit** the normal workbook: **Summary**, **Pages**, **Site-wide findings**, **Page issue summary**, **Findings detail**, **Links**, **Metadata** and **Scan log**. Keep **Customize workbook** for explicit sheet selection.
+- Keep batch export choices to **Full audit** and **Customize workbook**. Put sheet-by-sheet controls behind Customize so flexibility does not turn the normal workflow into a checkbox wall.
+- Batch link checking is optional. Scan pages first, deduplicate remote destinations across the batch, check each unique destination once and map the result back to each page. Keep link-check coverage and uncertainty visible in the workbook.
+- Use six page-review areas: Page information, Plain language, Structure and navigation, Accessibility, Links and documents, and Style and proofreading.
+- Use **Review first**, **Needs attention**, **Worth checking** and **Nothing flagged** to prioritize human review. Do not calculate an overall health, compliance, risk or quality score.
+- Treat **Nothing flagged** as a neutral automated result, never as a pass. Colour may reinforce an attention label but must not carry meaning by itself.
+- Rank batch pages for the summary by Review first areas, then Needs attention areas, then high-confidence Fix findings, then Worth checking areas, with title as a stable tie-break. Present the derived result as a **Review priority** plus concrete reasons; do not expose counts of abstract “review-first areas,” display a numeric rank or call the first page the worst page.
+- Keep batch summaries compact. Show at most 10 pages requiring attention on the Summary sheet and direct reviewers to the complete filterable Pages sheet.
+- Keep failed scans visible in coverage counts, the Pages sheet and the Scan log.
+- Use one header row on data sheets, filters, wrapped text, descriptive sheet names and no merged cells inside datasets. Avoid frozen panes because they can reduce usable space at high zoom and in small windows.
+- Make HTTP and HTTPS values in workbook cells real external hyperlinks rather than styled text alone.
+- Do not use pie, donut, gauge or 3-D charts. Add visuals only if later testing shows they improve decisions beyond the tabular summary.
 
 ## Feedback structure
 
@@ -24,7 +44,9 @@ Help a reviewer understand a webpage, decide what needs attention and finish an 
 - Let testers exclude page context from individual notes.
 - Save notes locally until the tester copies, exports or creates an email.
 - State clearly that creating an email opens a draft and that the tester must send it.
-- Encourage one feedback email after each site review or testing day.
+- Never truncate a feedback email. Build email batches from the largest complete prefix that fits below the conservative encoded `mailto:` safety ceiling. If newer notes overflow, keep them saved for the next batch and require the current safe batch to be sent before more notes are added.
+- Opening an email draft is not proof it was sent. Archive exactly the prepared notes only after the reviewer confirms **I sent it**. Sent notes do not count toward future email batches and remain available for copy/export.
+- Let **Copy report** copy unsent notes, all notes or an explicit selection. Copying never changes sent status.
 
 ## Usability safeguards
 
@@ -34,7 +56,7 @@ Help a reviewer understand a webpage, decide what needs attention and finish an 
 - Keep the active page highlight until the reviewer moves, closes the review or clears it.
 - Warn when a saved review belongs to an earlier page load.
 - Preserve navigation layout at the end of an issue type.
-- Keep exact-term exceptions rule-specific and case-sensitive.
+- Keep exact-term exceptions rule-specific and case-sensitive. A narrowly scoped proofreading exception may be page-only and case-insensitive when the action explicitly means “ignore this wording on this page.”
 - Keep the manual checklist on the Page details overview.
 - Identify the full-page review as a separate browser tab.
 - Reflect what CMS Lite editors can change.
@@ -53,6 +75,17 @@ Help a reviewer understand a webpage, decide what needs attention and finish an 
 
 The checker leaves meaning-heavy decisions—such as whether an image is decorative, whether an acronym is familiar or whether `Dr.` identifies a medical doctor—to the reviewer.
 
+
+## Readability and proofreading heuristics
+
+- Keep the page-wide reading-grade review at Grade 9 or higher; the Web Style Guide target remains Grade 8.
+- Define structural sections with H2 to H6 headings. Headings define boundaries but are not included in the reading-grade calculation.
+- Include list items with 5 or more words as readability units so sentence-like bullets still affect the estimate; exclude shorter fragment lists from the grade calculation.
+- Require at least 2 readability units before creating a section-level reading finding. Flag 40 to 74 included words only at Grade 12 or higher, and 75 or more included words at Grade 10 or higher.
+- Report each qualifying difficult section as its own finding even when the page-wide grade is also high. Suppress only the redundant case where the page is effectively one analysed section and the section finding would add no useful location information.
+- Use a conservative 200-word internal review trigger for meaningful authored content without an H2 to H6 break. Count substantive list content, but treat alerts and supported accordions as separate analysis segments so they do not inflate surrounding sections.
+- Keep proofreading deliberately narrow and deterministic. Do not add general spellchecking, grammar correction or AI-generated writing advice to the core checker.
+
 ## Visual system
 
 - BC Sans for interface text
@@ -68,5 +101,10 @@ The checker leaves meaning-heavy decisions—such as whether an image is decorat
 - Run content checks locally.
 - Store review state and feedback in extension storage.
 - Omit browser credentials from link and asset requests.
-- Request broader website access only when required by the chosen check.
-- Keep feedback on the device until the tester chooses an export or email action.
+- Request broader website access only when required by the chosen check. For batch link checking, offer a deliberate all-sites option at Start for a one-step workflow; otherwise request only the destinations discovered by the scan from a separate user action.
+- Never send in-page fragment links through the network checker. Validate fragment targets from the scanned document instead.
+- Keep remote checks anonymous (`credentials: "omit"`). Attempt redirect chains with `redirect: "follow"` when the resulting origins are covered by granted website access, then fall back to manual redirect handling when access is insufficient. Same-origin redirects should not require broader access; an unverified cross-origin redirect is uncertainty, not a broken-link finding.
+- Treat `www2.qa.gov.bc.ca` as a specific B.C. authoring environment: for link verification, derive the matching `www2.gov.bc.ca` address by changing only the hostname and report the result explicitly as a live-version check.
+- A failed or blocked automated request is not proof of a broken link. Reserve broken-link findings for reliable 404 or 410 responses from the destination being checked.
+- Keep feedback on the device until the tester chooses a copy, export or email action. Keep sent feedback archived locally rather than deleting it.
+- Persist large batch state after every scanned page so a closed/reloaded workspace or another page review cannot turn a partial batch into a false completion. Use extension unlimited storage for this audit-state persistence rather than silently failing at the default local-storage quota.
