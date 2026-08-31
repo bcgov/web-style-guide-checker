@@ -84,8 +84,8 @@
     "file-link-label-format": ["Links", "fix", "Fix the file type and size label", "A document label needs a comma after the file type and no space between the size and unit.", "Use the format ‘(PDF, 159KB)’ or the equivalent for this file.", "links"],
     "file-link-size-spacing": ["Links", "fix", "Remove the space in the file size", "File sizes use no space between the number and unit.", "Remove the space between the number and unit, such as changing ‘271 KB’ to ‘271KB’.", "links"],
     "link-trailing-space": ["Links", "fix", "Remove the trailing space from the link", "A space at the end of linked text creates an unnecessarily large link area and can make editing less predictable.", "Remove the space at the end of the linked text.", "formatting"],
-    "split-link": ["Links", "fix", "Merge the split link", "One readable link has been divided into separate links to the same destination. Screen readers announce each link separately.", "Merge the adjacent link fragments into one descriptive link.", "links"],
-    "adjacent-links": ["Links", "review", "Check the adjacent links", "Two links appear directly beside each other without meaningful separating text. They may look like one link even though they point to different destinations.", "Check that each link has a distinct purpose and destination. If they should be one link, merge the linked text.", "links"],
+    "split-link": ["Links", "fix", "Merge the split link", "Text that should be one link has been split into multiple links. Screen readers announce each part as a separate link.", "Combine the linked text into one clear, descriptive link.", "links"],
+    "adjacent-links": ["Links", "review", "Check the adjacent links", "Two links are directly beside each other with no clear separation. They may look like one link, even though they go to different places.", "If they should be one link, combine the linked text into a single link. If they should go to different places, make sure each link is clearly separate.", "links"],
     "file-link-type-mismatch": ["Links", "fix", "Correct the file type in the link text", "The file type in the link text does not match the asset returned by the server.", "Update the type in the linked text or correct the asset.", "links"],
     "file-link-size-mismatch": ["Links", "check", "Correct the file size in the link text", "The file size in the link text does not match the size returned by the server.", "Update the displayed file size after confirming the linked asset is the intended file.", "links"],
     "punctuation-only-link": ["Links", "fix", "Remove the punctuation-only link", "A link made only from punctuation has no useful purpose when it is read on its own.", "Move the punctuation outside the link, or include it in the neighbouring descriptive link if both go to the same destination.", "links"],
@@ -1830,6 +1830,9 @@
         why: rule[3],
         suggestion: detail || rule[4],
         evidence: evidencePrefix + matchedEvidence.text,
+        evidenceLines: Array.isArray(meta.evidenceLines)
+          ? meta.evidenceLines.map(line => String(line || "")).filter(Boolean)
+          : [],
         selector: cssPath(element),
         selectors: Array.isArray(meta.selectors) ? Array.from(new Set(meta.selectors.filter(Boolean))) : [],
         editorRegion,
@@ -2508,13 +2511,20 @@
         return !fragment.querySelector("br,hr,p,div,section,article,aside,ul,ol,table,form,details");
       } catch (_) { return false; }
     };
+    const linkEvidenceText = link => normalizeSpace(link.textContent || "") || "[No link text]";
     const finishSplitLinkGroup = group => {
       if (group.length < 2) return;
-      const combined = normalizeSpace(group.map(link => link.textContent || "").join(""));
+      const linkTexts = group.map(linkEvidenceText);
+      const combined = normalizeSpace(linkTexts.filter(text => text !== "[No link text]").join(" "));
       if (!combined) return;
+      const destination = exactResolvedLink(group[0]);
       group.forEach(link => splitLinkMembers.add(link));
-      add("split-link", group[0], `${combined} → ${exactResolvedLink(group[0])}`, null, {
-        selectors: group.map(cssPath)
+      add("split-link", group[0], `${combined} → ${destination}`, null, {
+        selectors: group.map(cssPath),
+        evidenceLines: [
+          combined,
+          ...linkTexts.map((text, index) => `Link ${index + 1}: ${text}`)
+        ]
       });
     };
     let splitGroup = [];
@@ -2547,8 +2557,14 @@
       if (!adjacent) return;
 
       if (exactResolvedLink(link) !== exactResolvedLink(next)) {
+        const linkText = linkEvidenceText(link);
+        const nextText = linkEvidenceText(next);
+        const firstDestination = exactResolvedLink(link);
+        const secondDestination = exactResolvedLink(next);
         const combinedText = normalizeSpace(
-          `${link.textContent || ""} ${next.textContent || ""}`
+          [linkText, nextText]
+            .filter(text => text !== "[No link text]")
+            .join(" ")
         );
         adjacentLinkMembers.add(link);
         adjacentLinkMembers.add(next);
@@ -2556,10 +2572,15 @@
         add(
           "adjacent-links",
           link,
-          `${combinedText} → ${exactResolvedLink(link)} | ${exactResolvedLink(next)}`,
+          `${combinedText} → ${firstDestination} | ${secondDestination}`,
           null,
           {
-            selectors: [cssPath(link), cssPath(next)]
+            selectors: [cssPath(link), cssPath(next)],
+            evidenceLines: [
+              combinedText,
+              `Link 1: ${linkText} → ${firstDestination}`,
+              `Link 2: ${nextText} → ${secondDestination}`
+            ]
           }
         );
       }
