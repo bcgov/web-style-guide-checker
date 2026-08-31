@@ -85,6 +85,7 @@
     "file-link-size-spacing": ["Links", "fix", "Remove the space in the file size", "File sizes use no space between the number and unit.", "Remove the space between the number and unit, such as changing ‘271 KB’ to ‘271KB’.", "links"],
     "link-trailing-space": ["Links", "fix", "Remove the trailing space from the link", "A space at the end of linked text creates an unnecessarily large link area and can make editing less predictable.", "Remove the space at the end of the linked text.", "formatting"],
     "split-link": ["Links", "fix", "Merge the split link", "One readable link has been divided into separate links to the same destination. Screen readers announce each link separately.", "Merge the adjacent link fragments into one descriptive link.", "links"],
+    "adjacent-links": ["Links", "review", "Check the adjacent links", "Two links appear directly beside each other without meaningful separating text. They may look like one link even though they point to different destinations.", "Check that each link has a distinct purpose and destination. If they should be one link, merge the linked text.", "links"],
     "file-link-type-mismatch": ["Links", "fix", "Correct the file type in the link text", "The file type in the link text does not match the asset returned by the server.", "Update the type in the linked text or correct the asset.", "links"],
     "file-link-size-mismatch": ["Links", "check", "Correct the file size in the link text", "The file size in the link text does not match the size returned by the server.", "Update the displayed file size after confirming the linked asset is the intended file.", "links"],
     "punctuation-only-link": ["Links", "fix", "Remove the punctuation-only link", "A link made only from punctuation has no useful purpose when it is read on its own.", "Move the punctuation outside the link, or include it in the neighbouring descriptive link if both go to the same destination.", "links"],
@@ -710,30 +711,30 @@
     }
   }
 
-function detectProfile(url, requestedProfile) {
-  let hostname = "";
-  try {
-    hostname = new URL(url).hostname.toLowerCase();
-  } catch (_) {
-    hostname = "";
-  }
+  function detectProfile(url, requestedProfile) {
+    let hostname = "";
+    try {
+      hostname = new URL(url).hostname.toLowerCase();
+    } catch (_) {
+      hostname = "";
+    }
 
-  if (requestedProfile && requestedProfile !== "auto") {
-    return requestedProfile;
-  }
+    if (requestedProfile && requestedProfile !== "auto") {
+      return requestedProfile;
+    }
 
-  if ([
-    "www2.gov.bc.ca",
-    "www2.qa.gov.bc.ca",
-    "intranet.gov.bc.ca",
-    "intranet.qa.gov.bc.ca",
-    "cmslite.gov.bc.ca"
-  ].includes(hostname)) {
-    return "cms-lite";
-  }
+    if ([
+      "www2.gov.bc.ca",
+      "www2.qa.gov.bc.ca",
+      "intranet.gov.bc.ca",
+      "intranet.qa.gov.bc.ca",
+      "cmslite.gov.bc.ca"
+    ].includes(hostname)) {
+      return "cms-lite";
+    }
 
-  return "standard";
-}
+    return "standard";
+  }
 
   function profileLabel(profile) {
     return profile === "cms-lite" ? "CMS Lite" : "Standard website";
@@ -1299,48 +1300,48 @@ function detectProfile(url, requestedProfile) {
     return previous ? (previous.id || (previous.tagName === "A" ? previous.getAttribute("name") : "") || "") : "";
   }
 
-function fragmentTarget(doc, href) {
-  if (!href || href.charAt(0) !== "#" || href.length < 2) return null;
+  function fragmentTarget(doc, href) {
+    if (!href || href.charAt(0) !== "#" || href.length < 2) return null;
 
-  let value = href.slice(1);
-  try {
-    value = decodeURIComponent(value);
-  } catch (_) {}
-
-  // Normal published-page anchor
-  const byId = doc.getElementById(value);
-  if (byId) return byId;
-
-  const byName = Array.from(doc.querySelectorAll("a[name],[name]"))
-    .find(element => element.getAttribute("name") === value);
-
-  if (byName) return byName;
-
-  // CKEditor represents anchors as fake image elements while editing.
-  const ckeAnchors = Array.from(
-    doc.querySelectorAll(
-      "img.cke_anchor[data-cke-real-element-type='anchor'][data-cke-realelement]"
-    )
-  );
-
-  return ckeAnchors.find(anchor => {
+    let value = href.slice(1);
     try {
-      const realElement = decodeURIComponent(
-        anchor.getAttribute("data-cke-realelement") || ""
-      );
+      value = decodeURIComponent(value);
+    } catch (_) { }
 
-      const idMatch = realElement.match(/\bid=["']([^"']+)["']/i);
-      const nameMatch = realElement.match(/\bname=["']([^"']+)["']/i);
+    // Normal published-page anchor
+    const byId = doc.getElementById(value);
+    if (byId) return byId;
 
-      return (
-        (idMatch && idMatch[1] === value) ||
-        (nameMatch && nameMatch[1] === value)
-      );
-    } catch (_) {
-      return false;
-    }
-  }) || null;
-}
+    const byName = Array.from(doc.querySelectorAll("a[name],[name]"))
+      .find(element => element.getAttribute("name") === value);
+
+    if (byName) return byName;
+
+    // CKEditor represents anchors as fake image elements while editing.
+    const ckeAnchors = Array.from(
+      doc.querySelectorAll(
+        "img.cke_anchor[data-cke-real-element-type='anchor'][data-cke-realelement]"
+      )
+    );
+
+    return ckeAnchors.find(anchor => {
+      try {
+        const realElement = decodeURIComponent(
+          anchor.getAttribute("data-cke-realelement") || ""
+        );
+
+        const idMatch = realElement.match(/\bid=["']([^"']+)["']/i);
+        const nameMatch = realElement.match(/\bname=["']([^"']+)["']/i);
+
+        return (
+          (idMatch && idMatch[1] === value) ||
+          (nameMatch && nameMatch[1] === value)
+        );
+      } catch (_) {
+        return false;
+      }
+    }) || null;
+  }
 
   function headingForFragmentTarget(target) {
     if (!target) return null;
@@ -1583,29 +1584,29 @@ function fragmentTarget(doc, href) {
   }
 
   function headingHasStableAnchor(heading) {
-  if (!heading) return false;
+    if (!heading) return false;
 
-  // Standard published-page anchors
-  if (heading.id) return true;
-  if (heading.querySelector("[id],a[name]")) return true;
+    // Standard published-page anchors
+    if (heading.id) return true;
+    if (heading.querySelector("[id],a[name]")) return true;
 
-  // CKEditor represents anchors as fake image elements in editing mode
-  const ckeAnchor = heading.querySelector(
-    "img.cke_anchor[data-cke-real-element-type='anchor']"
-  );
+    // CKEditor represents anchors as fake image elements in editing mode
+    const ckeAnchor = heading.querySelector(
+      "img.cke_anchor[data-cke-real-element-type='anchor']"
+    );
 
-  if (ckeAnchor) return true;
+    if (ckeAnchor) return true;
 
-  const previous = heading.previousElementSibling;
+    const previous = heading.previousElementSibling;
 
-  return Boolean(
-    previous &&
-    (
-      previous.id ||
-      (previous.tagName === "A" && previous.getAttribute("name"))
-    )
-  );
-}
+    return Boolean(
+      previous &&
+      (
+        previous.id ||
+        (previous.tagName === "A" && previous.getAttribute("name"))
+      )
+    );
+  }
 
   function metadataDetails(doc) {
     const metaValue = (attribute, value) => {
@@ -1659,13 +1660,13 @@ function fragmentTarget(doc, href) {
     const images = Array.from(detailRoot.querySelectorAll("img"))
       .filter(image => includeDetail(image) && !isCmsLiteTemplateImage(image, profile))
       .slice(0, 300).map(image => ({
-      selector: cssPath(image),
-      pageOrder: pageOrder.get(image),
-      src: image.currentSrc || image.src || "",
-      alt: image.hasAttribute("alt") ? image.alt : "",
-      altState: !image.hasAttribute("alt") ? "missing" : (image.alt ? "provided" : "empty"),
-      linked: Boolean(image.closest("a"))
-    }));
+        selector: cssPath(image),
+        pageOrder: pageOrder.get(image),
+        src: image.currentSrc || image.src || "",
+        alt: image.hasAttribute("alt") ? image.alt : "",
+        altState: !image.hasAttribute("alt") ? "missing" : (image.alt ? "provided" : "empty"),
+        linked: Boolean(image.closest("a"))
+      }));
     const links = Array.from(detailRoot.querySelectorAll("a[href]")).filter(includeDetail).map(link => {
       const rawHref = link.getAttribute("href") || "";
       return {
@@ -2491,6 +2492,7 @@ function fragmentTarget(doc, href) {
 
     const links = Array.from(root.querySelectorAll("a[href]")).filter(inScanArea);
     const splitLinkMembers = new Set();
+    const adjacentLinkMembers = new Set();
     const exactResolvedLink = link => {
       try { return new URL(link.getAttribute("href") || "", pageUrl).href; } catch (_) { return link.getAttribute("href") || ""; }
     };
@@ -2532,16 +2534,56 @@ function fragmentTarget(doc, href) {
     });
     finishSplitLinkGroup(splitGroup);
 
+    links.forEach((link, index) => {
+      const next = links[index + 1];
+      if (!next) return;
+
+      const adjacent =
+        splitLinkEligible(link)
+        && splitLinkEligible(next)
+        && linkTextContainer(link) === linkTextContainer(next)
+        && hasOnlyInlineWhitespaceBetween(link, next);
+
+      if (!adjacent) return;
+
+      if (exactResolvedLink(link) !== exactResolvedLink(next)) {
+        const combinedText = normalizeSpace(
+          `${link.textContent || ""} ${next.textContent || ""}`
+        );
+        adjacentLinkMembers.add(link);
+        adjacentLinkMembers.add(next);
+
+        add(
+          "adjacent-links",
+          link,
+          `${combinedText} → ${exactResolvedLink(link)} | ${exactResolvedLink(next)}`,
+          null,
+          {
+            selectors: [cssPath(link), cssPath(next)]
+          }
+        );
+      }
+    });
+
     links.forEach(link => {
       const linkText = accessibleName(link);
       const href = link.getAttribute("href") || "";
       const absoluteHref = link.href || href;
       const finalTextNode = link.lastChild && link.lastChild.nodeType === 3 ? link.lastChild : null;
       const standaloneEmptyLink = !splitLinkMembers.has(link) && !linkText && !link.querySelector("img");
-      if (!standaloneEmptyLink && !splitLinkMembers.has(link) && !isButtonStyleLink(link) && finalTextNode && /[\t \u00a0\u2007\u202f]+$/.test(finalTextNode.nodeValue || "")) add("link-trailing-space", link, `${linkText} ⟦trailing space⟧`, null, {
-        matchText: "⟦trailing space⟧",
-        diagnostics: ["The extra space is inside the link and may not be visible on the published page."]
-      });
+      if (
+        !standaloneEmptyLink
+        && !splitLinkMembers.has(link)
+        && !adjacentLinkMembers.has(link)
+        && !isButtonStyleLink(link)
+        && finalTextNode
+        && /[\t \u00a0\u2007\u202f]+$/.test(finalTextNode.nodeValue || "")
+      ) {
+        add("link-trailing-space", link, `${linkText} ⟦trailing space⟧`, null, {
+          matchText: "⟦trailing space⟧",
+          diagnostics: ["The extra space is inside the link and may not be visible on the published page."]
+        });
+      }
       if (standaloneEmptyLink) {
         const nearbyLink = link.parentElement && Array.from(link.parentElement.querySelectorAll("a[href]"))
           .find(candidate => candidate !== link && accessibleName(candidate));
@@ -2608,8 +2650,16 @@ function fragmentTarget(doc, href) {
       }
       if (!standaloneEmptyLink) {
         const punctuationIssue = linkPunctuationIssue(linkText);
-        if (punctuationIssue === "punctuation-only") add("punctuation-only-link", link, linkText);
-        else if (punctuationIssue === "terminal") add("linked-period", link, linkText);
+
+        if (punctuationIssue === "punctuation-only") {
+          add("punctuation-only-link", link, linkText);
+        } else if (
+          punctuationIssue === "terminal"
+          && !splitLinkMembers.has(link)
+          && !adjacentLinkMembers.has(link)
+        ) {
+          add("linked-period", link, linkText);
+        }
       }
       if (href.startsWith("#") && href.length > 1) {
         const target = fragmentTarget(doc, href);
@@ -2749,7 +2799,7 @@ function fragmentTarget(doc, href) {
     Array.from(root.querySelectorAll("a[href],img[src],source[src]")).filter(inScanArea).forEach(element => {
       const value = element.href || element.currentSrc || element.src || element.getAttribute("href") || element.getAttribute("src") || "";
       let host = "";
-      try { host = new URL(value, pageUrl).hostname.toLowerCase(); } catch (_) {}
+      try { host = new URL(value, pageUrl).hostname.toLowerCase(); } catch (_) { }
       if (/^(?:staging|stage|dev)\./.test(host) || /\.staging\./.test(host)) add("staging-url", element, value);
     });
 
