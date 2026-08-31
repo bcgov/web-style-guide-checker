@@ -2337,6 +2337,54 @@ function highlightedEvidence(finding) {
   return `${escapeHtml(evidence.slice(0, index))}<mark>${escapeHtml(evidence.slice(index, index + match.length))}</mark>${escapeHtml(evidence.slice(index + match.length))}`;
 }
 
+function structuredEvidenceParts(finding) {
+  if (!Array.isArray(finding.evidenceLines) || !finding.evidenceLines.length) return null;
+  const [summary, ...lines] = finding.evidenceLines.map(line => String(line || ""));
+  const links = lines.map(line => {
+    const match = /^(Link \d+):\s*(.*)$/.exec(line);
+    if (!match) return { label: "", text: line, url: "" };
+    const body = match[2];
+    const arrowIndex = body.lastIndexOf(" → ");
+    const possibleUrl = arrowIndex >= 0 ? body.slice(arrowIndex + 3).trim() : "";
+    const hasUrl = /^https?:\/\//i.test(possibleUrl);
+    return {
+      label: match[1],
+      text: hasUrl ? body.slice(0, arrowIndex).trim() : body,
+      url: hasUrl ? possibleUrl : ""
+    };
+  });
+  return { summary, links };
+}
+
+function evidenceTextForExport(finding) {
+  const structured = structuredEvidenceParts(finding);
+  if (!structured) return String(finding.evidence || "");
+  const lines = [structured.summary];
+  if (structured.links.length) lines.push("");
+  structured.links.forEach(link => {
+    lines.push(link.label ? `${link.label}: ${link.text}` : link.text);
+    if (link.url) lines.push(link.url);
+  });
+  return lines.join("\n");
+}
+
+function renderedEvidence(finding) {
+  const structured = structuredEvidenceParts(finding);
+  if (structured) {
+    const links = structured.links.map((link, index) => `
+      <div style="${index ? "margin-top:0.8rem;" : ""} min-width:0;">
+        ${link.label ? `<div style="font-weight:600;">${escapeHtml(link.label)}</div>` : ""}
+        <div style="white-space:normal; overflow-wrap:anywhere; word-break:break-word; min-width:0; max-width:100%;">${escapeHtml(link.text)}</div>
+        ${link.url ? `<div style="margin-top:0.15rem; color:#4a5568; white-space:normal; overflow-wrap:anywhere; word-break:break-word; min-width:0; max-width:100%;">${escapeHtml(link.url)}</div>` : ""}
+      </div>`).join("");
+    return `<div class="evidence" style="overflow-wrap:anywhere; min-width:0;">
+      <div style="white-space:normal; overflow-wrap:anywhere; word-break:break-word;">${escapeHtml(structured.summary)}</div>
+      ${links ? `<div style="border-top:1px solid #d6dbe1; margin-top:0.7rem; padding-top:0.7rem;">${links}</div>` : ""}
+    </div>`;
+  }
+  return `<p class="evidence" style="overflow-wrap:anywhere; min-width:0;">${highlightedEvidence(finding)}</p>`;
+}
+
 function editorDataAttributes(item) {
   const textareaId = normalizeSpace(item && item.editorSource && item.editorSource.textareaId);
   return `data-editor-region="${Number(item && item.editorRegion) || ""}" data-editor-id="${escapeHtml(textareaId)}"`;
@@ -2362,7 +2410,7 @@ function renderFinding(finding) {
       ${finding.location ? `<p class="finding-location"><strong>Where on the page:</strong> ${escapeHtml(finding.location)}</p>` : ""}
       ${finding.matchText || finding.flaggedToken ? `<p class="match-callout"><strong>Flagged wording:</strong> <mark>${escapeHtml(finding.matchText || finding.flaggedToken)}</mark>${finding.replacement ? ` → ${escapeHtml(finding.replacement)}` : ""}</p>` : ""}
       ${finding.exceptionEligible && finding.proposedPhrase && finding.proposedPhrase !== finding.flaggedToken ? `<p class="term-context"><strong>Exact-term option:</strong> “${escapeHtml(finding.proposedPhrase)}”</p>` : ""}
-      ${finding.evidence ? `<div><strong>Evidence</strong><p class="evidence">${highlightedEvidence(finding)}</p></div>` : ""}
+      ${finding.evidence ? `<div><strong>Evidence</strong>${renderedEvidence(finding)}</div>` : ""}
       ${finding.suggestedTarget ? `<p class="target-suggestion"><strong>Suggested target:</strong> <code>${escapeHtml(finding.suggestedTarget)}</code></p>` : ""}
       ${finding.diagnostics && finding.diagnostics.length ? `<div class="finding-diagnostics"><strong>What does not match</strong><ul>${finding.diagnostics.map(item => `<li>${escapeHtml(item)}</li>`).join("")}</ul></div>` : ""}
       ${finding.occurrenceCount > 1 ? `<p class="occurrences">${finding.occurrenceCount} identical occurrences</p>` : ""}
@@ -4406,7 +4454,7 @@ function detailedFindingsText(report, includeReviewed) {
     const note = auditNote(finding);
     lines.push(`${index + 1}. ${finding.title} — ${sentenceLabel(finding.severity)} · ${sentenceLabel(effectiveStatus(finding))}`);
     lines.push(`   Where: ${finding.location || "Page"}`);
-    lines.push(`   Evidence: ${finding.evidence || ""}`);
+    lines.push(`   Evidence: ${evidenceTextForExport(finding).replace(/\n/g, "\n             ")}`);
     if (findingOccurrences(finding) > 1) lines.push(`   Occurrences: ${findingOccurrences(finding)}`);
     if (finding.flaggedToken || finding.matchText) lines.push(`   Flagged wording: ${finding.flaggedToken || finding.matchText}`);
     lines.push(`   What to do: ${finding.suggestion}`);
@@ -4437,7 +4485,7 @@ function findingDetailRows(report, includeReviewed, submittedUrl, pageNumber) {
     return [
       `${prefix}-F${String(index + 1).padStart(3, "0")}`, report.page.title, report.page.url || submittedUrl,
       finding.location || "Page", findingArea(finding), finding.category, finding.title, sentenceLabel(finding.severity),
-      sentenceLabel(effectiveStatus(finding)), finding.evidence || "", finding.flaggedToken || finding.matchText || "",
+      sentenceLabel(effectiveStatus(finding)), evidenceTextForExport(finding), finding.flaggedToken || finding.matchText || "",
       finding.suggestion, finding.why, note.important ? "Yes" : "", note.text || "", finding.sourceUrl, finding.ruleId, findingOccurrences(finding)
     ];
   });
@@ -4450,7 +4498,7 @@ function issueSummaryRows(report, includeReviewed) {
     .map(group => [
     group.finding.title, findingArea(group.finding), group.finding.category, sentenceLabel(group.finding.severity), sentenceLabel(group.status),
     group.occurrenceCount, Array.from(new Set(group.items.map(item => item.location || "Page"))).join("; "),
-    group.items[0] ? group.items[0].evidence : "", group.finding.suggestion, group.finding.sourceUrl, group.finding.ruleId
+    group.items[0] ? evidenceTextForExport(group.items[0]) : "", group.finding.suggestion, group.finding.sourceUrl, group.finding.ruleId
   ]);
 }
 
@@ -4591,13 +4639,15 @@ function normalizeSheetRows(sheet) {
 function estimatedWorkbookRowHeight(row, widths) {
   const kind = row.kind || "body";
   const base = kind === "title" ? 30 : kind === "section" ? 22 : kind === "header" ? 26 : 18;
+  const hasExplicitLineBreaks = (row.values || []).some(cell => /\r?\n/.test(String(cell ?? "")));
   const maxLines = (row.values || []).reduce((max, cell, index) => {
     const width = Math.max(8, Number(widths[index]) || 12);
     const lines = String(cell ?? "").split(/\r?\n/).reduce((total, line) => total + Math.max(1, Math.ceil(line.length / Math.max(8, width - 1))), 0);
     return Math.max(max, lines);
   }, 1);
-  const cap = kind === "note" ? 4 : kind === "title" ? 2 : kind === "header" || kind === "section" ? 2 : 3;
-  return Math.max(base, Math.min(kind === "note" ? 72 : 54, 18 * Math.min(maxLines, cap)));
+  const cap = kind === "note" ? 4 : kind === "title" ? 2 : kind === "header" || kind === "section" ? 2 : hasExplicitLineBreaks ? 7 : 3;
+  const maximum = kind === "note" ? 72 : hasExplicitLineBreaks ? 126 : 54;
+  return Math.max(base, Math.min(maximum, 18 * Math.min(maxLines, cap)));
 }
 
 function worksheetHyperlinks(sheet) {
