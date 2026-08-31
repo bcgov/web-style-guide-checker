@@ -54,14 +54,15 @@ Use **Open full-page review** for a wider workspace. The larger workspace also c
 
 The extension recognizes these sites as CMS Lite:
 
+- `cmslite.gov.bc.ca`
 - `www2.gov.bc.ca`
 - `www2.qa.gov.bc.ca`
 - `intranet.gov.bc.ca`
 - `intranet.qa.gov.bc.ca`
 
-A CMS Lite content scan reviews the page title and authored page content. It also includes supported authored accordions, alerts, right-column and supplemental components that are present in the published page markup, including collapsed accordion content. Shared navigation, footer, breadcrumbs and generated template components are excluded. The delivered template and code can be included from **More scan options**.
+On published and QA pages, a CMS Lite content scan reviews the page title and authored page content. It also includes supported authored accordions, alerts, right-column and supplemental components that are present in the published page markup, including collapsed accordion content. Shared navigation, footer, breadcrumbs and generated template components are excluded. The delivered template and code can be included from **More scan options**.
 
-CMS Lite editing screens are outside this release. Review the published or QA page for the complete page check.
+On `cmslite.gov.bc.ca` editing screens, the checker scans non-empty CKEditor fields instead of the surrounding CMS interface. Findings identify the CMS Lite tab, repeated component when applicable and field, such as **Topic → Body** or **Alerts → Alert 1 → Message**. **Show on page** opens the matching CMS Lite tab and collapsed component before scrolling to and highlighting the editor. A published or QA scan is still useful for checks that depend on the final rendered page.
 
 ## Allowed terms
 
@@ -108,6 +109,7 @@ Link and asset checks contact destination websites directly without browser cook
 
 - `manifest.json` — extension metadata and permissions
 - `checker-core.js` — page extraction and review rules
+- `cms-lite-editor.js` — CMS Lite editor field mapping and reveal behaviour
 - `sidepanel.html`, `sidepanel.css`, `sidepanel.js` — side panel and full-page workspace
 - `background.js` — extension startup and side-panel behaviour
 - `fonts/` — bundled BC Sans files and font licence

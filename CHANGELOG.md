@@ -2,6 +2,12 @@
 
 All notable public changes to the B.C. Web Style Guide Checker will be recorded here.
 
+## Unreleased
+
+- Replaced unstable CMS Lite editor-region numbers with semantic locations such as **Topic → Body** and **Alerts → Alert 1 → Message**
+- Made **Show on page** activate the correct CMS Lite tab, expand the matching component when needed and locate the CKEditor field by its source textarea rather than its position in the page
+- Kept numeric editor regions only as a fallback for older saved reports
+
 ## 1.3.0 — 2026-08-27
 
 - Hardened sentence parsing for `B.C.'s`, `e.g.`, `i.e.` and decimal file sizes so sentence, paragraph, list and reading-level checks share more reliable boundaries
