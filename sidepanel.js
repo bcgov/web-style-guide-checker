@@ -687,7 +687,7 @@ async function syncActiveTab() {
 async function injectScanner(tabId, options) {
   await chrome.scripting.executeScript({
     target: { tabId },
-    files: ["checker-core.js"]
+    files: ["checker-core.js", "cms-lite-editor.js"]
   });
 
   const results = await chrome.scripting.executeScript({
@@ -734,9 +734,18 @@ async function injectScanner(tabId, options) {
         }
       };
 
+      const cmsEditor = globalThis.BCWebStyleGuideCmsLite;
+
+      if (!cmsEditor) {
+        return {
+          error: "CMS Lite editor support could not be loaded."
+        };
+      }
+
       const frameReports = editorFrames
         .map((frame, index) => {
           const frameDocument = frame.contentDocument;
+          const editorSource = cmsEditor.describeEditorFrame(frame, index);
 
           const frameBody =
             frameDocument?.querySelector("body.cke_editable");
@@ -771,6 +780,7 @@ async function injectScanner(tabId, options) {
             );
 
           report.editorRegion = index + 1;
+          report.editorSource = editorSource;
 
           return report;
         })
@@ -878,6 +888,9 @@ async function injectScanner(tabId, options) {
             editorRegion:
               report.editorRegion,
 
+            editorSource:
+              report.editorSource,
+
             pageOrder:
               combinedPageOrder(
                 finding.pageOrder,
@@ -885,12 +898,9 @@ async function injectScanner(tabId, options) {
               ),
 
             location:
-              `Editor region ${report.editorRegion}` +
-              (
-                finding.location &&
-                finding.location !== "Page"
-                  ? ` · ${finding.location}`
-                  : ""
+              cmsEditor.locationFor(
+                report.editorSource,
+                finding.location
               )
           }))
       );
@@ -935,11 +945,11 @@ async function injectScanner(tabId, options) {
       };
 
       /*
-       * Preserve the editor region on Page details items.
+       * Preserve the semantic editor source on Page details items.
        *
        * Selectors generated inside separate CKEditor documents can be
-       * identical, so the editor region is required later when the user
-       * selects "Show on page".
+       * identical. The source textarea is the stable locator; editorRegion
+       * remains as a fallback for saved reports created before this mapping.
        */
       frameReports.forEach(report => {
         const details =
@@ -951,6 +961,13 @@ async function injectScanner(tabId, options) {
               ...item,
               editorRegion:
                 report.editorRegion,
+              editorSource:
+                report.editorSource,
+              location:
+                cmsEditor.locationFor(
+                  report.editorSource,
+                  item.location
+                ),
               pageOrder:
                 combinedPageOrder(
                   item.pageOrder,
@@ -966,6 +983,13 @@ async function injectScanner(tabId, options) {
               ...item,
               editorRegion:
                 report.editorRegion,
+              editorSource:
+                report.editorSource,
+              location:
+                cmsEditor.locationFor(
+                  report.editorSource,
+                  item.location
+                ),
               pageOrder:
                 combinedPageOrder(
                   item.pageOrder,
@@ -987,6 +1011,13 @@ async function injectScanner(tabId, options) {
                   : item.rawHref,
               editorRegion:
                 report.editorRegion,
+              editorSource:
+                report.editorSource,
+              location:
+                cmsEditor.locationFor(
+                  report.editorSource,
+                  item.location
+                ),
               pageOrder:
                 combinedPageOrder(
                   item.pageOrder,
@@ -1065,7 +1096,7 @@ async function injectScanner(tabId, options) {
           scope: "content",
           editorMode: true,
           rootSelector:
-            "CMS Lite editor regions"
+            "CMS Lite editable fields"
         },
 
         stats: {
@@ -1077,7 +1108,7 @@ async function injectScanner(tabId, options) {
           // scanned and then combined.
           readingGrade: null,
 
-          root: "CKEditor regions"
+          root: "CKEditor fields"
         },
 
         severityCounts,
@@ -1085,9 +1116,9 @@ async function injectScanner(tabId, options) {
         issues,
 
         /*
-         * Preserve editorRegion here too. Asset verification happens
-         * after the initial scan, so document-link findings created
-         * later still need to know which editor contains the asset.
+         * Preserve semantic editor source here too. Asset verification
+         * happens after the initial scan, so findings created later still
+         * need a stable route back to the originating CMS Lite field.
          */
         assets: frameReports.flatMap(
           report =>
@@ -1095,7 +1126,14 @@ async function injectScanner(tabId, options) {
               asset => ({
                 ...asset,
                 editorRegion:
-                  report.editorRegion
+                  report.editorRegion,
+                editorSource:
+                  report.editorSource,
+                location:
+                  cmsEditor.locationFor(
+                    report.editorSource,
+                    asset.location
+                  )
               })
             )
         ),
@@ -1103,7 +1141,7 @@ async function injectScanner(tabId, options) {
         pageDetails: combinedDetails,
 
         notes:
-          `Scanned ${frameReports.length} CMS Lite editor region` +
+          `Scanned ${frameReports.length} CMS Lite editable field` +
           `${
             frameReports.length === 1
               ? ""
@@ -1162,16 +1200,21 @@ function displayBytes(value) {
   return `${Math.max(0.1, value / 1024).toFixed(1).replace(/\.0$/, "")}KB`;
 }
 
+function editorSourceKey(item) {
+  const source = item && item.editorSource;
+  return normalizeSpace(source && (source.editorKey || source.textareaId)) ||
+    (Number(item && item.editorRegion) ? `region:${Number(item.editorRegion)}` : "");
+}
+
 function appendUniqueFinding(report, finding) {
   if (!finding) return;
 
-  const findingRegion =
-    Number(finding.editorRegion) || null;
+  const findingEditorKey = editorSourceKey(finding);
 
   const duplicate = report.issues.some(item =>
     item.ruleId === finding.ruleId &&
     item.selector === finding.selector &&
-    (Number(item.editorRegion) || null) === findingRegion
+    editorSourceKey(item) === findingEditorKey
   );
 
   if (duplicate) return;
@@ -1188,7 +1231,7 @@ function appendUniqueFinding(report, finding) {
       ...(details.links || [])
     ].find(item =>
       item.selector === finding.selector &&
-      (Number(item.editorRegion) || null) === findingRegion &&
+      editorSourceKey(item) === findingEditorKey &&
       Number.isFinite(item.pageOrder)
     );
 
@@ -1464,6 +1507,12 @@ async function verifyOneAsset(report, asset) {
               Number(asset.editorRegion) ||
               null,
 
+            editorSource:
+              asset.editorSource || null,
+
+            location:
+              asset.location || "Page",
+
             evidence:
               `${asset.text || asset.href} → ` +
               `${actualType}` +
@@ -1503,6 +1552,12 @@ async function verifyOneAsset(report, asset) {
             editorRegion:
               Number(asset.editorRegion) ||
               null,
+
+            editorSource:
+              asset.editorSource || null,
+
+            location:
+              asset.location || "Page",
 
             evidence:
               `Link says ${asset.declaredType}; ` +
@@ -1552,6 +1607,12 @@ async function verifyOneAsset(report, asset) {
               editorRegion:
                 Number(asset.editorRegion) ||
                 null,
+
+              editorSource:
+                asset.editorSource || null,
+
+              location:
+                asset.location || "Page",
 
               evidence:
                 `Link says ` +
@@ -1639,16 +1700,12 @@ function addHttpLinkFindings(report, results) {
     const editorRegion =
       Number(result.link.editorRegion) ||
       null;
-
+    const editorSource =
+      result.link.editorSource || null;
     const location =
-      editorRegion
-        ? `Editor region ${editorRegion}${
-            result.link.location &&
-            result.link.location !== "Page"
-              ? ` · ${result.link.location}`
-              : ""
-          }`
-        : result.link.location || "Page";
+      result.link.location ||
+      (editorSource && editorSource.location) ||
+      (editorRegion ? `Editor region ${editorRegion}` : "Page");
 
     if (result.status === "broken") {
       appendUniqueFinding(
@@ -1665,6 +1722,8 @@ function addHttpLinkFindings(report, results) {
                 result.link.selector,
 
               editorRegion,
+
+              editorSource,
 
               location,
 
@@ -1701,6 +1760,8 @@ function addHttpLinkFindings(report, results) {
                 result.link.selector,
 
               editorRegion,
+
+              editorSource,
 
               location,
 
@@ -2276,6 +2337,11 @@ function highlightedEvidence(finding) {
   return `${escapeHtml(evidence.slice(0, index))}<mark>${escapeHtml(evidence.slice(index, index + match.length))}</mark>${escapeHtml(evidence.slice(index + match.length))}`;
 }
 
+function editorDataAttributes(item) {
+  const textareaId = normalizeSpace(item && item.editorSource && item.editorSource.textareaId);
+  return `data-editor-region="${Number(item && item.editorRegion) || ""}" data-editor-id="${escapeHtml(textareaId)}"`;
+}
+
 function renderFinding(finding) {
   const status = effectiveStatus(finding);
   const canReview = status === "open";
@@ -2308,7 +2374,7 @@ function renderFinding(finding) {
             class="small-button locate-button"
              type="button"
              data-selector="${escapeHtml(finding.selector)}"
-             data-editor-region="${finding.editorRegion || ""}">
+             ${editorDataAttributes(finding)}>
              ${workspaceSurface ? "Show in source tab" : "Show again on page"}
 </button>` : ""}
           ${canReview ? `<button class="small-button decision-button resolve-button" type="button" data-status="resolved">Mark resolved</button><button class="small-button decision-button" type="button" data-status="ignored">Ignore finding</button>` : `<button class="small-button reopen-button" type="button">Reopen finding</button>`}
@@ -2460,7 +2526,13 @@ function renderGuidedReview(locate) {
   elements["next-issue-type"].tabIndex = hideIssueTypeShortcut ? -1 : 0;
   elements["next-issue-type"].textContent = hasNextType && !pageOrder ? "Skip to next issue type" : "Return to findings";
   if (locate && !workspaceSurface && elements["follow-page"].checked && finding.selector) {
-    highlightSelector(findingSelectors(finding), true, false, Number(finding.editorRegion) || null);
+    highlightSelector(
+      findingSelectors(finding),
+      true,
+      false,
+      finding.editorSource || null,
+      Number(finding.editorRegion) || null
+    );
   }
 }
 
@@ -2498,13 +2570,13 @@ function renderPageDetails(section = "overview") {
   const metadata = details.metadata || {};
   const cmsEditorMode = Boolean(report.settings && report.settings.editorMode);
   const metadataUnavailable = cmsEditorMode || metadata.unavailable === true;
-  const assetKey = (selector, editorRegion) => `${Number(editorRegion) || 0}|${selector || ""}`;
-  const assetBySelector = new Map((report.assets || []).map(asset => [assetKey(asset.selector, asset.editorRegion), asset]));
+  const assetKey = item => `${editorSourceKey(item)}|${item && item.selector ? item.selector : ""}`;
+  const assetBySelector = new Map((report.assets || []).map(asset => [assetKey(asset), asset]));
   const authoredHeadings = report.settings.profile === "cms-lite" ? details.headings.filter(heading => !heading.component) : details.headings;
   const generatedHeadings = report.settings.profile === "cms-lite" ? details.headings.filter(heading => heading.component) : [];
   const headingIssues = authoredHeadings.filter(heading => heading.flags && heading.flags.length).length;
   const open = report.issues.filter(finding => effectiveStatus(finding) === "open");
-  const headingRows = headings => headings.length ? headings.map(heading => `<li class="heading-outline-row heading-level-${heading.level}${heading.component ? " cms-generated-heading" : ""}"><button class="detail-jump" type="button" data-selector="${escapeHtml(heading.selector)}" data-editor-region="${heading.editorRegion || ""}"><span class="detail-level level-h${heading.level}">H${heading.level}</span><span class="heading-outline-text">${escapeHtml(heading.text)}</span>${(heading.flags || []).map(flag => `<span class="detail-flag">${escapeHtml(flag)}</span>`).join("")}</button></li>`).join("") : `<li class="detail-empty-row">No visible headings found.</li>`;
+  const headingRows = headings => headings.length ? headings.map(heading => `<li class="heading-outline-row heading-level-${heading.level}${heading.component ? " cms-generated-heading" : ""}"><button class="detail-jump" type="button" data-selector="${escapeHtml(heading.selector)}" ${editorDataAttributes(heading)}><span class="detail-level level-h${heading.level}">H${heading.level}</span><span class="heading-outline-text">${escapeHtml(heading.text)}</span>${(heading.flags || []).map(flag => `<span class="detail-flag">${escapeHtml(flag)}</span>`).join("")}</button></li>`).join("") : `<li class="detail-empty-row">No visible headings found.</li>`;
   const linkCheck = report.linkCheck || null;
   const couldNotVerify = linkCheck ? (linkCheck.permissionRequired || 0) + (linkCheck.restricted || 0) + (linkCheck.rateLimited || 0) + (linkCheck.unavailable || 0) + (linkCheck.redirects || 0) + (linkCheck.signInRequired || 0) : 0;
   const responseErrors = linkCheck ? (linkCheck.serverErrors || 0) + (linkCheck.clientErrors || 0) : 0;
@@ -2536,7 +2608,7 @@ function renderPageDetails(section = "overview") {
       <span class="link-destination">${escapeHtml(result.link.href)}</span>
       ${result.qaLive && result.checkedUrl ? `<span class="link-redirect">Checked live version: ${escapeHtml(result.checkedUrl)}</span>` : result.redirected && result.finalUrl && result.finalUrl !== result.link.href ? `<span class="link-redirect">Redirects to ${escapeHtml(result.finalUrl)}</span>` : ""}
       ${result.error ? `<span class="link-error">${escapeHtml(result.error)}</span>` : ""}
-      <div class="link-result-actions">${result.link.selector ? `<button class="button tertiary compact detail-jump" type="button" data-selector="${escapeHtml(result.link.selector)}" data-editor-region="${result.link.editorRegion || ""}">${workspaceSurface ? "Show in source tab" : "Show on page"}</button>` : ""}<button class="button tertiary compact open-background-link" type="button" data-url="${escapeHtml(result.link.href)}">Open in background</button></div>
+      <div class="link-result-actions">${result.link.selector ? `<button class="button tertiary compact detail-jump" type="button" data-selector="${escapeHtml(result.link.selector)}" ${editorDataAttributes(result.link)}>${workspaceSurface ? "Show in source tab" : "Show on page"}</button>` : ""}<button class="button tertiary compact open-background-link" type="button" data-url="${escapeHtml(result.link.href)}">Open in background</button></div>
     </li>`;
   const linkResultGroups = linkCheck && Array.isArray(linkCheck.results) ? resultPriority.map(status => {
     const results = linkCheck.results.filter(result => result.status === status);
@@ -2549,7 +2621,7 @@ function renderPageDetails(section = "overview") {
   if (section === "overview") {
     const brokenSummary = linkCheck ? `${linkCheck.broken || 0} broken · ${linkCheck.liveNotFound || 0} live versions not found · ${couldNotVerify} could not verify` : "Link check has not been run";
     const grade = cmsEditorMode
-      ? "Reading grade not combined across editor regions"
+      ? "Reading grade not combined across editable fields"
       : report.stats.readingGrade === null
         ? "Not enough prose"
         : `Estimated grade ${report.stats.readingGrade}`;
@@ -2573,7 +2645,7 @@ function renderPageDetails(section = "overview") {
   }
 
   if (section === "images") {
-    elements["page-details"].innerHTML = `${back}<h2>Images and alt text</h2><button class="button secondary" type="button" data-overlay="alts">Show alt text on page</button><ul class="detail-list">${details.images.length ? details.images.map(image => `<li><button class="detail-jump" type="button" data-selector="${escapeHtml(image.selector)}" data-editor-region="${image.editorRegion || ""}"><strong>${image.altState === "missing" ? "Missing alt attribute" : image.altState === "empty" ? "Empty alt (decorative)" : `Alt: ${escapeHtml(image.alt)}`}</strong><br><span class="component-note">${escapeHtml(image.src)}</span></button></li>`).join("") : `<li class="detail-empty-row">No visible images found.</li>`}</ul>`;
+    elements["page-details"].innerHTML = `${back}<h2>Images and alt text</h2><button class="button secondary" type="button" data-overlay="alts">Show alt text on page</button><ul class="detail-list">${details.images.length ? details.images.map(image => `<li><button class="detail-jump" type="button" data-selector="${escapeHtml(image.selector)}" ${editorDataAttributes(image)}><strong>${image.altState === "missing" ? "Missing alt attribute" : image.altState === "empty" ? "Empty alt (decorative)" : `Alt: ${escapeHtml(image.alt)}`}</strong><br><span class="component-note">${escapeHtml(image.src)}</span></button></li>`).join("") : `<li class="detail-empty-row">No visible images found.</li>`}</ul>`;
     return;
   }
 
@@ -2582,7 +2654,7 @@ function renderPageDetails(section = "overview") {
     const permissionHelp = linkCheck && linkCheck.state === "permission-denied"
       ? `<p class="detail-help permission-warning"><strong>No links were checked.</strong> Select “Allow access and check links” and approve the browser prompt.</p>`
       : `<p class="detail-help">Checks web links without using your browser sign-in. Links to www2.qa.gov.bc.ca are checked against the matching live www2.gov.bc.ca address. Same-origin redirects are followed automatically. Redirects to another website are followed when that website is included in the granted access; otherwise the final destination may remain unverified.</p>`;
-    elements["page-details"].innerHTML = `${back}<h2>Links and assets</h2><section class="link-check-panel"><div><strong>Check whether links work</strong><span>${linkCheckText}</span></div>${linkCheck ? `<progress class="link-check-progress" max="${Math.max(1, linkCheck.totalFound || 1)}" value="${linkCheck.completed || 0}">${linkCheck.completed || 0} of ${linkCheck.totalFound || 0}</progress>` : ""}<div class="link-check-actions">${state.linkCheckRunning ? `<button class="button secondary compact link-check-pause" type="button">${state.linkCheckPaused ? "Resume" : "Pause"}</button><button class="button tertiary compact link-check-stop" type="button">Stop</button>` : `<button class="button primary compact link-check-button" type="button">${linkCheckButtonLabel}</button>`}<button class="button secondary compact manage-permissions-button" type="button">Website access</button></div>${permissionHelp}</section>${linkCheck ? (linkResultGroups || `<div class="empty-state">No individual link results are available.</div>`) : `<div class="empty-state">Check the links to see each destination and its result.</div>`}<details class="detail-section"><summary>All page links (${details.links.length})</summary><ul class="detail-list">${details.links.length ? details.links.map(link => { const asset = assetBySelector.get(assetKey(link.selector, link.editorRegion)); const verification = asset ? ` · asset ${String(asset.verificationStatus || "not checked").replace(/-/g, " ")}${asset.actualSize ? ` · ${displayBytes(asset.actualSize)}` : ""}` : ""; return `<li><button class="detail-jump" type="button" data-selector="${escapeHtml(link.selector)}" data-editor-region="${link.editorRegion || ""}"><strong>${escapeHtml(link.text || "[No accessible name]")}</strong><br><span class="component-note">${escapeHtml(link.location || "Page content")} · ${escapeHtml(link.href)}${escapeHtml(verification)}</span></button></li>`; }).join("") : `<li class="detail-empty-row">No visible links found.</li>`}</ul></details>`;
+    elements["page-details"].innerHTML = `${back}<h2>Links and assets</h2><section class="link-check-panel"><div><strong>Check whether links work</strong><span>${linkCheckText}</span></div>${linkCheck ? `<progress class="link-check-progress" max="${Math.max(1, linkCheck.totalFound || 1)}" value="${linkCheck.completed || 0}">${linkCheck.completed || 0} of ${linkCheck.totalFound || 0}</progress>` : ""}<div class="link-check-actions">${state.linkCheckRunning ? `<button class="button secondary compact link-check-pause" type="button">${state.linkCheckPaused ? "Resume" : "Pause"}</button><button class="button tertiary compact link-check-stop" type="button">Stop</button>` : `<button class="button primary compact link-check-button" type="button">${linkCheckButtonLabel}</button>`}<button class="button secondary compact manage-permissions-button" type="button">Website access</button></div>${permissionHelp}</section>${linkCheck ? (linkResultGroups || `<div class="empty-state">No individual link results are available.</div>`) : `<div class="empty-state">Check the links to see each destination and its result.</div>`}<details class="detail-section"><summary>All page links (${details.links.length})</summary><ul class="detail-list">${details.links.length ? details.links.map(link => { const asset = assetBySelector.get(assetKey(link)); const verification = asset ? ` · asset ${String(asset.verificationStatus || "not checked").replace(/-/g, " ")}${asset.actualSize ? ` · ${displayBytes(asset.actualSize)}` : ""}` : ""; return `<li><button class="detail-jump" type="button" data-selector="${escapeHtml(link.selector)}" ${editorDataAttributes(link)}><strong>${escapeHtml(link.text || "[No accessible name]")}</strong><br><span class="component-note">${escapeHtml(link.location || "Page content")} · ${escapeHtml(link.href)}${escapeHtml(verification)}</span></button></li>`; }).join("") : `<li class="detail-empty-row">No visible links found.</li>`}</ul></details>`;
     return;
   }
 
@@ -2604,7 +2676,11 @@ function renderPageDetails(section = "overview") {
   elements["page-details"].innerHTML = `${back}<h2>Page overlays</h2><p class="hint">Use these temporary labels to understand the live page. Clear them when you finish.</p><div class="audit-tools"><button type="button" data-overlay="headings">Heading levels</button><button type="button" data-overlay="alts">Image alt text</button><button type="button" data-overlay="links">Link destinations</button><button type="button" data-overlay="clear">Clear overlays</button></div>`;
 }
 
-async function revealFindingElements(selectedSelectors, editorRegion = null) {
+async function revealFindingElements(
+  selectedSelectors,
+  editorSource = null,
+  editorRegion = null
+) {
   const editorFrames = Array.from(
     document.querySelectorAll("iframe.cke_wysiwyg_frame")
   );
@@ -2612,14 +2688,44 @@ async function revealFindingElements(selectedSelectors, editorRegion = null) {
   let editorFrame = null;
   let targetDocument = document;
 
-  if (editorRegion && editorFrames[editorRegion - 1]) {
-    editorFrame = editorFrames[editorRegion - 1];
+  if (
+    (editorSource && editorSource.textareaId) ||
+    Number(editorRegion) > 0
+  ) {
+    const cmsEditor = globalThis.BCWebStyleGuideCmsLite;
 
-    try {
-      targetDocument = editorFrame.contentDocument || document;
-    } catch (_) {
-      targetDocument = document;
-      editorFrame = null;
+    if (cmsEditor) {
+      const resolved = await cmsEditor.activateEditor(
+        document,
+        editorSource,
+        editorRegion
+      );
+
+      editorFrame = resolved && resolved.frame;
+
+      if (editorFrame) {
+        try {
+          targetDocument =
+            editorFrame.contentDocument || document;
+        } catch (_) {
+          targetDocument = document;
+          editorFrame = null;
+        }
+      }
+    } else if (
+      Number(editorRegion) > 0 &&
+      editorFrames[Number(editorRegion) - 1]
+    ) {
+      editorFrame =
+        editorFrames[Number(editorRegion) - 1];
+
+      try {
+        targetDocument =
+          editorFrame.contentDocument || document;
+      } catch (_) {
+        targetDocument = document;
+        editorFrame = null;
+      }
     }
   }
 
@@ -3023,6 +3129,7 @@ async function highlightSelector(
   selector,
   requireReport,
   activateTab = false,
+  editorSource = null,
   editorRegion = null
 ) {
   try {
@@ -3046,10 +3153,16 @@ async function highlightSelector(
 
     if (!selectors.length) return;
 
+    await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      files: ["cms-lite-editor.js"]
+    });
+
     const results = await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       args: [
         selectors,
+        editorSource || null,
         Number(editorRegion) || null
       ],
       func: revealFindingElements
@@ -3083,12 +3196,13 @@ function findingSelectors(finding) {
     : finding.selector;
 }
 
-function locateFinding(value, editorRegion = null) {
+function locateFinding(value, editorRegion = null, editorId = "") {
   if (value && typeof value === "object") {
     return highlightSelector(
       findingSelectors(value),
       true,
       workspaceSurface,
+      value.editorSource || (editorId ? { textareaId: editorId } : null),
       Number(value.editorRegion) || Number(editorRegion) || null
     );
   }
@@ -3097,6 +3211,7 @@ function locateFinding(value, editorRegion = null) {
     value,
     true,
     workspaceSurface,
+    editorId ? { textareaId: editorId } : null,
     Number(editorRegion) || null
   );
 }
@@ -3169,6 +3284,10 @@ async function runPageOverlay(mode) {
   const items = mode === "headings" ? report.pageDetails.headings : mode === "alts" ? report.pageDetails.images : report.pageDetails.links;
   await chrome.scripting.executeScript({
     target: { tabId: tab.id },
+    files: ["cms-lite-editor.js"]
+  });
+  await chrome.scripting.executeScript({
+    target: { tabId: tab.id },
     args: [mode, items],
     func: (overlayMode, overlayItems) => {
       if (typeof globalThis.__bcWsgOverlayCleanup === "function") globalThis.__bcWsgOverlayCleanup();
@@ -3178,7 +3297,26 @@ async function runPageOverlay(mode) {
       );
 
       const documentFor = item => {
+        const cmsEditor = globalThis.BCWebStyleGuideCmsLite;
         const editorRegion = Number(item && item.editorRegion) || 0;
+        const editorSource = item && item.editorSource;
+
+        if (cmsEditor && (editorSource || editorRegion)) {
+          const resolved = cmsEditor.findEditorFrame(
+            document,
+            editorSource || null,
+            editorRegion || null
+          );
+
+          if (resolved && resolved.frame) {
+            try {
+              return resolved.frame.contentDocument || document;
+            } catch (_) {
+              return document;
+            }
+          }
+        }
+
         if (!editorRegion || !editorFrames[editorRegion - 1]) return document;
         try {
           return editorFrames[editorRegion - 1].contentDocument || document;
@@ -4048,7 +4186,7 @@ function distinctSelectors(findings) {
           finding.id;
 
         return identity
-          ? `${Number(finding.editorRegion) || 0}|${identity}`
+          ? `${editorSourceKey(finding)}|${identity}`
           : "";
       })
       .filter(Boolean)
@@ -5683,7 +5821,8 @@ function handleFindingAction(event) {
 else if (button.classList.contains("locate-button")) {
   locateFinding(
     finding || button.dataset.selector,
-    Number(button.dataset.editorRegion) || null
+    Number(button.dataset.editorRegion) || null,
+    button.dataset.editorId || ""
   );
 }
   else if (button.classList.contains("decision-button")) setDecision(finding, button.dataset.status);
@@ -5807,7 +5946,13 @@ function bindEvents() {
   elements["follow-page"].addEventListener("change", () => {
     if (elements["follow-page"].checked && state.reviewMode === "detail") {
       const finding = guidedFindings()[state.guidedIndex];
-      if (finding && finding.selector) highlightSelector(findingSelectors(finding), true, false, Number(finding.editorRegion) || null);
+      if (finding && finding.selector) highlightSelector(
+        findingSelectors(finding),
+        true,
+        false,
+        finding.editorSource || null,
+        Number(finding.editorRegion) || null
+      );
     } else if (!elements["follow-page"].checked) clearFindingHighlight();
     persistReviewContext(state.activePageKey).catch(() => { });
   });
@@ -5821,7 +5966,11 @@ function bindEvents() {
     else if (button.classList.contains("link-check-pause")) toggleLinkCheckPause();
     else if (button.classList.contains("link-check-stop")) stopLinkCheck();
     else if (button.classList.contains("manage-permissions-button")) openPermissionDialog();
-    else if (button.classList.contains("detail-jump")) locateFinding(button.dataset.selector, Number(button.dataset.editorRegion) || null);
+    else if (button.classList.contains("detail-jump")) locateFinding(
+      button.dataset.selector,
+      Number(button.dataset.editorRegion) || null,
+      button.dataset.editorId || ""
+    );
     else if (button.classList.contains("open-background-link")) {
       persistReviewContext(state.activePageKey).catch(() => { });
       chrome.tabs.create({ url: button.dataset.url, active: false }).then(() => showToast("Destination opened in the background.")).catch(() => showToast("The destination could not be opened."));

@@ -17,7 +17,9 @@ A semicolon at the end of a list item generates two related findings:
 
 ### "Show on page" in editor mode
 
-"Show on page" does not currently locate/highlight findings correctly when scanning from CMS Lite editing mode.
+**Resolved August 28.** CMS Lite findings now retain the source textarea and semantic editor path instead of relying on WYSIWYG order. "Show on page" activates the matching tab, expands the relevant component and highlights the correct CKEditor field. Numeric editor regions remain as a fallback for older saved reports.
+
+Regression coverage includes repeated Alert components and a deliberately incorrect legacy region number to confirm the stable textarea locator takes priority.
 
 ### CMS Lite editor support
 
@@ -28,7 +30,9 @@ CMS Lite uses separate CKEditor iframes for the Intro and Body fields. Authored 
 **August 24** CMS Lite editor investigation: Confirmed Topic editing mode contains two accessible CKEditor iframes corresponding to Intro and Body. Both can be accessed from the outer document. Next step: test accessing these frames from the extension execution context, then investigate scanning the iframe contents rather than the outer CMS Lite interface.
 **August 26** Successfully got the browser extension to isolate CKEditor content fields and scan them without also scanning the surrounding CMS interface.
 
-Caught a glitch where the extension was scanning CKEditor's inernal iframe/document title or identifier. Added a condition to exclude this in sidepanel.js
+Caught a glitch where the extension was scanning CKEditor's internal iframe/document title or identifier. Added a condition to exclude this in sidepanel.js.
+
+**August 28** Added semantic CMS Lite editor mapping and navigation. Editor findings can now identify locations such as **Topic → Body** and **Alerts → Alert 1 → Message**, and "Show on page" can reveal findings from inactive tabs and collapsed repeated components.
 
 ## Ideas / enhancements
 
