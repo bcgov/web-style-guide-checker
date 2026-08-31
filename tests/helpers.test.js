@@ -167,4 +167,67 @@ const baseFinding = { ruleId: "bc-abbreviation", evidence: "BC residents", selec
 assert.equal(helpers.findingFingerprint("https://example.com/page#one", baseFinding), helpers.findingFingerprint("https://example.com/page#two", baseFinding));
 assert.notEqual(helpers.findingFingerprint("https://example.com/page", baseFinding), helpers.findingFingerprint("https://example.com/page", { ...baseFinding, evidence: "BC businesses" }));
 
+
+// v1.3 regression coverage
+assert.equal(helpers.sentences("Follow any of B.C.'s fire prohibitions and restrictions").length, 1);
+assert.equal(helpers.sentences("Read B.C.'s campfire regulations (PDF, 1.7MB) poster and continue.").length, 1);
+assert.equal(helpers.sentences("Use examples, e.g. a passport, when you apply. Another sentence follows.").length, 2);
+assert.equal(helpers.sentences("Use the form, i.e. the current application, when you apply.").length, 1);
+assert.equal(helpers.isLikelyTitleCase("1. Executive summary"), false);
+assert.equal(helpers.isLikelyTitleCase("2026 Tax Changes"), true);
+assert.equal(helpers.isValidTelHref("tel:+18442275422"), true);
+assert.equal(helpers.isValidTelHref("tel:+1-844-227-5422"), true);
+assert.equal(helpers.isValidTelHref("tel:+442071838750"), true);
+assert.equal(helpers.isValidTelHref("tel:911"), true);
+assert.equal(helpers.isValidTelHref("tel:*5555"), true);
+assert.equal(helpers.isValidTelHref("tel:18442275422"), false);
+assert.equal(helpers.assetLabel("Municipal Participation Map (2 MB)").status, "missing-type");
+assert.equal(helpers.assetLabel("Guide (PDF)").status, "missing-size");
+assert.equal(helpers.doubleSpaceOccurrences("One  two\u00a0\u00a0three").length, 2);
+assert.equal(helpers.isMeaninglessAlt("image"), true);
+assert.equal(helpers.isMeaninglessAlt("IMG_1234.jpg"), true);
+assert.equal(helpers.isMeaninglessAlt("Map of service regions"), false);
+assert.equal(helpers.sectionReadingThreshold({ words: 39, sentences: 4, grade: 15 }), null);
+assert.equal(helpers.sectionReadingThreshold({ words: 40, sentences: 2, grade: 11.9 }), null);
+assert.equal(helpers.sectionReadingThreshold({ words: 40, sentences: 2, grade: 12 }), 12);
+assert.equal(helpers.sectionReadingThreshold({ words: 74, sentences: 2, grade: 12 }), 12);
+assert.equal(helpers.sectionReadingThreshold({ words: 75, sentences: 2, grade: 9.9 }), null);
+assert.equal(helpers.sectionReadingThreshold({ words: 75, sentences: 2, grade: 10 }), 10);
+assert.equal(helpers.sectionReadingThreshold({ words: 90, sentences: 1, grade: 16 }), null);
+const pubicPageException = { id: "p-1", ruleId: "proofreading-pubic", phrase: "Pubic", domain: "example.com", page: "https://example.com/page" };
+assert.equal(helpers.exceptionMatches(pubicPageException, "proofreading-pubic", "pubic health", "example.com", "https://example.com/page#section"), true);
+assert.equal(helpers.exceptionMatches(pubicPageException, "proofreading-pubic", "pubic health", "example.com", "https://example.com/other"), false);
+
+
+// v1.3 testing-correction helper coverage
+const centredEvidence = helpers.excerptAroundMatch(
+  "Start text BCeID stays valid while a much later formal name uses BC Online for the service.",
+  "Start text BCeID stays valid while a much later formal name uses BC Online for the service.".indexOf("BC Online"),
+  "BC",
+  55
+);
+assert.equal(centredEvidence.text.slice(centredEvidence.matchIndex, centredEvidence.matchIndex + 2), "BC");
+assert.equal(centredEvidence.text.indexOf("BC Online"), centredEvidence.matchIndex);
+assert.equal(helpers.indexInsideUrl("Read https://example.com/and/or/index", "Read https://example.com/and/or/index".indexOf("and/or")), true);
+assert.equal(helpers.indexInsideUrl("Choose and/or apply", "Choose and/or apply".indexOf("and/or")), false);
+assert.equal(helpers.isWifiVariant("WIFI"), true);
+assert.equal(helpers.isWifiVariant("Wi-Fi"), false);
+[
+  "Monday-Friday", "9 am - 5 pm", "9:00 A.M. – 4:30 P.M.", "12 noon – 1:00 PM", "9 a.m. – noon", "midnight – 6:30 a.m.",
+  "May 1-June 2", "May 1-5", "2019-2020", "sections 3-5", "5%-10%", "5°C-10°C", "123 - 456"
+].forEach(value => assert.ok(helpers.rangeDashOccurrences(value).length, `Expected range: ${value}`));
+["2020-21", "1-800-663-7867", "2026-08-27", "Unit 5 - 123 Main St.", "Case 123 - 456", "192.168.1.1 - 192.168.1.2"].forEach(value => assert.equal(helpers.rangeDashOccurrences(value).length, 0, `Unexpected range: ${value}`));
+assert.equal(helpers.dashSeparatorOccurrences("Ferrets - Do not pet under any circumstances").length, 1);
+assert.equal(helpers.dashSeparatorOccurrences("Include a copy – if you cannot provide one").length, 1);
+assert.equal(helpers.dashSeparatorOccurrences("Mental Health Services – Northern Health").length, 0);
+assert.equal(helpers.dashSeparatorOccurrences("backyard Hen Form – Part A – Section 1").length, 0);
+assert.equal(helpers.dashSeparatorOccurrences("x - y = 3").length, 0);
+assert.equal(helpers.dashSeparatorOccurrences("Case 123 - 456").length, 0);
+assert.equal(helpers.dashSeparatorOccurrences("192.168.1.1 - 192.168.1.2").length, 0);
+assert.equal(helpers.dashSeparatorOccurrences("Mental Health Services - Northern Health").length, 1);
+for (const value of ["9:00 A.M. – 4:30 P.M.", "12 noon – 1:00 PM", "9 a.m. – noon", "midnight – 6:30 a.m."]) {
+  const ranges = helpers.rangeDashOccurrences(value);
+  assert.equal(helpers.dashSeparatorOccurrences(value, ranges).length, 0, `Time range must not fall through to dash-separator: ${value}`);
+}
+
 console.log("Helper tests passed");

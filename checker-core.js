@@ -3,6 +3,7 @@
 
   const SOURCES = {
     plain: ["Writing web content", "https://www2.gov.bc.ca/gov/content/governments/services-for-government/service-experience-digital-delivery/web-content-development-guides/web-style-guide/writing-guide/writing-web-content"],
+    plainLanguage: ["Plain language checklist", "https://www2.gov.bc.ca/gov/content/governments/services-for-government/service-experience-digital-delivery/web-content-development-guides/web-style-guide/writing-guide/plain-language"],
     grammar: ["Grammar, spelling and tone", "https://www2.gov.bc.ca/gov/content/governments/services-for-government/service-experience-digital-delivery/web-content-development-guides/web-style-guide/writing-guide/grammar-spelling-tone"],
     abbreviations: ["Abbreviations and acronyms", "https://www2.gov.bc.ca/gov/content/governments/services-for-government/service-experience-digital-delivery/web-content-development-guides/web-style-guide/writing-guide/abbreviations"],
     capitalization: ["Capitalization and names", "https://www2.gov.bc.ca/gov/content/governments/services-for-government/service-experience-digital-delivery/web-content-development-guides/web-style-guide/writing-guide/capitalization"],
@@ -33,19 +34,22 @@
     "heading-skip": ["Headings", "fix", "Put heading levels in order", "Heading levels must not skip a level.", "Change the heading level so the hierarchy moves one level at a time.", "headings"],
     "heading-deep": ["Headings", "check", "Avoid heading levels 5 and 6", "The guide recommends using H2 to H4 for page sections.", "Simplify the structure or move this heading to H4 or above.", "headings"],
     "heading-empty": ["Headings", "fix", "Add heading text", "Empty headings create confusing navigation for assistive technology.", "Remove the empty heading or give it descriptive text.", "headings"],
+    "heading-empty-sequence": ["Headings", "check", "Review the heading structure", "Several same-level headings appear one after another without meaningful content between them. This can create confusing heading navigation.", "Check whether these are intended as headings. Add meaningful content under each heading or use a more appropriate semantic structure.", "headings"],
     "heading-punctuation": ["Headings", "fix", "Remove punctuation from the heading", "Headings should not end in punctuation unless they are questions.", "Remove the ending punctuation.", "headings"],
-    "heading-dash": ["Headings", "check", "Rewrite the heading without a dash", "The guide says not to use hyphens, en dashes or em dashes to separate ideas in headings and page titles.", "Rewrite the heading as one clear phrase. Keep hyphens that form compound words, such as ‘long-term’.", "headings"],
+    "heading-dash": ["Headings", "fix", "Rewrite the heading without a dash", "The guide says not to use hyphens, en dashes or em dashes to separate ideas in headings and page titles.", "Rewrite the heading as one clear phrase. Keep hyphens that form compound words, such as ‘long-term’.", "headings"],
     "heading-parentheses": ["Headings", "check", "Check the parentheses in the heading", "Parentheses in headings and page titles are reserved for acronyms.", "Remove the parentheses or confirm they contain an acronym that helps the audience.", "headings"],
     "heading-colon-case": ["Headings", "check", "Capitalize after the colon", "When a heading uses a colon, the first word after it starts with a capital letter and the rest stays in sentence case.", "Capitalize the first word after the colon and review the rest of the heading for sentence case.", "headings"],
-    "heading-formatting": ["Headings", "fix", "Remove formatting from the heading", "Heading tags already provide the required emphasis.", "Remove bold, italic or underline formatting inside the heading.", "headings"],
+    "heading-formatting": ["Headings", "fix", "Remove formatting from the heading", "This heading contains additional bold, italic or underline markup inside the heading element. Normal heading styling applied by the website’s design is not flagged.", "Remove the additional formatting markup from inside the heading and let the heading style control its appearance.", "headings"],
     "heading-title-case": ["Headings", "review", "Check sentence case", "Headings and page titles should use sentence case, with capitals reserved for proper nouns and defined acronyms.", "Confirm each capitalized word is a proper noun or acronym; otherwise use lower case.", "headings"],
     "acronym-in-heading": ["Headings", "review", "Check the acronym in the heading", "Acronyms in headings and ‘On this page’ navigation should be familiar to the audience. Public-facing headings need the clearest wording.", "Use the full term when the acronym may be unclear to the intended audience.", "abbreviations"],
     "on-this-page-missing": ["Headings", "review", "Consider an ‘On this page’ section", "Pages with 3 or more H2 headings may be easier to navigate with an ‘On this page’ section.", "Add an H2 called ‘On this page’ with a bulleted list of links to the other H2 headings if it helps people scan.", "headings"],
     "on-this-page-format": ["Headings", "fix", "Fix the ‘On this page’ heading", "‘On this page’ should be an H2 and should not use a colon.", "Use the exact H2 text ‘On this page’.", "headings"],
     "on-this-page-links": ["Headings", "fix", "Match ‘On this page’ links to H2 headings", "The links should match the page’s H2 headings in text and order and should not target H3 or H4 headings.", "Update the link text, target or order to match the H2 headings.", "headings"],
-    "paragraph-long": ["Plain language", "check", "Break up the paragraph", "The guide recommends 5 sentences or fewer per paragraph.", "Keep one topic per paragraph and move a new topic into a new paragraph.", "plain"],
+    "paragraph-long": ["Plain language", "check", "Break up the paragraph", "The guide recommends 5 sentences or fewer per paragraph and short, focused content.", "Keep one topic per paragraph. Split unusually long paragraphs even when they contain 5 sentences or fewer.", "plainLanguage"],
     "sentence-long": ["Plain language", "check", "Shorten the sentence", "The guide recommends a maximum of 15 to 20 words per sentence.", "Split the sentence into single-subject sentences.", "plain"],
-    "reading-level": ["Plain language", "review", "Review the reading level", "The guide targets Grade 8. The checker raises this review finding at Grade 9 or higher.", "Simplify sentence structure and replace complex words where meaning allows. The displayed grade is an estimate.", "plain"],
+    "reading-level": ["Plain language", "review", "Review the reading level", "The guide targets Grade 8. The checker raises this review finding at Grade 9 or higher.", "Simplify sentence structure and replace complex words where meaning allows. The displayed grade is an estimate.", "plainLanguage"],
+    "section-reading-level": ["Plain language", "review", "Review the readability of this section", "The Web Style Guide recommends plain language and aims for Grade 8 or lower. This section may be harder to read than recommended.", "Look for complex sentences, unfamiliar words and information that can be simplified. The displayed grade is an estimate.", "plainLanguage"],
+    "section-heading-density": ["Plain language", "review", "Consider adding headings", "Long sections can be difficult to scan. The guide recommends clear, descriptive headings to identify sections of content.", "Add headings where they would help people scan and pick out the main points.", "plainLanguage"],
     "complex-phrase": ["Plain language", "check", "Consider a simpler phrase", "The guide recommends common, everyday words.", "Use the suggested plain-language wording when it preserves the intended meaning.", "plain"],
     "filler-phrase": ["Plain language", "check", "Cut unnecessary words", "Extra words make content slower to scan.", "Use the shorter wording suggested by the guide.", "plain"],
     "passive-voice": ["Plain language", "review", "Check for passive voice", "Passive wording can make it unclear who is responsible. The highlighted words may be only one passive part of an otherwise clear sentence.", "Name the person or organization doing the action when that improves clarity. For example, change ‘Applications can be sent by email’ to ‘Send applications by email.’", "grammar"],
@@ -66,7 +70,7 @@
     "grade-capitalization": ["Capitalization", "review", "Capitalize ‘Grade’ in education content", "Capitalize Grade when it comes before a number or letter in education-related content.", "Use ‘Grade’ when this refers to a school grade. Leave other meanings, such as a product grade or road slope, unchanged.", "capitalization"],
     "faq-content": ["Content design", "review", "Restructure FAQ content", "The guide recommends integrating answers under topic-based headings because FAQs are difficult to scan and maintain.", "Group the information by topic and replace question headings with descriptive headings.", "faq"],
     "generic-link": ["Links", "fix", "Write descriptive link text", "Link text needs to make sense without the surrounding sentence.", "Name the destination or task. For example, replace ‘Click here’ with ‘Apply for a fishing licence.’", "links"],
-    "empty-link": ["Links", "fix", "Give the link an accessible name", "A link without a name gives people no information about its destination.", "Add descriptive text or an accessible label.", "links"],
+    "empty-link": ["Links", "fix", "Remove or name the empty link", "This page contains a link with no visible or accessible name. People using a keyboard or screen reader may encounter the link without knowing where it goes.", "Remove the link if it is leftover markup, or give it descriptive link text if it is meant to be available.", "links"],
     "url-link-text": ["Links", "check", "Replace the URL with descriptive link text", "People scan links to understand where they lead.", "Use the destination name or the task someone can complete.", "links"],
     "long-link-text": ["Links", "review", "Shorten the link text", "The guide advises against linking long sentences or blocks of text.", "Link only the concise words that describe the destination.", "links"],
     "new-tab": ["Links", "review", "Confirm the link needs a new tab", "Links should open in the same tab by default. A new tab can make sense when preserving an in-progress task or secure session.", "Change the link setting so it opens in the same tab, unless a new tab helps someone keep an in-progress form or secure session open.", "links"],
@@ -74,10 +78,13 @@
     "email-link-text": ["Links", "fix", "Use the email address as link text", "The guide says an email link should display the email address.", "Use the full email address as the linked text.", "links"],
     "phone-unlinked": ["Links", "fix", "Link the phone number", "Phone numbers should be clickable.", "Wrap the number in a tel link using international dialling format.", "links"],
     "phone-link-format": ["Links", "fix", "Fix the phone link", "Telephone links should use international dialling format.", "Use a value such as tel:+1-250-555-0123.", "links"],
-    "file-link-label": ["Links", "fix", "Add the file type and size", "Document link text should tell people the file type and size before they open it. A type on its own, such as ‘(PDF)’, is not enough.", "Add a label such as ‘(PDF, 504KB)’ to the linked text.", "links"],
+    "file-link-label": ["Links", "fix", "Add the file type and size", "Document link text should tell people the file type and size before they open it.", "Add a label such as ‘(PDF, 504KB)’ to the linked text.", "links"],
+    "file-link-type": ["Links", "fix", "Add the file type", "The link already includes a file size, but people also need to know the file type before opening the document.", "Add the file type before the size, such as ‘(PDF, 2MB)’.", "links"],
+    "file-link-size": ["Links", "fix", "Add the file size", "The link already includes a file type, but people also need to know the file size before opening the document.", "Add the file size after the type, such as ‘(PDF, 504KB)’.", "links"],
     "file-link-label-format": ["Links", "fix", "Fix the file type and size label", "A document label needs a comma after the file type and no space between the size and unit.", "Use the format ‘(PDF, 159KB)’ or the equivalent for this file.", "links"],
     "file-link-size-spacing": ["Links", "fix", "Remove the space in the file size", "File sizes use no space between the number and unit.", "Remove the space between the number and unit, such as changing ‘271 KB’ to ‘271KB’.", "links"],
     "link-trailing-space": ["Links", "fix", "Remove the trailing space from the link", "A space at the end of linked text creates an unnecessarily large link area and can make editing less predictable.", "Remove the space at the end of the linked text.", "formatting"],
+    "split-link": ["Links", "fix", "Merge the split link", "One readable link has been divided into separate links to the same destination. Screen readers announce each link separately.", "Merge the adjacent link fragments into one descriptive link.", "links"],
     "file-link-type-mismatch": ["Links", "fix", "Correct the file type in the link text", "The file type in the link text does not match the asset returned by the server.", "Update the type in the linked text or correct the asset.", "links"],
     "file-link-size-mismatch": ["Links", "check", "Correct the file size in the link text", "The file size in the link text does not match the size returned by the server.", "Update the displayed file size after confirming the linked asset is the intended file.", "links"],
     "punctuation-only-link": ["Links", "fix", "Remove the punctuation-only link", "A link made only from punctuation has no useful purpose when it is read on its own.", "Move the punctuation outside the link, or include it in the neighbouring descriptive link if both go to the same destination.", "links"],
@@ -91,7 +98,8 @@
     "list-long": ["Lists", "review", "Consider grouping the list", "A list with more than 7 items can be harder to scan and remember.", "Group related items under clear headings or split the list into shorter lists when that helps people find what they need.", "lists"],
     "list-introduction": ["Lists", "check", "Introduce the list with a colon", "The guide says to introduce a list with a colon.", "Add a colon when the preceding sentence introduces this list, or confirm that the paragraph and list are separate.", "lists"],
     "list-multiple-sentences": ["Lists", "check", "Shorten the list item", "List items are easiest to scan when they contain one sentence. A second sentence may be necessary in some cases.", "Keep one main idea in the item, or confirm that the additional sentence is necessary.", "lists"],
-    "list-repetition": ["Lists", "review", "Remove repeated openings", "Repeated words at the start of list items delay the distinguishing information, especially for screen reader users.", "Move the unique information to the beginning of each item.", "lists"],
+    "list-repetition": ["Lists", "review", "Remove repeated openings", "Repeated words at the start of several list items can delay the distinguishing information, especially for screen reader users.", "Move the unique information to the beginning when the repeated opening is substantial enough to affect scanning.", "lists"],
+    "fake-list": ["Accessibility", "check", "Use a formatted list", "Content that looks like a list should use semantic list markup so browsers and assistive technology can identify its structure.", "Format these items as a bulleted or numbered list instead of typing bullet or dash characters into a text block.", "lists"],
     "table-headers": ["Tables", "fix", "Add table headers", "Tables need programmatic headers so people can understand the relationships in the data.", "Use th elements for row or column headings.", "tables"],
     "table-caption": ["Tables", "review", "Check the table has a useful caption", "A short caption can make the purpose of tabular data clearer.", "Add a concise caption when the surrounding heading does not already identify the table.", "tables"],
     "table-accordion": ["Tables", "fix", "Move the table out of the accordion", "The guide says never to use tables in accordions.", "Place the table in the main page content.", "formatting"],
@@ -118,14 +126,16 @@
     "semicolon": ["Punctuation", "fix", "Replace the semicolon", "The guide recommends 2 sentences instead of a semicolon.", "Split the sentence at the semicolon.", "punctuation"],
     "exclamation": ["Punctuation", "fix", "Remove the exclamation mark", "Government web content should use a calm, direct tone.", "Use a period or rewrite the sentence.", "punctuation"],
     "em-dash": ["Punctuation", "fix", "Replace the em dash", "The guide recommends shorter sentences instead of em dashes.", "Split the sentence or use commas when appropriate.", "punctuation"],
-    "range-dash": ["Punctuation", "check", "Use ‘to’ for the range", "Number, date and time ranges should use the word ‘to’ instead of a dash.", "Replace the dash with ‘to’, such as ‘May 15 to July 31’, unless this is a fiscal year.", "punctuation"],
+    "range-dash": ["Punctuation", "fix", "Use ‘to’ for the range", "Number, date and time ranges should use the word ‘to’ instead of a dash.", "Replace the dash with ‘to’, such as ‘May 15 to July 31’, unless this is a fiscal year.", "punctuation"],
     "slash": ["Punctuation", "check", "Replace the slash", "Slashes should be limited to URLs because forms such as ‘and/or’ can create ambiguity.", "Write the relationship explicitly.", "punctuation"],
+    "dash-separator": ["Punctuation", "check", "Replace the hyphen or dash separator", "The Web Style Guide says not to use em dashes (—). A hyphen (-) or en dash (–) is not a substitute for an em dash when it separates parts of a sentence.", "Rewrite the sentence as shorter sentences or use a comma where appropriate. If the first words are a short label, consider a colon.", "punctuation"],
+    "wifi-format": ["Punctuation", "check", "Write ‘Wi-Fi’", "Use the familiar form ‘Wi-Fi’ in ordinary prose. A different form may be intentional in a network name or formal product name.", "Change the wording to ‘Wi-Fi’ unless this is an exact network, product or formal name.", "punctuation"],
     "apostrophe-plural": ["Punctuation", "review", "Check the apostrophe in the plural", "Apostrophes do not normally form plurals. They may instead show possession or omitted digits.", "Remove the apostrophe when this is a plural. Keep it when it correctly shows possession or omitted digits.", "punctuation"],
     "double-space": ["Formatting", "fix", "Remove the extra space", "Use one space after a sentence.", "Replace consecutive spaces with one space.", "formatting"],
     "text-alignment": ["Formatting", "check", "Left-align the text", "Centred and right-aligned text is harder to read except in special cases such as table captions.", "Use left alignment for body content.", "formatting"],
     "bold-block": ["Formatting", "fix", "Remove unnecessary bold formatting", "Do not bold headings, links or large blocks of text.", "Use the correct heading style or reserve bold for short, selective emphasis.", "formatting"],
     "bold-link": ["Formatting", "fix", "Remove bold from the link", "The guide says hyperlinks should not be bolded.", "Remove bold formatting and let the link styling provide emphasis.", "formatting"],
-    "all-caps": ["Formatting", "fix", "Replace all-capital text", "Text written in all capitals is harder to read and can be interpreted as shouting.", "Use sentence case while preserving established acronyms and official names.", "formatting"],
+    "all-caps": ["Formatting", "fix", "Use lowercase instead of all caps", "The Web Style Guide says not to use all caps unless the word is an abbreviation or acronym.", "Use lower case or sentence case while preserving established abbreviations, acronyms and official names.", "formatting"],
     "at-symbol": ["Punctuation", "review", "Check the @ symbol", "Use @ for email addresses and established social-media handles.", "Write the relationship in words unless this is an email address or social-media handle.", "punctuation"],
     "italics": ["Formatting", "review", "Check the italic text", "The guide reserves italics for scientific names.", "Remove italics unless this is a scientific name.", "formatting"],
     "strikethrough": ["Formatting", "fix", "Remove strikethrough", "Strikethrough is difficult to read and may not be announced by screen readers.", "Delete outdated wording or rewrite the content.", "formatting"],
@@ -134,12 +144,16 @@
     "image-alt-empty": ["Accessibility", "review", "Confirm the image is decorative", "An empty alt attribute hides the image from assistive technology.", "Keep alt=\"\" only for a decorative image; otherwise describe its purpose.", "graphics"],
     "image-alt-length": ["Accessibility", "review", "Review the alternative text length", "The guide recommends concise alternative text and suggests staying under 15 words.", "Shorten the alternative text when the same purpose or information can be communicated more clearly.", "graphics"],
     "image-alt-prefix": ["Accessibility", "check", "Remove the redundant alt text opening", "Screen readers already announce an image, so alternative text does not need to begin with ‘image of’ or ‘photo of’.", "Start with the information or purpose communicated by the image.", "graphics"],
+    "image-alt-meaningless": ["Accessibility", "check", "Write meaningful alternative text", "Generic alternative text such as ‘image’ or a filename does not communicate the image’s purpose.", "Describe the useful information or purpose of the image, or use alt=\"\" when it is purely decorative.", "graphics"],
     "linked-image-alt": ["Accessibility", "fix", "Describe the linked image destination", "The alt text of a linked image should say where the link goes or what it does.", "Replace empty or filename-based alt text with the destination or action.", "graphics"],
     "form-label": ["Accessibility", "fix", "Label the form control", "People need a programmatic label to understand a form control.", "Associate a visible label or accessible name with the control.", "formatting"],
-    "contrast": ["Accessibility", "check", "Check the colour contrast", "Text needs sufficient contrast against its background.", "Adjust the foreground or background colour. Verify overlays and images with a dedicated contrast tool.", "contrast"]
+    "contrast": ["Accessibility", "check", "Check the colour contrast", "Text needs sufficient contrast against its background.", "Adjust the foreground or background colour. Verify overlays and images with a dedicated contrast tool.", "contrast"],
+    "proofreading-pubic": ["Proofreading", "check", "Check ‘pubic’", "‘Pubic’ is a valid anatomical word, but it is commonly typed when ‘public’ was intended in government content.", "Check whether you meant ‘public’. Keep ‘pubic’ if the anatomical wording is intentional.", "grammar"],
+    "proofreading-repeat": ["Proofreading", "check", "Check the repeated word", "Some repeated function words are common typing errors.", "Remove the duplicate word if it was not intentional.", "grammar"],
+    "moved-page-notice": ["Page information", "review", "Review the old moved-page notice", "A moved-content notice is usually temporary. If it remains long after the page was updated, people may still be reaching outdated content.", "Confirm whether the old page should now redirect to the replacement page, or update the notice if it still needs to remain available.", "plain"]
   };
 
-  const RULE_VERSION = "1.2.0";
+  const RULE_VERSION = "1.3.0";
 
   const BUILT_IN_TERMS = [
     "BC Public Service Agency",
@@ -150,6 +164,7 @@
     "BC Behavioural Insights Group",
     "BC Hydro",
     "BC Ferries",
+    "BC SPCA",
     "BC Transit",
     "BC Parks",
     "BC Housing",
@@ -168,6 +183,13 @@
     "Government House"
   ].sort((first, second) => second.length - first.length);
 
+  // Keep this deliberately small. These are ordinary English words that are
+  // commonly capitalized for emphasis and should not be treated as acronyms.
+  const COMMON_ALL_CAPS_WORDS = new Set([
+    "MUST", "NOT", "DO", "NEVER", "ONLY", "REQUIRED", "IMPORTANT", "ALWAYS",
+    "WARNING", "CAUTION", "CANNOT", "BEFORE", "AFTER", "DEADLINE", "APPLY"
+  ]);
+
   const EXCEPTION_ELIGIBLE_RULES = new Set([
     "bc-abbreviation",
     "undefined-acronym",
@@ -179,7 +201,8 @@
     "canadian-spelling-context",
     "academic-degree-case",
     "academic-title",
-    "acronym-in-heading"
+    "acronym-in-heading",
+    "proofreading-pubic"
   ]);
 
   const TEMPLATE_RULES = new Set([
@@ -198,7 +221,12 @@
     "footer",
     "[role='navigation']",
     "[class*='breadcrumb' i]",
-    "[class*='more-topics' i]"
+    "[class*='more-topics' i]",
+    "[class*='moretopics' i]",
+    "[class*='more_topics' i]",
+    "[id*='more-topics' i]",
+    "[id*='moretopics' i]",
+    "[id*='more_topics' i]"
   ].join(",");
 
   const CMS_LITE_COMPONENT_SELECTORS = [
@@ -290,16 +318,29 @@
   const SIMPLE_PHRASES = [
     ["a number of", "some, many or few"], ["approximately", "about"],
     ["aggregate", "total"], ["amongst", "among"], ["as a consequence of", "because"], ["assist", "help"],
-    ["collaborate", "work with"], ["concerning", "about"], ["disburse", "pay"], ["discontinue", "stop"],
+    ["assistance", "help"], ["collaborate", "work with"], ["concerning", "about"], ["disburse", "pay"], ["discontinue", "stop"],
     ["dispatch", "send"], ["documentation", "documents"], ["due to the fact", "because"],
     ["give consideration to", "think about or consider"], ["in accordance with", "in line with"],
     ["initiative", "program, project or plan"], ["in the absence of", "without"], ["in the event of", "if or when"],
     ["in relation to", "about"], ["is able to", "can"],
     ["it should be noted", "remember"], ["submit an application", "apply"], ["method", "way"],
     ["obtain", "get"], ["prior to", "before"], ["subsequently", "after"], ["utilize", "use"],
-    ["establish", "create, set up or form"], ["identify", "decide on or know"],
+    ["establish", "create, set up or form"], ["administer", "do"], ["identify", "decide on or know"],
     ["require", "need or must"], ["result in", "cause, make or lead to"], ["upon", "on"]
   ];
+
+  // Do not apply a generic stemmer to the whole simple-word dictionary. It
+  // mixes nouns, verbs and phrases, and some entries are context-sensitive.
+  // These controlled variants cover inflected forms of specific guide terms
+  // without turning unrelated words into matches.
+  const SIMPLE_PHRASE_VARIANTS = new Map([
+    ["assist", ["assist", "assists", "assisted", "assisting"]],
+    ["disburse", ["disburse", "disburses", "disbursed", "disbursing"]],
+    ["give consideration to", ["give consideration to", "gives consideration to", "gave consideration to", "given consideration to", "giving consideration to"]],
+    ["utilize", ["utilize", "utilizes", "utilized", "utilizing"]],
+    ["establish", ["establish", "establishes", "established", "establishing"]],
+    ["administer", ["administer", "administers", "administered", "administering"]]
+  ]);
 
   const FILLER_PHRASES = [
     ["and also", "and"], ["skills and abilities", "skills"], ["planning for the future", "planning"],
@@ -335,12 +376,23 @@
         const address = trailing ? match.slice(0, -trailing.length) : match;
         return protectPeriods(address) + trailing;
       })
-      .replace(/\b\d+\.\d+\b/g, protectPeriods)
-      .replace(/\b(?:Mr|Mrs|Ms|Dr|St|Mt|No)\./g, match => match.replace(".", placeholder));
+      .replace(/\b\d+\.\d+(?=\D|$)/g, protectPeriods)
+      .replace(/\b(?:Mr|Mrs|Ms|Dr|St|Mt|No)\./g, match => match.replace(".", placeholder))
+      .replace(/\b(?:Inc|Ltd|Corp)\./g, (suffix, offset, source) => {
+        const after = source.slice(offset + suffix.length);
+        const nextWord = (after.match(/^\s+([A-Za-zÀ-ÖØ-öø-ÿ][A-Za-zÀ-ÖØ-öø-ÿ’'-]*)/) || [])[1] || "";
+        if (!nextWord || commonSentenceStarters.has(nextWord.toLowerCase())) return suffix;
+        if (/^[a-zà-öø-ÿ]/.test(nextWord)) return suffix.replace(".", placeholder);
+        const titleLikeRemainder = !/[.!?]/.test(after);
+        return titleLikeRemainder ? suffix.replace(".", placeholder) : suffix;
+      });
     protectedText = protectedText.replace(/\b(?:[A-Za-z]\.){2,}/g, (initialism, offset, source) => {
       const after = source.slice(offset + initialism.length);
+      const normalizedInitialism = initialism.toLowerCase();
+      const isProtectedLatinAbbreviation = normalizedInitialism === "e.g." || normalizedInitialism === "i.e.";
+      const possessiveContinuation = /^[’']s\b/i.test(after);
       const nextWord = (after.match(/^\s+([A-Za-zÀ-ÖØ-öø-ÿ][A-Za-zÀ-ÖØ-öø-ÿ’'-]*)/) || [])[1] || "";
-      const finalPeriodIsBoundary = !nextWord || commonSentenceStarters.has(nextWord.toLowerCase());
+      const finalPeriodIsBoundary = !isProtectedLatinAbbreviation && !possessiveContinuation && (!nextWord || commonSentenceStarters.has(nextWord.toLowerCase()));
       return initialism.replace(/\./g, (period, periodOffset) => {
         const isFinal = periodOffset === initialism.length - 1;
         return isFinal && finalPeriodIsBoundary ? period : placeholder;
@@ -413,6 +465,132 @@
     return { dash, parentheses, colon };
   }
 
+  function isWifiVariant(value) {
+    return /^(?:WIFI|WiFi|Wifi|wifi)$/.test(String(value || ""));
+  }
+
+  function indexInsideUrl(value, index) {
+    const text = String(value || "");
+    const expression = /(?:https?:\/\/|www\.)\S+/gi;
+    let match;
+    while ((match = expression.exec(text))) {
+      if (index >= match.index && index < match.index + match[0].length) return true;
+    }
+    return false;
+  }
+
+  function isAddressLikeDash(value, dashIndex) {
+    const text = String(value || "");
+    const before = text.slice(Math.max(0, dashIndex - 60), dashIndex);
+    const after = text.slice(dashIndex + 1, dashIndex + 100);
+    const streetAfter = /^\s*\d+[A-Za-z]?\s+(?:(?:N|S|E|W)\.?\s+)?(?:[A-ZÀ-ÖØ-Þ0-9][A-Za-zÀ-ÖØ-öø-ÿ0-9’'.-]*\s+){0,5}(?:Street|St\.?|Road|Rd\.?|Avenue|Ave\.?|Boulevard|Blvd\.?|Drive|Dr\.?|Lane|Way|Crescent|Court|Place)\b/i.test(after);
+    if (!streetAfter) return false;
+    return /(?:\b(?:unit|suite|apt|apartment|room|building)\s+)?\d+[A-Za-z]?\s*$/i.test(before);
+  }
+
+  function isTechnicalDashContext(value, dashIndex) {
+    const text = String(value || "");
+    const before = text.slice(Math.max(0, dashIndex - 80), dashIndex);
+    const after = text.slice(dashIndex + 1, dashIndex + 81);
+    const ipAddress = /(?:\d{1,3}\.){2,3}\d{1,3}\s*$/.test(before) && /^\s*(?:\d{1,3}\.){2,3}\d{1,3}/.test(after);
+    if (ipAddress) return true;
+    return /\b(?:case|file|account|reference|ref|id|ticket|claim|application|permit)\s+\d+(?:\.\d+)?\s*$/i.test(before) && /^\s*\d+(?:\.\d+)?\b/.test(after);
+  }
+
+  function rangeDashOccurrences(value) {
+    const text = String(value || "");
+    const results = [];
+    const seen = new Set();
+    const fiscalYear = /\b\d{4}\s*[-–—]\s*\d{2}\b/g;
+    const fiscalRanges = [];
+    let fiscal;
+    while ((fiscal = fiscalYear.exec(text))) fiscalRanges.push({ start: fiscal.index, end: fiscal.index + fiscal[0].length });
+    const addMatches = expression => {
+      let match;
+      while ((match = expression.exec(text))) {
+        const dashOffset = match[0].search(/[-–—]/);
+        if (dashOffset < 0) continue;
+        const dashIndex = match.index + dashOffset;
+        if (fiscalRanges.some(range => dashIndex >= range.start && dashIndex < range.end)) continue;
+        if (results.some(result => result.dashIndex === dashIndex)) continue;
+        if (isAddressLikeDash(text, dashIndex)) continue;
+        if (isTechnicalDashContext(text, dashIndex)) continue;
+        const beforeMatch = text.slice(Math.max(0, match.index - 4), match.index);
+        const afterMatch = text.slice(match.index + match[0].length, match.index + match[0].length + 4);
+        if (/\$\s*$/.test(beforeMatch) || /^\s*\$/.test(afterMatch)) continue;
+        const key = `${match.index}:${match[0].length}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        results.push({
+          text: match[0],
+          index: match.index,
+          dashIndex,
+          replacement: match[0].replace(/\s*[-–—]\s*/, " to ")
+        });
+      }
+    };
+    const day = "(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|Mon|Tue|Tues|Wed|Thu|Thur|Thurs|Fri|Sat|Sun)";
+    const month = "(?:January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)";
+    addMatches(new RegExp(`\\b${day}\\s*[-–—]\\s*${day}\\b`, "gi"));
+    addMatches(new RegExp(`\\b${month}(?:\\s+\\d{1,2}(?:,?\\s+\\d{4})?)?\\s*[-–—]\\s*${month}(?:\\s+\\d{1,2}(?:,?\\s+\\d{4})?)?\\b`, "gi"));
+    addMatches(new RegExp(`\\b${month}\\s+\\d{1,2}\\s*[-–—]\\s*\\d{1,2}(?:,?\\s+\\d{4})?\\b`, "gi"));
+    const meridiem = "(?:a\\.?m\\.?|p\\.?m\\.?)";
+    const timeEndpoint = `(?:\\d{1,2}(?::\\d{2})?\\s*${meridiem}|(?:12(?::00)?\\s+)?(?:noon|midnight))`;
+    addMatches(new RegExp(`${timeEndpoint}\\s*[-–—]\\s*${timeEndpoint}`, "gi"));
+    addMatches(/\d+(?:\.\d+)?\s*%\s*[-–—]\s*\d+(?:\.\d+)?\s*%/g);
+    addMatches(/\b\d+(?:\.\d+)?\s*°C\s*[-–—]\s*\d+(?:\.\d+)?\s*°C\b/gi);
+    addMatches(/\b(?:pages?|sections?|steps?|items?|chapters?|ages?|grades?)\s+\d+(?:\.\d+)?\s*[-–—]\s*\d+(?:\.\d+)?\b/gi);
+    addMatches(/\b\d{4}\s*[-–—]\s*\d{4}\b/g);
+    addMatches(/\b\d+(?:\.\d+)?\s+[–—-]\s+\d+(?:\.\d+)?\b/g);
+    addMatches(/\b\d+(?:\.\d+)?\s*[–—]\s*\d+(?:\.\d+)?\b/g);
+    return results.sort((first, second) => first.index - second.index);
+  }
+
+  function looksLikeShortTitlePhrase(value) {
+    const text = normalizeSpace(value).replace(/^[“”‘’'"(\[]+|[”’'"\])]+$/g, "");
+    const tokens = text.match(/[A-Za-zÀ-ÖØ-öø-ÿ0-9&]+/g) || [];
+    if (!tokens.length || tokens.length > 6) return false;
+    const connectors = new Set(["and", "or", "of", "the", "for", "to", "in", "at", "on"]);
+    return tokens.every((token, index) => connectors.has(token.toLowerCase()) && index > 0 || /^[A-ZÀ-ÖØ-Þ0-9]/.test(token));
+  }
+
+  function looksLikeClauseAfterDash(value) {
+    const text = normalizeSpace(value).replace(/^[“”‘’'"(\[]+/, "");
+    if (!text) return false;
+    if (/^(?:even\s+if|if|when|because|although|though|while|but|so|therefore|however|otherwise|unless|until|after|before|since|then)\b/i.test(text)) return true;
+    if (/^(?:it(?:['’]s)?|this|that|these|those|they|you|we|he|she|there)\b/i.test(text)) return true;
+    if (/^(?:do|don['’]t|use|check|apply|contact|call|submit|complete|select|choose|read|see|find|learn|get|keep|make|write|remove|add|avoid|visit|send|provide|include)\b/i.test(text)) return true;
+    if (/^(?:must|should|can|cannot|could|will|would|may|might)\b/i.test(text)) return true;
+    return /^(?:(?:the|a|an)\s+)?[A-Za-zÀ-ÖØ-öø-ÿ’'-]+(?:\s+[A-Za-zÀ-ÖØ-öø-ÿ’'-]+){0,3}\s+(?:is|are|was|were|will|must|should|can|may|has|have|does|did)\b/i.test(text);
+  }
+
+  function dashSeparatorOccurrences(value, rangeOccurrences) {
+    const text = String(value || "");
+    const ranges = rangeOccurrences || rangeDashOccurrences(text);
+    const results = [];
+    const expression = /([^\s])\s+([–-])\s+([^\s])/g;
+    let match;
+    while ((match = expression.exec(text))) {
+      const dashIndex = match.index + match[0].indexOf(match[2]);
+      if (ranges.some(range => dashIndex >= range.index && dashIndex < range.index + range.text.length)) continue;
+      if (isAddressLikeDash(text, dashIndex)) continue;
+      if (isTechnicalDashContext(text, dashIndex)) continue;
+      const window = text.slice(Math.max(0, dashIndex - 35), dashIndex + 36);
+      if (/[=+×÷<>]/.test(window)) continue;
+      const beforeDash = text.slice(0, dashIndex);
+      const afterDash = text.slice(dashIndex + 1);
+      if (/(?:US)?\$\d[\d,.]*\s*$/i.test(beforeDash) && /^\s*(?:US)?\$?\d/i.test(afterDash)) continue;
+      const left = text.slice(Math.max(0, Math.max(text.lastIndexOf(".", dashIndex - 1), text.lastIndexOf(";", dashIndex - 1), text.lastIndexOf(":", dashIndex - 1)) + 1), dashIndex).trim();
+      const rightEndCandidates = [afterDash.indexOf("."), afterDash.indexOf(";"), afterDash.indexOf("\n")].filter(index => index >= 0);
+      const right = afterDash.slice(0, rightEndCandidates.length ? Math.min(...rightEndCandidates) : undefined).trim();
+      const clauseLike = looksLikeClauseAfterDash(right);
+      if (match[2] === "–" && !clauseLike) continue;
+      if (match[2] === "-" && !clauseLike && !(looksLikeShortTitlePhrase(left) && looksLikeShortTitlePhrase(right))) continue;
+      results.push({ text: match[2], index: dashIndex });
+    }
+    return results;
+  }
+
   function measurementDetails(value) {
     const text = String(value || "");
     const plural = /\b(\d+(?:\.\d+)?)\s*(kms|kgs|mLs|Ls|mms|cms|hs|ts)\b/g.exec(text);
@@ -475,6 +653,37 @@
     const clean = normalizeSpace(value);
     const max = maximum || 180;
     return clean.length > max ? clean.slice(0, max - 1).trimEnd() + "…" : clean;
+  }
+
+  function excerptAroundMatch(value, matchIndex, matchText, maximum) {
+    const raw = String(value || "");
+    const max = maximum || 180;
+    const match = String(matchText || "");
+    if (!match) return { text: excerpt(raw, max), matchIndex: -1 };
+    let actualIndex = Number.isInteger(matchIndex) ? matchIndex : -1;
+    const exactAtRequested = actualIndex >= 0 && actualIndex + match.length <= raw.length
+      && raw.slice(actualIndex, actualIndex + match.length).toLowerCase() === match.toLowerCase();
+    if (!exactAtRequested) actualIndex = raw.toLowerCase().indexOf(match.toLowerCase());
+    if (actualIndex < 0) return { text: excerpt(raw, max), matchIndex: -1 };
+    matchIndex = actualIndex;
+    const markerStart = "\uE000";
+    const markerEnd = "\uE001";
+    const contextAllowance = Math.max(24, max - match.length - 4);
+    let start = Math.max(0, matchIndex - Math.floor(contextAllowance / 2));
+    let end = Math.min(raw.length, matchIndex + match.length + Math.ceil(contextAllowance / 2));
+    if (end - start < max && start > 0) start = Math.max(0, end - max);
+    if (end - start < max && end < raw.length) end = Math.min(raw.length, start + max);
+    const marked = raw.slice(start, matchIndex) + markerStart + raw.slice(matchIndex, matchIndex + match.length) + markerEnd + raw.slice(matchIndex + match.length, end);
+    let clean = normalizeSpace(marked);
+    const hasBefore = start > 0;
+    const hasAfter = end < raw.length;
+    if (hasBefore) clean = "…" + clean;
+    if (hasAfter) clean += "…";
+    const markerIndex = clean.indexOf(markerStart);
+    const closingIndex = clean.indexOf(markerEnd);
+    if (markerIndex < 0 || closingIndex < markerIndex) return { text: excerpt(raw, max), matchIndex: -1 };
+    const text = clean.replace(markerStart, "").replace(markerEnd, "");
+    return { text, matchIndex: markerIndex };
   }
 
   function escapeRegExp(value) {
@@ -602,20 +811,24 @@ function detectProfile(url, requestedProfile) {
     return { valid: true, phrase: clean };
   }
 
-  function exceptionMatches(exception, ruleId, text, hostname) {
+  function exceptionMatches(exception, ruleId, text, hostname, pageUrl) {
     if (!exception || exception.ruleId !== ruleId || !exception.phrase) return false;
     if (exception.ruleId === "bc-abbreviation" && normalizeSpace(exception.phrase) === "BC") return false;
+    if (exception.page && canonicalUrl(exception.page) !== canonicalUrl(pageUrl || "")) return false;
     if (exception.domain && exception.domain !== "*" && exception.domain !== hostname) return false;
-    const expression = new RegExp("(^|[^A-Za-zÀ-ÖØ-öø-ÿ0-9’'-])" + escapeRegExp(exception.phrase) + "(?=$|[^A-Za-zÀ-ÖØ-öø-ÿ0-9’'-])");
+    const flags = exception.ruleId === "proofreading-pubic" ? "i" : "";
+    const expression = new RegExp("(^|[^A-Za-zÀ-ÖØ-öø-ÿ0-9’'-])" + escapeRegExp(exception.phrase) + "(?=$|[^A-Za-zÀ-ÖØ-öø-ÿ0-9’'-])", flags);
     return expression.test(String(text || ""));
   }
 
-  function exceptionAtIndex(exceptions, ruleId, text, index, hostname) {
+  function exceptionAtIndex(exceptions, ruleId, text, index, hostname, pageUrl) {
     return (exceptions || []).find(exception => {
       if (!exception || exception.ruleId !== ruleId || !exception.phrase) return false;
       if (exception.ruleId === "bc-abbreviation" && normalizeSpace(exception.phrase) === "BC") return false;
+      if (exception.page && canonicalUrl(exception.page) !== canonicalUrl(pageUrl || "")) return false;
       if (exception.domain && exception.domain !== "*" && exception.domain !== hostname) return false;
-      const expression = new RegExp("(^|[^A-Za-zÀ-ÖØ-öø-ÿ0-9’'-])(" + escapeRegExp(exception.phrase) + ")(?=$|[^A-Za-zÀ-ÖØ-öø-ÿ0-9’'-])", "g");
+      const flags = exception.ruleId === "proofreading-pubic" ? "gi" : "g";
+      const expression = new RegExp("(^|[^A-Za-zÀ-ÖØ-öø-ÿ0-9’'-])(" + escapeRegExp(exception.phrase) + ")(?=$|[^A-Za-zÀ-ÖØ-öø-ÿ0-9’'-])", flags);
       let match;
       while ((match = expression.exec(String(text || "")))) {
         const start = match.index + match[1].length;
@@ -638,13 +851,16 @@ function detectProfile(url, requestedProfile) {
   }
 
   function findingFingerprint(pageUrl, finding) {
-    return "f-" + hashString([
+    const parts = [
       canonicalUrl(pageUrl),
       finding.ruleId,
       normalizeSpace(finding.evidence),
       finding.selector || "",
       finding.matchIndex === undefined ? "" : finding.matchIndex
-    ].join("|"));
+    ];
+    const editorRegion = Number(finding.editorRegion) || 0;
+    if (editorRegion) parts.push(`editor-${editorRegion}`);
+    return "f-" + hashString(parts.join("|"));
   }
 
   function cssPath(element) {
@@ -733,6 +949,148 @@ function detectProfile(url, requestedProfile) {
       if (allowed(parent)) output.push(node);
     }
     return output;
+  }
+
+  function readabilityBlockText(element) {
+    if (!element) return "";
+    if (element.tagName === "LI") {
+      if (element.querySelector(":scope > p,:scope > div,:scope > blockquote")) return "";
+      const clone = element.cloneNode(true);
+      clone.querySelectorAll("ul,ol").forEach(list => list.remove());
+      return normalizeSpace(clone.textContent);
+    }
+    if (element.tagName === "BLOCKQUOTE" && element.querySelector("p")) return "";
+    return normalizeSpace(element.textContent);
+  }
+
+  function sectionReadingThreshold(result) {
+    if (!result || !Number.isFinite(result.grade) || result.sentences < 2) return null;
+    if (result.words >= 75 && result.grade >= 10) return 10;
+    if (result.words >= 40 && result.words < 75 && result.grade >= 12) return 12;
+    return null;
+  }
+
+  function analysisComponentFor(element, root) {
+    if (!element || !element.closest) return null;
+    const alert = element.closest(".alert,[role='alert']");
+    if (alert && (alert === root || root.contains(alert))) return alert;
+    const details = element.closest("details");
+    if (details && (details === root || root.contains(details))) return details;
+    const panel = element.closest(".panel");
+    if (panel && panel.closest(".panel-group,.accordion,[class*='accordion' i]") && (panel === root || root.contains(panel))) return panel;
+    const accordion = element.closest(".accordion,[class*='accordion' i]");
+    if (accordion && (accordion === root || root.contains(accordion))) return accordion;
+    return null;
+  }
+
+  function sectionHighlightTarget(element, root) {
+    if (!element) return null;
+    const component = analysisComponentFor(element, root);
+    if (component) return component;
+    const list = element.closest && element.closest("ul,ol");
+    if (list && (list === root || root.contains(list))) {
+      let outer = list;
+      let parent = outer.parentElement && outer.parentElement.closest("ul,ol");
+      while (parent && (parent === root || root.contains(parent))) { outer = parent; parent = outer.parentElement && outer.parentElement.closest("ul,ol"); }
+      return outer;
+    }
+    const blockquote = element.closest && element.closest("blockquote");
+    if (blockquote && (blockquote === root || root.contains(blockquote))) return blockquote;
+    return element;
+  }
+
+  function buildContentSections(root, include, documentOrder) {
+    const allowed = include || isVisible;
+    const orderOf = element => documentOrder && documentOrder.has(element) ? documentOrder.get(element) : Number.MAX_SAFE_INTEGER;
+    const allHeadings = Array.from(root.querySelectorAll("h2,h3,h4,h5,h6")).filter(allowed);
+    const allContent = textElements(root, allowed).filter(element => {
+      if (element.closest("nav,table,figure,address,[class*='contact' i],[class*='breadcrumb' i]")) return false;
+      return true;
+    });
+    const componentSet = new Set();
+    [...allHeadings, ...allContent].forEach(element => {
+      const component = analysisComponentFor(element, root);
+      if (component && allowed(component)) componentSet.add(component);
+    });
+    const headings = allHeadings.filter(element => !analysisComponentFor(element, root));
+    const content = allContent.filter(element => !analysisComponentFor(element, root));
+    const events = [
+      ...headings.map(element => ({ type: "heading", element })),
+      ...content.map(element => ({ type: "content", element })),
+      ...Array.from(componentSet).map(element => ({ type: "component", element }))
+    ].sort((a, b) => orderOf(a.element) - orderOf(b.element));
+    const sections = [];
+    let currentHeading = null;
+    let current = { label: "Page introduction", heading: null, target: null, readabilityBlocks: [], densityTexts: [], memberElements: [], kind: "content" };
+    sections.push(current);
+    const continuation = () => ({
+      label: currentHeading ? normalizeSpace(currentHeading.textContent) || currentHeading.tagName : "Page introduction",
+      heading: currentHeading,
+      target: null,
+      readabilityBlocks: [],
+      densityTexts: [],
+      memberElements: [],
+      kind: "content"
+    });
+    const addMember = (section, element) => {
+      const target = sectionHighlightTarget(element, root);
+      if (target && !section.memberElements.includes(target)) section.memberElements.push(target);
+    };
+    events.forEach(event => {
+      if (event.type === "heading") {
+        currentHeading = event.element;
+        current = continuation();
+        current.target = event.element;
+        addMember(current, event.element);
+        sections.push(current);
+        return;
+      }
+      if (event.type === "component") {
+        const component = event.element;
+        const componentBlocks = textElements(component, allowed)
+          .filter(element => analysisComponentFor(element, root) === component)
+          .filter(element => !element.closest("table,figure,address,[class*='contact' i]"))
+          .map(element => ({ element, text: readabilityBlockText(element) }))
+          .filter(item => item.text)
+          .filter(item => words(item.text).length >= (item.element.tagName === "LI" ? 5 : 4));
+        const labelElement = component.querySelector("summary,h2,h3,h4,[class*='title' i],[class*='heading' i]");
+        const isAlert = component.matches(".alert,[role='alert']");
+        sections.push({
+          label: normalizeSpace(labelElement && labelElement.textContent) || (isAlert ? "Alert" : "Accordion section"),
+          heading: labelElement && /^H[2-6]$/.test(labelElement.tagName) ? labelElement : null,
+          target: component,
+          readabilityBlocks: componentBlocks.map(item => item.text),
+          densityTexts: [],
+          memberElements: [component],
+          kind: "component"
+        });
+        current = continuation();
+        sections.push(current);
+        return;
+      }
+      const element = event.element;
+      if (!current.target) current.target = element;
+      addMember(current, element);
+      const text = readabilityBlockText(element);
+      if (text) {
+        const wordCount = words(text).length;
+        if (element.tagName === "LI" ? wordCount >= 5 : wordCount >= 4) current.readabilityBlocks.push(text);
+        if (element.tagName === "LI" || /^(P|DD|DT|BLOCKQUOTE|FIGCAPTION)$/.test(element.tagName)) {
+          if (!(element.tagName === "BLOCKQUOTE" && element.querySelector("p"))) current.densityTexts.push(text);
+        }
+      }
+    });
+    return sections.map(section => {
+      const reading = readingGradeFromBlocks(section.readabilityBlocks);
+      const uniqueMembers = section.memberElements.filter((element, index, list) => !list.some((other, otherIndex) => otherIndex !== index && other.contains && other.contains(element)));
+      return {
+        ...section,
+        reading,
+        contentWords: section.densityTexts.reduce((total, text) => total + words(text).length, 0),
+        proseWords: section.densityTexts.reduce((total, text) => total + words(text).length, 0),
+        memberSelectors: uniqueMembers.map(cssPath).filter(Boolean)
+      };
+    }).filter(section => section.target || section.readabilityBlocks.length || section.densityTexts.length);
   }
 
   function parseColour(value) {
@@ -826,7 +1184,8 @@ function detectProfile(url, requestedProfile) {
   }
 
   function isLikelyTitleCase(value) {
-    const tokens = words(value);
+    const headingText = String(value || "").replace(/^\s*\d{1,3}[.)]\s+/, "");
+    const tokens = words(headingText);
     if (tokens.length < 2) return false;
     const allowed = new Set(["B.C", "BC", "British", "Columbia", "Canada", "Canadian", "Indigenous", "First", "Nations", "Métis", "Inuit"]);
     const formalNameWords = new Set(BUILT_IN_TERMS.flatMap(term => words(term)));
@@ -841,6 +1200,33 @@ function detectProfile(url, requestedProfile) {
   function acronymBase(value) {
     const text = String(value || "");
     return /[A-Z0-9]s$/.test(text) ? text.slice(0, -1) : text;
+  }
+
+  function isCommonAllCapsWord(value) {
+    return COMMON_ALL_CAPS_WORDS.has(String(value || "").replace(/[’']/g, "'").toUpperCase());
+  }
+
+  function lastUpdatedDetails(doc) {
+    const text = normalizeSpace(doc && doc.body ? doc.body.innerText || doc.body.textContent : "");
+    const match = /\bLast updated(?: on)?\s*:?\s*(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2}),\s+(\d{4})\b/i.exec(text);
+    if (!match) return null;
+    const parsed = new Date(`${match[1]} ${match[2]}, ${match[3]} 12:00:00`);
+    if (Number.isNaN(parsed.getTime())) return null;
+    return { text: match[0], date: parsed };
+  }
+
+  function movedNoticeMatch(root) {
+    if (!root) return null;
+    const expression = /\b(?:this\s+(?:page|content|information)\s+has\s+moved|we[’']?ve\s+moved\s+this\s+(?:page|content|information)|(?:page|content|information)\s+has\s+moved\s+to)\b/i;
+    const candidates = Array.from(root.querySelectorAll("p,li,blockquote,aside")).filter(element => normalizeSpace(element.textContent));
+    for (const element of candidates) {
+      const text = normalizeSpace(element.textContent);
+      const match = expression.exec(text);
+      if (match) return { element, text, match };
+    }
+    const text = normalizeSpace(root.textContent);
+    const match = expression.exec(text);
+    return match ? { element: root, text, match } : null;
   }
 
   function exactTokenIndex(value, token) {
@@ -876,26 +1262,32 @@ function detectProfile(url, requestedProfile) {
     return acronymDefinedInText(prefix.slice(-600), acronym);
   }
 
-  function doubleSpaceDetails(value) {
+  function doubleSpaceOccurrences(value) {
     const text = String(value || "");
     const lines = text.split(/\r?\n/);
+    const occurrences = [];
     let offset = 0;
     for (const line of lines) {
-      const match = /\S([ \u00a0\u2007\u202f]{2,})\S/.exec(line);
-      if (match) {
+      const expression = /\S([ \u00a0\u2007\u202f]{2,})(?=\S)/g;
+      let match;
+      while ((match = expression.exec(line))) {
         const spacesStart = offset + match.index + 1;
         const count = match[1].length;
         const before = normalizeSpace(text.slice(Math.max(0, spacesStart - 70), spacesStart));
         const after = normalizeSpace(text.slice(spacesStart + count, spacesStart + count + 70));
-        return {
+        occurrences.push({
           index: spacesStart,
           count,
           evidence: `${before} ⟦${count} spaces⟧ ${after}`.trim()
-        };
+        });
       }
       offset += line.length + 1;
     }
-    return null;
+    return occurrences;
+  }
+
+  function doubleSpaceDetails(value) {
+    return doubleSpaceOccurrences(value)[0] || null;
   }
 
   function anchorIdForHeading(heading) {
@@ -967,23 +1359,45 @@ function fragmentTarget(doc, href) {
   }
 
   function findOnThisPagePattern(root, include) {
-    const candidates = Array.from(root.querySelectorAll("h1,h2,h3,h4,p,div,strong,[aria-label]")).filter(include).filter(element => {
-      const label = ownText(element) || normalizeSpace(element.getAttribute && element.getAttribute("aria-label")) || (element.children.length === 0 ? normalizeSpace(element.textContent) : "");
-      return /^on this page:?$/i.test(label);
-    });
+    const candidates = Array.from(root.querySelectorAll("h1,h2,h3,h4,h5,h6,p,div,strong,b,span,nav,[aria-label]")).filter(include);
     for (const label of candidates) {
+      const ownLabel = ownText(label) || normalizeSpace(label.getAttribute && label.getAttribute("aria-label"));
+      const fullText = normalizeSpace(label.textContent);
+      const exactLabel = /^on this page:?$/i.test(ownLabel);
+      const combinedLabel = /^on this page:?(?:\s|$)/i.test(fullText) && label.querySelectorAll && label.querySelectorAll("a[href^='#']").length >= 2;
+      if (!exactLabel && !combinedLabel) continue;
+      let links = Array.from(label.querySelectorAll ? label.querySelectorAll("a[href^='#']") : []).filter(include);
       let container = label.nextElementSibling;
-      while (container && !/^(UL|OL|NAV|DIV)$/.test(container.tagName)) container = container.nextElementSibling;
-      let links = container ? Array.from(container.querySelectorAll("a[href^='#']")).filter(include) : [];
+      while (links.length < 2 && container && !/^(UL|OL|NAV|DIV|P)$/.test(container.tagName)) container = container.nextElementSibling;
+      if (links.length < 2 && container) links = Array.from(container.querySelectorAll("a[href^='#']")).filter(include);
       if (links.length < 2 && label.parentElement) links = Array.from(label.parentElement.querySelectorAll("a[href^='#']")).filter(include);
       if (links.length >= 2) return {
         label,
         links,
         generated: !/^H[1-6]$/.test(label.tagName) && Boolean(label.closest("nav,[role='navigation'],[class*='jump' i],[class*='toc' i],[class*='table-of-contents' i],[class*='on-this-page' i],[data-component],[data-testid]")),
-        text: ownText(label) || normalizeSpace(label.textContent)
+        text: ownLabel || (fullText.match(/^on this page:?/i) || [fullText])[0]
       };
     }
     return null;
+  }
+
+  function isOnThisPageList(list, pattern, root, include) {
+    if (!list) return false;
+    if (pattern && Array.isArray(pattern.links) && pattern.links.some(link => list.contains(link))) return true;
+    const headingsBefore = Array.from(root.querySelectorAll("h1,h2,h3,h4,h5,h6"))
+      .filter(include)
+      .filter(heading => !heading.contains(list) && Boolean(heading.compareDocumentPosition(list) & 4));
+    const nearestHeading = headingsBefore[headingsBefore.length - 1] || null;
+    return Boolean(nearestHeading && /^on this page:?$/i.test(normalizeSpace(nearestHeading.textContent)));
+  }
+
+  function isMeaningfulList(list) {
+    if (!list) return false;
+    const items = Array.from(list.children || []).filter(item => item.tagName === "LI");
+    return items.some(item => {
+      if (normalizeSpace(item.textContent)) return true;
+      return Boolean(item.querySelector("a[href],img[src],button,input,select,textarea,table,iframe,video,audio"));
+    });
   }
 
   function anchorTextScore(first, second) {
@@ -1053,6 +1467,10 @@ function fragmentTarget(doc, href) {
         replacement: `${malformed[1]}${malformed[2].toUpperCase()}, ${malformed[3]}${malformed[4].toUpperCase()}${malformed[5]}`
       };
     }
+    const sizeOnly = text.match(/[\[(]\s*(\d+(?:\.\d{1,2})?)\s*(KB|MB|GB)\s*[\])]/i);
+    if (sizeOnly) {
+      return { valid: false, status: "missing-type", type: "", size: Number(sizeOnly[1]), unit: sizeOnly[2].toUpperCase(), raw: sizeOnly[0], sizeText: `${sizeOnly[1]} ${sizeOnly[2]}`.replace(/\s+/, " "), replacement: "" };
+    }
     const typeOnly = text.match(/[\[(](PDF|DOCX?|XLSX?|CSV|PPTX?|RTF|TXT|ODT|ODS|ODP|ZIP)(?:[\])]|,)/i);
     return { valid: false, status: typeOnly ? "missing-size" : "missing-label", type: typeOnly ? typeOnly[1].toUpperCase() : "", size: null, unit: "", raw: typeOnly ? typeOnly[0] : "", sizeText: "", replacement: "" };
   }
@@ -1060,6 +1478,85 @@ function fragmentTarget(doc, href) {
   function looksLikeAssetLink(link, href, label) {
     if (assetTypeFromUrl(href) || label.type || link.hasAttribute("download")) return true;
     return /(?:download|attachment|asset|document|file)(?:[/?#=&_-]|$)/i.test(href);
+  }
+
+  function isButtonStyleLink(link) {
+    if (!link || !link.matches) return false;
+    return link.matches("a.btn,a[role='button']");
+  }
+
+  function isMeaninglessAlt(value) {
+    const text = normalizeSpace(value);
+    if (!text) return false;
+    if (new Set(["image", "photo", "picture", "graphic", "icon", "logo", "spacer", "decorative"]).has(text.toLowerCase())) return true;
+    return /^[^\s]+\.(?:jpe?g|png|gif|webp|svg)$/i.test(text);
+  }
+
+  function isValidTelHref(value) {
+    const href = String(value || "").trim();
+    if (!/^tel:/i.test(href)) return true;
+    const number = href.replace(/^tel:/i, "").split(";")[0].trim();
+    if (/^(?:[2-9]11|988|\*\d{3,6})$/.test(number)) return true;
+    if (!/^\+/.test(number)) return false;
+    const digits = number.slice(1).replace(/[().\s-]/g, "");
+    return /^\d{7,15}$/.test(digits) && digits.charAt(0) !== "0";
+  }
+
+  function textWithBreaks(element) {
+    if (!element) return "";
+    const walk = node => {
+      if (node.nodeType === 3) return node.nodeValue || "";
+      if (node.nodeType !== 1) return "";
+      if (node.tagName === "BR") return "\n";
+      return Array.from(node.childNodes || []).map(walk).join("");
+    };
+    return Array.from(element.childNodes || []).map(walk).join("");
+  }
+
+  function fakeListDetails(element) {
+    if (!element || element.closest("ul,ol,pre,code")) return null;
+    const text = textWithBreaks(element);
+    const bulletMatches = text.split(/[•●▪◦‣]/).slice(1)
+      .map(item => normalizeSpace(item)).filter(item => words(item).length >= 2);
+    if (bulletMatches.length >= 3) return { marker: "bullet characters", count: bulletMatches.length, evidence: excerpt(text, 180) };
+    const hyphenLines = text.split(/\r?\n/).map(line => normalizeSpace(line)).filter(line => /^[-–—]\s+\S/.test(line));
+    if (hyphenLines.length >= 3) return { marker: "typed dashes", count: hyphenLines.length, evidence: excerpt(text, 180) };
+    return null;
+  }
+
+  function allCapsPhraseRanges(value) {
+    const text = String(value || "");
+    const ranges = [];
+    const expression = /\b(?:[A-Z][A-Z’'\-]{1,}\s+){1,}[A-Z][A-Z’'\-]{1,}\b/g;
+    let match;
+    while ((match = expression.exec(text))) ranges.push({ start: match.index, end: match.index + match[0].length });
+    return ranges;
+  }
+
+  function acronymContextExcluded(value, index, token) {
+    const text = String(value || "");
+    const upper = String(token || "").toUpperCase();
+    const emailExpression = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi;
+    let email;
+    while ((email = emailExpression.exec(text))) if (index >= email.index && index < email.index + email[0].length) return true;
+    const before = text.slice(0, index);
+    if ((upper === "AM" || upper === "PM") && /\b\d{1,2}(?::\d{2})?\s*$/.test(before)) return true;
+    if (new Set(["NOTE", "ALERT", "IMPORTANT", "CAUTION", "WARNING", "SUCCESS", "DANGER"]).has(upper) && /^\s*:/.test(text.slice(index + token.length))) return true;
+    const left = text.slice(0, index).match(/([A-Z]{2,})-$/);
+    const right = text.slice(index + token.length).match(/^-([A-Z]{2,})/);
+    if (left || right) return true;
+    if (allCapsPhraseRanges(text).some(range => index >= range.start && index < range.end)) return true;
+    return false;
+  }
+
+  function isCmsLiteExcludedArea(element) {
+    if (!element || !element.closest) return false;
+    if (element.closest(CMS_LITE_EXCLUDED_SELECTORS)) return true;
+    const sideArea = element.closest("aside,[class*='sidebar' i],[class*='side-nav' i],[class*='sidenav' i]");
+    if (!sideArea) return false;
+    const moreTopicsLabel = Array.from(sideArea.querySelectorAll("h1,h2,h3,h4,h5,h6,strong,b,[class*='title' i],[class*='heading' i]"))
+      .find(item => /^more topics:?$/i.test(normalizeSpace(item.textContent)));
+    return Boolean(moreTopicsLabel && sideArea.querySelectorAll("a[href]").length >= 2);
   }
 
   function isCmsLiteComponent(element) {
@@ -1139,7 +1636,7 @@ function fragmentTarget(doc, href) {
     const pageOrder = suppliedPageOrder || new WeakMap();
     if (!suppliedPageOrder) Array.from(doc.querySelectorAll("*")).forEach((element, index) => pageOrder.set(element, index));
     const includeDetail = element => {
-      if (profile === "cms-lite" && element.closest && element.closest(CMS_LITE_EXCLUDED_SELECTORS)) return false;
+      if (profile === "cms-lite" && isCmsLiteExcludedArea(element)) return false;
       return isVisible(element) || (profile === "cms-lite" && isCmsLiteComponent(element));
     };
     const headings = scanHeadings(doc, detailRoot, includeDetail).slice(0, 500).map(heading => ({
@@ -1169,15 +1666,19 @@ function fragmentTarget(doc, href) {
       altState: !image.hasAttribute("alt") ? "missing" : (image.alt ? "provided" : "empty"),
       linked: Boolean(image.closest("a"))
     }));
-    const links = Array.from(detailRoot.querySelectorAll("a[href]")).filter(includeDetail).map(link => ({
-      selector: cssPath(link),
-      pageOrder: pageOrder.get(link),
-      text: accessibleName(link) || "[No accessible name]",
-      href: link.href || link.getAttribute("href") || "",
-      target: link.target || "",
-      location: (profile === "cms-lite" ? cmsLiteComponentLabel(link) : "") || locationLabel(link, detailRoot),
-      kind: /^mailto:/i.test(link.getAttribute("href") || "") ? "email" : /^tel:/i.test(link.getAttribute("href") || "") ? "phone" : assetTypeFromUrl(link.href || link.getAttribute("href") || "") ? "asset" : "web"
-    }));
+    const links = Array.from(detailRoot.querySelectorAll("a[href]")).filter(includeDetail).map(link => {
+      const rawHref = link.getAttribute("href") || "";
+      return {
+        selector: cssPath(link),
+        pageOrder: pageOrder.get(link),
+        text: accessibleName(link) || "[No accessible name]",
+        href: link.href || rawHref,
+        rawHref,
+        target: link.target || "",
+        location: (profile === "cms-lite" ? cmsLiteComponentLabel(link) : "") || locationLabel(link, detailRoot),
+        kind: rawHref.startsWith("#") ? "anchor" : /^mailto:/i.test(rawHref) ? "email" : /^tel:/i.test(rawHref) ? "phone" : assetTypeFromUrl(link.href || rawHref) ? "asset" : "web"
+      };
+    });
     return {
       headings,
       images,
@@ -1190,7 +1691,7 @@ function fragmentTarget(doc, href) {
         imagesEmptyAlt: images.filter(image => image.altState === "empty").length,
         links: links.length,
         assets: links.filter(link => link.kind === "asset").length,
-        lists: detailRoot.querySelectorAll("ul,ol").length,
+        lists: Array.from(detailRoot.querySelectorAll("ul,ol")).filter(isMeaningfulList).length,
         tables: detailRoot.querySelectorAll("table").length,
         forms: detailRoot.querySelectorAll("form").length,
         accordions: detailRoot.querySelectorAll("details,.accordion,[class*='accordion' i],.panel-group").length
@@ -1214,6 +1715,7 @@ function fragmentTarget(doc, href) {
       suggestion: data.suggestion || rule[4],
       evidence: excerpt(data.evidence || ""),
       selector: data.selector || "",
+      editorRegion: Number(data.editorRegion) || null,
       sourceLabel: source[0],
       sourceUrl: source[1],
       flaggedToken: data.flaggedToken || "",
@@ -1235,10 +1737,11 @@ function fragmentTarget(doc, href) {
 
   function scanPage(doc, suppliedOptions) {
     const options = suppliedOptions || {};
-    const pageUrl = doc.location && doc.location.href ? doc.location.href : "";
+    const pageUrl = String(options.pageUrlOverride || (doc.location && doc.location.href ? doc.location.href : ""));
     const hostname = (() => { try { return new URL(pageUrl).hostname.toLowerCase(); } catch (_) { return ""; } })();
     const scope = options.scope === "whole" ? "whole" : "content";
     const profile = detectProfile(pageUrl, options.profile || "auto");
+    const editorRegion = Number(options.editorRegion) || null;
     const documentLanguage = normalizeSpace(doc.documentElement && doc.documentElement.getAttribute("lang"));
     const englishLanguage = isEnglishLanguage(documentLanguage);
     const intranetProfile = ["intranet.gov.bc.ca", "intranet.qa.gov.bc.ca"].includes(hostname);
@@ -1271,11 +1774,12 @@ function fragmentTarget(doc, href) {
     const assets = [];
     const totals = {};
     const perRuleLimit = 25;
+    const preservedCapKeys = new Set();
 
     function inScanArea(element) {
       const collapsedCmsLiteContent = scope === "content" && profile === "cms-lite" && isCmsLiteComponent(element);
       if (!isVisible(element) && !collapsedCmsLiteContent) return false;
-      if (scope === "content" && profile === "cms-lite" && element.closest(CMS_LITE_EXCLUDED_SELECTORS)) return false;
+      if (scope === "content" && profile === "cms-lite" && isCmsLiteExcludedArea(element)) return false;
       if (!(root === doc.body || element === root || root.contains(element))) return false;
       if (!sectionHeading) return true;
       if (element === sectionHeading || sectionHeading.contains(element)) return true;
@@ -1303,11 +1807,18 @@ function fragmentTarget(doc, href) {
       const meta = metadata || {};
       const rawContext = normalizeSpace(meta.contextText || evidence || (element && element.textContent) || "");
       const matchedException = meta.matchedException || (meta.matchIndex === undefined
-        ? savedExceptions.find(item => exceptionMatches(item, ruleId, rawContext, hostname))
+        ? savedExceptions.find(item => exceptionMatches(item, ruleId, rawContext, hostname, pageUrl))
         : null);
       totals[ruleId] = (totals[ruleId] || 0) + 1;
-      if (totals[ruleId] > perRuleLimit) return;
+      const capKey = meta.capKey ? `${ruleId}:${normalizeSpace(meta.capKey).toLowerCase()}` : "";
+      const firstPreservedKey = Boolean(capKey) && !preservedCapKeys.has(capKey);
+      if (capKey) preservedCapKeys.add(capKey);
+      if (totals[ruleId] > perRuleLimit && !firstPreservedKey) return;
       const source = SOURCES[rule[5]];
+      const matchText = meta.matchText || meta.flaggedToken || "";
+      const evidenceSource = meta.contextText || evidence || (element && element.textContent) || "";
+      const matchedEvidence = excerptAroundMatch(evidenceSource, meta.matchIndex, matchText);
+      const evidencePrefix = meta.evidencePrefix || "";
       const finding = {
         id: ruleId + "-" + totals[ruleId],
         ruleId,
@@ -1317,17 +1828,22 @@ function fragmentTarget(doc, href) {
         title: rule[2],
         why: rule[3],
         suggestion: detail || rule[4],
-        evidence: excerpt(evidence || (element && element.textContent) || ""),
+        evidence: evidencePrefix + matchedEvidence.text,
         selector: cssPath(element),
+        selectors: Array.isArray(meta.selectors) ? Array.from(new Set(meta.selectors.filter(Boolean))) : [],
+        editorRegion,
         sourceLabel: source[0],
         sourceUrl: source[1],
         flaggedToken: meta.flaggedToken || "",
-        matchText: meta.matchText || meta.flaggedToken || "",
+        matchText,
         replacement: meta.replacement || "",
         diagnostics: Array.isArray(meta.diagnostics) ? meta.diagnostics : [],
         suggestedTarget: meta.suggestedTarget || "",
         proposedPhrase: meta.proposedPhrase || "",
         matchIndex: meta.matchIndex,
+        evidenceMatchIndex: matchedEvidence.matchIndex >= 0 ? matchedEvidence.matchIndex + evidencePrefix.length : -1,
+        analysisGrade: Number.isFinite(meta.analysisGrade) ? meta.analysisGrade : null,
+        analysisWords: Number.isFinite(meta.analysisWords) ? meta.analysisWords : null,
         exceptionEligible: EXCEPTION_ELIGIBLE_RULES.has(ruleId) && Boolean(meta.flaggedToken),
         exceptionId: matchedException ? matchedException.id : "",
         automaticStatus: matchedException ? "ignored" : "open",
@@ -1359,16 +1875,18 @@ function fragmentTarget(doc, href) {
       });
 
       const headingAcronyms = [...text.matchAll(/\b[A-Z][A-Z0-9]{1,5}\b/g)]
+        .filter(match => !isWifiVariant(match[0]))
         .filter(match => !isWellKnownAcronym(match[0]))
         .filter(match => !(intranetProfile && INTRANET_HEADING_ACRONYMS.has(match[0])))
-        .filter(match => !/^[A-Z]\d[A-Z]$/.test(match[0]));
+        .filter(match => !/^[A-Z]\d[A-Z]$/.test(match[0]))
+        .filter(match => !acronymContextExcluded(text, match.index, match[0]));
       headingAcronyms.forEach(match => add("acronym-in-heading", element, text, null, {
         flaggedToken: match[0],
         matchText: match[0],
         proposedPhrase: proposeExactPhrase(text, match.index, match[0]),
         contextText: text,
         matchIndex: match.index,
-        matchedException: exceptionAtIndex(savedExceptions, "acronym-in-heading", text, match.index, hostname)
+        matchedException: exceptionAtIndex(savedExceptions, "acronym-in-heading", text, match.index, hostname, pageUrl)
       }));
     }
 
@@ -1387,6 +1905,16 @@ function fragmentTarget(doc, href) {
       inspectHeadingText(titleTarget, title);
       if (profile !== "cms-lite" && !doc.querySelector("meta[name='description'][content]:not([content=''])")) add("meta-description", doc.documentElement, "No metadata description found");
       if (scope === "whole" && !normalizeSpace(doc.documentElement.getAttribute("lang"))) add("document-language", doc.documentElement, "The html element has no lang attribute");
+      const movedNotice = movedNoticeMatch(root);
+      const lastUpdated = movedNotice ? lastUpdatedDetails(doc) : null;
+      if (movedNotice && lastUpdated) {
+        const ageDays = Math.floor((Date.now() - lastUpdated.date.getTime()) / 86400000);
+        if (ageDays > 30) add("moved-page-notice", movedNotice.element, movedNotice.text, null, {
+          matchText: movedNotice.match[0],
+          matchIndex: movedNotice.match.index,
+          diagnostics: [`${lastUpdated.text} · about ${ageDays} days ago.`]
+        });
+      }
     }
 
     const headings = sectionHeading
@@ -1418,6 +1946,39 @@ function fragmentTarget(doc, href) {
       inspectHeadingText(heading, text);
       previousLevel = level;
     });
+
+    const authoredStructuralHeadings = headings.filter(heading => /^H[2-6]$/.test(heading.tagName) && !isCmsLiteComponent(heading));
+    const meaningfulStructuralElements = Array.from(root.querySelectorAll("p,li,table,img,form,details,.alert,[role='alert']"))
+      .filter(inScanArea)
+      .filter(element => {
+        if (/^(P|LI)$/.test(element.tagName)) return Boolean(normalizeSpace(element.textContent));
+        if (element.tagName === "IMG") return Boolean(element.getAttribute("src") || element.getAttribute("alt"));
+        return true;
+      });
+    const hasMeaningfulContentBetween = (first, second) => {
+      const firstOrder = documentOrder.get(first);
+      const secondOrder = documentOrder.get(second);
+      return meaningfulStructuralElements.some(element => {
+        const order = documentOrder.get(element);
+        return Number.isFinite(order) && order > firstOrder && order < secondOrder;
+      });
+    };
+    let headingRun = [];
+    const finishHeadingRun = () => {
+      if (headingRun.length >= 3) {
+        add("heading-empty-sequence", headingRun[0], `${headingRun.length} consecutive H${headingRun[0].tagName.slice(1)} headings: ${headingRun.map(heading => normalizeSpace(heading.textContent)).join(" · ")}`, null, {
+          selectors: headingRun.map(cssPath)
+        });
+      }
+      headingRun = [];
+    };
+    authoredStructuralHeadings.forEach(heading => {
+      const previous = headingRun[headingRun.length - 1];
+      if (!previous) { headingRun = [heading]; return; }
+      if (previous.tagName === heading.tagName && !hasMeaningfulContentBetween(previous, heading)) headingRun.push(heading);
+      else { finishHeadingRun(); headingRun = [heading]; }
+    });
+    finishHeadingRun();
 
     const h2s = headings.filter(item => item.tagName === "H2");
     const conventionalOnThisPage = headings.find(item => normalizeSpace(item.textContent).replace(/:$/, "").toLowerCase() === "on this page");
@@ -1471,8 +2032,15 @@ function fragmentTarget(doc, href) {
     const elementTexts = textElements(root, inScanArea);
     elementTexts.filter(item => item.tagName === "P").forEach(paragraph => {
       if (!englishLanguage) return;
-      const sentenceList = sentences(paragraph.textContent);
-      if (sentenceList.length > 5) add("paragraph-long", paragraph, sentenceList.length + " sentences: " + paragraph.textContent);
+      const paragraphText = normalizeSpace(paragraph.textContent);
+      const sentenceList = sentences(paragraphText);
+      const paragraphWords = words(paragraphText).length;
+      const tooManySentences = sentenceList.length > 5;
+      const tooLongForFourOrFewer = sentenceList.length <= 4 && paragraphWords >= 100;
+      const tooLongForFive = sentenceList.length === 5 && paragraphWords >= 115;
+      if (tooManySentences || tooLongForFourOrFewer || tooLongForFive) {
+        add("paragraph-long", paragraph, `${paragraphWords} words · ${sentenceList.length} sentence${sentenceList.length === 1 ? "" : "s"}: ${paragraphText}`);
+      }
       sentenceList.forEach(sentence => {
         const count = words(sentence).length;
         if (count > 20) add("sentence-long", paragraph, count + " words: " + sentence);
@@ -1491,28 +2059,55 @@ function fragmentTarget(doc, href) {
 
     const mainText = normalizeSpace(elementTexts.map(element => element.textContent).join(" "));
     const proseBlocks = elementTexts
-      .filter(element => {
-        if (element.closest("nav,table,figure,address,[class*='contact' i],[class*='breadcrumb' i]")) return false;
-        if (element.tagName === "LI" && words(element.textContent).length < 6) return false;
-        return words(element.textContent).length >= 4;
-      })
-      .map(element => element.textContent)
-      .map(normalizeSpace);
+      .filter(element => !element.closest("nav,table,figure,address,[class*='contact' i],[class*='breadcrumb' i]"))
+      .map(element => ({ element, text: readabilityBlockText(element) }))
+      .filter(item => item.text)
+      .filter(item => words(item.text).length >= (item.element.tagName === "LI" ? 5 : 4))
+      .map(item => item.text);
     const gradeResult = englishLanguage ? readingGradeFromBlocks(proseBlocks) : { grade: null, words: 0, sentences: 0 };
     const grade = gradeResult.grade;
+    const contentSections = englishLanguage ? buildContentSections(root, inScanArea, documentOrder) : [];
+    const sectionReadingReviews = contentSections.filter(section => sectionReadingThreshold(section.reading));
     if (shouldFlagReadingGrade(grade)) add("reading-level", root, "Estimated Flesch–Kincaid grade: " + grade.toFixed(1));
+    const sectionFindings = contentSections.length === 1 && shouldFlagReadingGrade(grade)
+      ? []
+      : sectionReadingReviews;
+    sectionFindings.forEach(section => add(
+      "section-reading-level",
+      section.target || root,
+      `Estimated reading grade: ${section.reading.grade.toFixed(1)}`,
+      null,
+      {
+        selectors: section.memberSelectors,
+        location: section.label,
+        analysisGrade: Number(section.reading.grade.toFixed(1)),
+        analysisWords: section.reading.words
+      }
+    ));
+    contentSections.filter(section => section.kind !== "component" && section.contentWords >= 200).forEach(section => add(
+      "section-heading-density",
+      section.target || root,
+      `${section.contentWords} words without a heading break: ${section.label}`,
+      null,
+      { selectors: section.memberSelectors, location: section.label, analysisWords: section.contentWords }
+    ));
 
     const nodes = textNodes(root, inScanArea);
     const scanPhrases = (phrases, ruleId) => {
       phrases.forEach(pair => {
-        const expression = new RegExp("\\b" + pair[0].replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+") + "\\b", "i");
+        const variants = SIMPLE_PHRASE_VARIANTS.get(pair[0]) || [pair[0]];
+        const source = variants
+          .map(variant => variant.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+"))
+          .join("|");
+        const expression = new RegExp("\\b(?:" + source + ")\\b", "i");
         nodes.forEach(node => {
           const match = expression.exec(node.nodeValue);
           if (match) add(ruleId, node.parentElement, node.nodeValue, "Consider ‘" + pair[1] + "’ when it preserves the intended meaning.", {
             matchText: match[0],
             replacement: pair[1],
             contextText: node.nodeValue,
-            matchIndex: match.index
+            matchIndex: match.index,
+            capKey: pair[0]
           });
         });
       });
@@ -1520,6 +2115,16 @@ function fragmentTarget(doc, href) {
     if (englishLanguage) {
       scanPhrases(SIMPLE_PHRASES, "complex-phrase");
       scanPhrases(FILLER_PHRASES, "filler-phrase");
+      nodes.forEach(node => {
+        const individualMatch = /\bindividuals\b/i.exec(node.nodeValue);
+        if (individualMatch) add("complex-phrase", node.parentElement, node.nodeValue, "Consider ‘people’ when it preserves the intended meaning.", {
+          matchText: individualMatch[0],
+          replacement: "people",
+          contextText: node.nodeValue,
+          matchIndex: individualMatch.index,
+          capKey: "individual"
+        });
+      });
     }
 
     nodes.forEach(node => {
@@ -1528,6 +2133,27 @@ function fragmentTarget(doc, href) {
       if (!englishLanguage) return;
       if (/\b(?:ain|aren|can|couldn|daren|didn|doesn|don|hadn|hasn|haven|isn|mightn|mustn|needn|shan|shouldn|wasn|weren|won|wouldn)['’]t\b/i.test(value)) add("negative-contraction", parent, value);
       if (/\b(?:e\.g\.|i\.e\.)/i.test(value)) add("latin-abbreviation", parent, value);
+      if (!parent.closest("blockquote,q")) {
+        const pubicExpression = /\bpubic\b/gi;
+        let pubicMatch;
+        while ((pubicMatch = pubicExpression.exec(value))) add("proofreading-pubic", parent, value, null, {
+          flaggedToken: pubicMatch[0],
+          matchText: pubicMatch[0],
+          proposedPhrase: pubicMatch[0],
+          contextText: value,
+          matchIndex: pubicMatch.index,
+          diagnostics: ["‘Pubic’ is a valid anatomical word. This check asks you to confirm it was intentional."],
+          matchedException: exceptionAtIndex(savedExceptions, "proofreading-pubic", value, pubicMatch.index, hostname, pageUrl)
+        });
+        const repeatedWordExpression = /\b(the|to|of|and|a|an|for|with)\s+\1\b/gi;
+        let repeatedWordMatch;
+        while ((repeatedWordMatch = repeatedWordExpression.exec(value))) add("proofreading-repeat", parent, value, null, {
+          flaggedToken: repeatedWordMatch[0],
+          matchText: repeatedWordMatch[0],
+          contextText: value,
+          matchIndex: repeatedWordMatch.index
+        });
+      }
       const approvedRanges = approvedTermRanges(value);
       const bcExpression = /\bBC\b/g;
       let bcMatch;
@@ -1541,7 +2167,7 @@ function fragmentTarget(doc, href) {
           proposedPhrase: proposal,
           contextText: value,
           matchIndex: bcMatch.index,
-          matchedException: exceptionAtIndex(savedExceptions, "bc-abbreviation", value, bcMatch.index, hostname)
+          matchedException: exceptionAtIndex(savedExceptions, "bc-abbreviation", value, bcMatch.index, hostname, pageUrl)
         });
       }
 
@@ -1558,7 +2184,7 @@ function fragmentTarget(doc, href) {
           proposedPhrase: proposeExactPhrase(value, provinceMatch.index, provinceMatch[0]),
           contextText: value,
           matchIndex: provinceMatch.index,
-          matchedException: exceptionAtIndex(savedExceptions, "province-abbreviation", value, provinceMatch.index, hostname)
+          matchedException: exceptionAtIndex(savedExceptions, "province-abbreviation", value, provinceMatch.index, hostname, pageUrl)
         });
       }
 
@@ -1575,7 +2201,7 @@ function fragmentTarget(doc, href) {
           contextText: value,
           matchIndex: governmentIndex,
           diagnostics: ["‘B.C. government’ is a descriptive reference, not the full formal name ‘Government of British Columbia’."],
-          matchedException: exceptionAtIndex(savedExceptions, "government-capitalization", value, governmentIndex, hostname)
+          matchedException: exceptionAtIndex(savedExceptions, "government-capitalization", value, governmentIndex, hostname, pageUrl)
         });
       }
       const governmentExpression = /\bGovernment\b/g;
@@ -1594,7 +2220,7 @@ function fragmentTarget(doc, href) {
           proposedPhrase: proposeExactPhrase(value, governmentMatch.index, governmentMatch[0]),
           contextText: value,
           matchIndex: governmentMatch.index,
-          matchedException: exceptionAtIndex(savedExceptions, "government-capitalization", value, governmentMatch.index, hostname)
+          matchedException: exceptionAtIndex(savedExceptions, "government-capitalization", value, governmentMatch.index, hostname, pageUrl)
         });
       }
 
@@ -1616,7 +2242,7 @@ function fragmentTarget(doc, href) {
             proposedPhrase: proposeExactPhrase(value, termIndex, term),
             contextText: value,
             matchIndex: termIndex,
-            matchedException: exceptionAtIndex(savedExceptions, "government-generic-term", value, termIndex, hostname)
+            matchedException: exceptionAtIndex(savedExceptions, "government-generic-term", value, termIndex, hostname, pageUrl)
           });
         }
       });
@@ -1642,7 +2268,7 @@ function fragmentTarget(doc, href) {
           proposedPhrase: proposeExactPhrase(value, canadianMatch.index, canadianMatch[0]),
           contextText: value,
           matchIndex: canadianMatch.index,
-          matchedException: exceptionAtIndex(savedExceptions, "canadian-spelling", value, canadianMatch.index, hostname)
+          matchedException: exceptionAtIndex(savedExceptions, "canadian-spelling", value, canadianMatch.index, hostname, pageUrl)
         });
       }
 
@@ -1656,7 +2282,7 @@ function fragmentTarget(doc, href) {
           proposedPhrase: proposeExactPhrase(value, contextualCanadianMatch.index, contextualCanadianMatch.text),
           contextText: value,
           matchIndex: contextualCanadianMatch.index,
-          matchedException: exceptionAtIndex(savedExceptions, "canadian-spelling-context", value, contextualCanadianMatch.index, hostname)
+          matchedException: exceptionAtIndex(savedExceptions, "canadian-spelling-context", value, contextualCanadianMatch.index, hostname, pageUrl)
         });
       }
 
@@ -1672,7 +2298,7 @@ function fragmentTarget(doc, href) {
         proposedPhrase: degreeMatch.text,
         contextText: value,
         matchIndex: degreeMatch.index,
-        matchedException: exceptionAtIndex(savedExceptions, "academic-degree-case", value, degreeMatch.index, hostname)
+        matchedException: exceptionAtIndex(savedExceptions, "academic-degree-case", value, degreeMatch.index, hostname, pageUrl)
       });
       const doctorMatch = /\bDr\.\s+[A-ZÀ-ÖØ-Þ][A-Za-zÀ-ÖØ-öø-ÿ’'-]+(?:\s+[A-ZÀ-ÖØ-Þ][A-Za-zÀ-ÖØ-öø-ÿ’'-]+){0,2}/g.exec(value);
       if (doctorMatch && !isLikelyStreetAbbreviation(value, doctorMatch.index, parent)) add("academic-title", parent, value, null, {
@@ -1681,7 +2307,7 @@ function fragmentTarget(doc, href) {
         proposedPhrase: doctorMatch[0],
         contextText: value,
         matchIndex: doctorMatch.index,
-        matchedException: exceptionAtIndex(savedExceptions, "academic-title", value, doctorMatch.index, hostname)
+        matchedException: exceptionAtIndex(savedExceptions, "academic-title", value, doctorMatch.index, hostname, pageUrl)
       });
       if (/[!?;]/.test(value)) {
         if (value.includes("!")) add("exclamation", parent, value);
@@ -1691,20 +2317,50 @@ function fragmentTarget(doc, href) {
           if (!terminalSemicolonHandledElsewhere) add("semicolon", parent, value);
         }
       }
-      if (value.includes("—") && !parent.closest("h1,h2,h3,h4,h5,h6")) add("em-dash", parent, value);
-      const numericRange = /\b\d+(?:[:.]\d+)?\s*[–—]\s*\d+(?:[:.]\d+)?\b/.test(value);
-      const monthRange = /\b(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2}\s*[–—-]\s*(?:January|February|March|April|May|June|July|August|September|October|November|December)?\s*\d{1,2}\b/i.test(value);
-      const fiscalYear = /\b\d{4}[–—-]\d{2}\b/.test(value);
-      const currencyRangePresent = /(?:US)?\$\d[\d,.]*\s*[-–—]\s*(?:US)?\$?\d/.test(value);
-      if ((numericRange || monthRange) && !fiscalYear && !currencyRangePresent) add("range-dash", parent, value);
-      const doubleSpace = doubleSpaceDetails(value);
-      if (doubleSpace) add("double-space", parent, doubleSpace.evidence, null, {
+      const rangeOccurrences = rangeDashOccurrences(value);
+      rangeOccurrences.forEach(range => add("range-dash", parent, value, null, {
+        matchText: range.text,
+        replacement: range.replacement,
+        matchIndex: range.index,
+        contextText: value
+      }));
+      const currencyDashRanges = [];
+      const currencyDashExpression = /(?:US)?\$\d[\d,.]*\s*[-–—]\s*(?:US)?\$?\d[\d,.]*/g;
+      let currencyDashMatch;
+      while ((currencyDashMatch = currencyDashExpression.exec(value))) currencyDashRanges.push({ start: currencyDashMatch.index, end: currencyDashMatch.index + currencyDashMatch[0].length });
+      if (!parent.closest("h1,h2,h3,h4,h5,h6")) {
+        const emDashExpression = /—/g;
+        let emDashMatch;
+        while ((emDashMatch = emDashExpression.exec(value))) {
+          const insideRange = rangeOccurrences.some(range => emDashMatch.index >= range.index && emDashMatch.index < range.index + range.text.length)
+            || currencyDashRanges.some(range => emDashMatch.index >= range.start && emDashMatch.index < range.end);
+          if (!insideRange) add("em-dash", parent, value, null, { matchText: "—", matchIndex: emDashMatch.index, contextText: value });
+        }
+        dashSeparatorOccurrences(value, rangeOccurrences).forEach(separator => add("dash-separator", parent, value, null, {
+          matchText: separator.text,
+          matchIndex: separator.index,
+          contextText: value
+        }));
+      }
+      doubleSpaceOccurrences(value).forEach(doubleSpace => add("double-space", parent, doubleSpace.evidence, null, {
         matchText: `⟦${doubleSpace.count} spaces⟧`,
-        matchIndex: doubleSpace.evidence.indexOf("⟦"),
+        matchIndex: doubleSpace.index,
         diagnostics: ["Browsers normally collapse consecutive spaces on screen; this marker reports the spacing in the published source."]
-      });
-      const slashMatch = /\b(?:and\/or|he\/she|she\/he|his\/her|her\/his|he\/him|she\/her|s\/he)\b/i.exec(value);
-      if (slashMatch) add("slash", parent, value, null, { matchText: slashMatch[0], matchIndex: slashMatch.index });
+      }));
+      const slashExpression = /\b(?:and\s*\/\s*or|he\s*\/\s*she|she\s*\/\s*he|his\s*\/\s*her|her\s*\/\s*his|he\s*\/\s*him|she\s*\/\s*her|s\s*\/\s*he)\b/gi;
+      let slashMatch;
+      while ((slashMatch = slashExpression.exec(value))) {
+        if (!indexInsideUrl(value, slashMatch.index)) add("slash", parent, value, null, {
+          matchText: slashMatch[0], matchIndex: slashMatch.index, contextText: value
+        });
+      }
+      const wifiExpression = /\b(?:WIFI|WiFi|Wifi|wifi)\b/g;
+      let wifiMatch;
+      while ((wifiMatch = wifiExpression.exec(value))) {
+        if (!indexInsideUrl(value, wifiMatch.index)) add("wifi-format", parent, value, null, {
+          matchText: wifiMatch[0], replacement: "Wi-Fi", matchIndex: wifiMatch.index, contextText: value
+        });
+      }
       const joinedAmpersand = /&([A-ZÀ-ÖØ-Þ][a-zà-öø-ÿ]{2,})/.exec(value);
       if (joinedAmpersand && !parent.closest("code,pre")) add("missing-space-after-ampersand", parent, value, null, {
         matchText: joinedAmpersand[0], replacement: `& ${joinedAmpersand[1]}`, matchIndex: joinedAmpersand.index
@@ -1714,11 +2370,26 @@ function fragmentTarget(doc, href) {
         .replace(/\b[^\s@]+@[^\s@]+\.[^\s@]+\b/g, "")
         .replace(/(^|\s)@[A-Za-z0-9_]{2,}\b/g, "$1");
       if (nonEmailAtText.includes("@")) add("at-symbol", parent, value, null, { matchText: "@", matchIndex: value.indexOf("@") });
-      const capitals = /\b(?:[A-Z][A-Z’'\-]{1,}\s+){1,}[A-Z][A-Z’'\-]{1,}\b/.exec(value);
-      if (capitals && words(capitals[0]).some(word => !isWellKnownAcronym(word))) add("all-caps", parent, value, null, {
-        matchText: capitals[0],
-        matchIndex: capitals.index
+      const allCapsTokens = Array.from(value.matchAll(/\b[A-Z][A-Z’']{1,}\b/g))
+        .filter(match => isCommonAllCapsWord(match[0]));
+      let allCapsGroup = [];
+      const finishAllCapsGroup = () => {
+        if (!allCapsGroup.length) return;
+        const first = allCapsGroup[0];
+        const last = allCapsGroup[allCapsGroup.length - 1];
+        const end = last.index + last[0].length;
+        add("all-caps", parent, value, null, {
+          matchText: value.slice(first.index, end),
+          matchIndex: first.index
+        });
+        allCapsGroup = [];
+      };
+      allCapsTokens.forEach(match => {
+        const previous = allCapsGroup[allCapsGroup.length - 1];
+        if (previous && /^\s+$/.test(value.slice(previous.index + previous[0].length, match.index))) allCapsGroup.push(match);
+        else { finishAllCapsGroup(); allCapsGroup = [match]; }
       });
+      finishAllCapsGroup();
       const septemberAbbreviation = /\bSept\.?\s+\d{1,2}\b/i.test(value);
       const otherMonthAbbreviation = /\b(?:Jan|Feb|Aug|Sep|Oct|Nov|Dec)\.?\s+\d{1,2}\b/i.test(value);
       if (septemberAbbreviation || (otherMonthAbbreviation && !parent.closest("table,form"))) add("month-abbreviation", parent, value);
@@ -1781,6 +2452,7 @@ function fragmentTarget(doc, href) {
       const expression = /\b[A-Z][A-Z0-9]{1,5}s?\b/g;
       let match;
       while ((match = expression.exec(node.nodeValue))) {
+        if (acronymContextExcluded(node.nodeValue, match.index, match[0])) continue;
         const base = acronymBase(match[0]);
         if (!firstAcronymOccurrences.has(base)) firstAcronymOccurrences.set(base, { node, nodeIndex, index: match.index, token: match[0] });
       }
@@ -1788,6 +2460,8 @@ function fragmentTarget(doc, href) {
     firstAcronymOccurrences.forEach((occurrence, acronym) => {
       const displayedAcronym = occurrence.token || acronym;
       if (!englishLanguage) return;
+      if (isWifiVariant(acronym) || isWifiVariant(displayedAcronym)) return;
+      if (isCommonAllCapsWord(acronym) || isCommonAllCapsWord(displayedAcronym)) return;
       if (isWellKnownAcronym(acronym) || isWellKnownAcronym(displayedAcronym)) return;
       if (isCommonRomanNumeral(acronym)) return;
       if (/^[A-Z]\d[A-Z]$/.test(acronym)) return;
@@ -1796,15 +2470,18 @@ function fragmentTarget(doc, href) {
       const elementText = normalizeSpace(element.textContent || occurrence.node.nodeValue || displayedAcronym);
       if (isPostalAcronymContext(acronym, elementText, element)) return;
       if (acronymDefinedInText(elementText, displayedAcronym) || acronymDefinedAcrossParts(acronymTextParts, occurrence.nodeIndex, occurrence.index, displayedAcronym)) return;
-      const termIndex = Math.max(0, exactTokenIndex(elementText, displayedAcronym));
-      add("undefined-acronym", element || root, `First use: ${elementText}`, null, {
+      const exactIndex = exactTokenIndex(elementText, displayedAcronym);
+      const termIndex = Math.max(0, exactIndex);
+      if (exactIndex >= 0 && builtInTermAtIndex(elementText, exactIndex)) return;
+      add("undefined-acronym", element || root, elementText, null, {
         flaggedToken: displayedAcronym,
         matchText: displayedAcronym,
         proposedPhrase: proposeExactPhrase(elementText, termIndex, displayedAcronym),
         contextText: elementText,
+        evidencePrefix: "First use: ",
         matchIndex: termIndex,
         diagnostics: [`No earlier definition in the form “full term (${acronym})” was found in the scanned content.`],
-        matchedException: exceptionAtIndex(savedExceptions, "undefined-acronym", elementText, termIndex, hostname)
+        matchedException: exceptionAtIndex(savedExceptions, "undefined-acronym", elementText, termIndex, hostname, pageUrl)
       });
     });
 
@@ -1813,26 +2490,77 @@ function fragmentTarget(doc, href) {
     });
 
     const links = Array.from(root.querySelectorAll("a[href]")).filter(inScanArea);
+    const splitLinkMembers = new Set();
+    const exactResolvedLink = link => {
+      try { return new URL(link.getAttribute("href") || "", pageUrl).href; } catch (_) { return link.getAttribute("href") || ""; }
+    };
+    const linkTextContainer = link => link.closest("h1,h2,h3,h4,h5,h6,p,li,dd,dt,figcaption,blockquote,td,th");
+    const splitLinkEligible = link => Boolean(link && !isButtonStyleLink(link) && !link.querySelector("img") && !link.closest("nav,[role='navigation']") && linkTextContainer(link));
+    const hasOnlyInlineWhitespaceBetween = (first, second) => {
+      try {
+        const range = doc.createRange();
+        range.setStartAfter(first);
+        range.setEndBefore(second);
+        const fragment = range.cloneContents();
+        if (normalizeSpace(fragment.textContent)) return false;
+        return !fragment.querySelector("br,hr,p,div,section,article,aside,ul,ol,table,form,details");
+      } catch (_) { return false; }
+    };
+    const finishSplitLinkGroup = group => {
+      if (group.length < 2) return;
+      const combined = normalizeSpace(group.map(link => link.textContent || "").join(""));
+      if (!combined) return;
+      group.forEach(link => splitLinkMembers.add(link));
+      add("split-link", group[0], `${combined} → ${exactResolvedLink(group[0])}`, null, {
+        selectors: group.map(cssPath)
+      });
+    };
+    let splitGroup = [];
+    links.forEach(link => {
+      const previous = splitGroup[splitGroup.length - 1];
+      const joinsPrevious = previous
+        && splitLinkEligible(previous)
+        && splitLinkEligible(link)
+        && linkTextContainer(previous) === linkTextContainer(link)
+        && exactResolvedLink(previous) === exactResolvedLink(link)
+        && hasOnlyInlineWhitespaceBetween(previous, link);
+      if (joinsPrevious) splitGroup.push(link);
+      else {
+        finishSplitLinkGroup(splitGroup);
+        splitGroup = splitLinkEligible(link) ? [link] : [];
+      }
+    });
+    finishSplitLinkGroup(splitGroup);
+
     links.forEach(link => {
       const linkText = accessibleName(link);
       const href = link.getAttribute("href") || "";
       const absoluteHref = link.href || href;
       const finalTextNode = link.lastChild && link.lastChild.nodeType === 3 ? link.lastChild : null;
-      if (finalTextNode && /[\t \u00a0\u2007\u202f]+$/.test(finalTextNode.nodeValue || "")) add("link-trailing-space", link, `${linkText} ⟦trailing space⟧`, null, {
+      const standaloneEmptyLink = !splitLinkMembers.has(link) && !linkText && !link.querySelector("img");
+      if (!standaloneEmptyLink && !splitLinkMembers.has(link) && !isButtonStyleLink(link) && finalTextNode && /[\t \u00a0\u2007\u202f]+$/.test(finalTextNode.nodeValue || "")) add("link-trailing-space", link, `${linkText} ⟦trailing space⟧`, null, {
         matchText: "⟦trailing space⟧",
         diagnostics: ["The extra space is inside the link and may not be visible on the published page."]
       });
-      if (!linkText && !link.querySelector("img")) add("empty-link", link, href);
-      if (/^(?:click here|here|read more|learn more|more|this link|link)$/i.test(linkText)) add("generic-link", link, linkText);
-      if (/^(?:https?:\/\/|www\.)\S+$/i.test(linkText)) add("url-link-text", link, linkText);
-      if (words(linkText).length > 15) add("long-link-text", link, linkText);
-      if (link.target && link.target.toLowerCase() === "_blank") add("new-tab", link, linkText || href);
-      if (/news\.gov\.bc\.ca|\/news-releases?\//i.test(href)) add("news-release-link", link, linkText || href);
-      if (/^mailto:/i.test(href)) {
-        const address = decodeURIComponent(href.replace(/^mailto:/i, "").split("?")[0]);
-        if (linkText.toLowerCase() !== address.toLowerCase()) add("email-link-text", link, linkText + " → " + address);
+      if (standaloneEmptyLink) {
+        const nearbyLink = link.parentElement && Array.from(link.parentElement.querySelectorAll("a[href]"))
+          .find(candidate => candidate !== link && accessibleName(candidate));
+        const diagnostics = ["This link has no visible text or accessible label, so it may be invisible on the published page."];
+        if (nearbyLink) diagnostics.push(`Found near: “${accessibleName(nearbyLink)}”.`);
+        add("empty-link", link, `Invisible link points to: ${absoluteHref || href}`, null, { diagnostics });
       }
-      if (/^tel:/i.test(href) && !/^tel:\+1-\d{3}-\d{3}-\d{4}$/i.test(href)) add("phone-link-format", link, href);
+      if (!standaloneEmptyLink) {
+        if (/^(?:click here|here|read more|learn more|learn how|find out how|find out more|more information|more|this link|link)$/i.test(linkText)) add("generic-link", link, linkText);
+        if (/^(?:https?:\/\/|www\.)\S+$/i.test(linkText)) add("url-link-text", link, linkText);
+        if (words(linkText).length > 15) add("long-link-text", link, linkText);
+        if (link.target && link.target.toLowerCase() === "_blank") add("new-tab", link, linkText || href);
+        if (/news\.gov\.bc\.ca|\/news-releases?\//i.test(href)) add("news-release-link", link, linkText || href);
+        if (/^mailto:/i.test(href)) {
+          const address = decodeURIComponent(href.replace(/^mailto:/i, "").split("?")[0]);
+          if (linkText.toLowerCase() !== address.toLowerCase()) add("email-link-text", link, linkText + " → " + address);
+        }
+        if (/^tel:/i.test(href) && !isValidTelHref(href)) add("phone-link-format", link, href);
+      }
       const label = assetLabel(linkText);
       const expectedType = assetTypeFromUrl(absoluteHref);
       if (looksLikeAssetLink(link, absoluteHref, label)) {
@@ -1840,6 +2568,7 @@ function fragmentTarget(doc, href) {
           href: absoluteHref,
           text: linkText,
           selector: cssPath(link),
+          editorRegion,
           expectedType,
           declaredType: label.type,
           declaredSize: label.size,
@@ -1848,23 +2577,40 @@ function fragmentTarget(doc, href) {
           labelStatus: label.status,
           verificationStatus: "not-checked"
         });
-        if (label.status === "size-spacing") add("file-link-size-spacing", link, linkText || href, null, {
-          flaggedToken: label.sizeText,
-          matchText: label.sizeText,
-          replacement: label.replacement,
-          matchIndex: Math.max(0, (linkText || "").indexOf(label.sizeText))
-        });
-        else if (label.status === "label-format") add("file-link-label-format", link, linkText || href, null, {
-          flaggedToken: label.raw,
-          matchText: label.raw,
-          replacement: label.replacement,
-          matchIndex: Math.max(0, (linkText || "").indexOf(label.raw))
-        });
-        else if ((expectedType || label.type || link.hasAttribute("download")) && !label.valid) add("file-link-label", link, linkText || href);
+        if (!standaloneEmptyLink) {
+          if (label.status === "size-spacing") add("file-link-size-spacing", link, linkText || href, null, {
+            flaggedToken: label.sizeText,
+            matchText: label.sizeText,
+            replacement: label.replacement,
+            matchIndex: Math.max(0, (linkText || "").indexOf(label.sizeText))
+          });
+          else if (label.status === "label-format") add("file-link-label-format", link, linkText || href, null, {
+            flaggedToken: label.raw,
+            matchText: label.raw,
+            replacement: label.replacement,
+            matchIndex: Math.max(0, (linkText || "").indexOf(label.raw))
+          });
+          else if (label.status === "missing-type") add("file-link-type", link, linkText || href, expectedType ? `Add the file type so the label reads “(${expectedType}, ${label.size}${label.unit})”.` : null, {
+            flaggedToken: label.raw,
+            matchText: label.raw,
+            replacement: expectedType ? `(${expectedType}, ${label.size}${label.unit})` : "",
+            matchIndex: Math.max(0, (linkText || "").indexOf(label.raw)),
+            diagnostics: ["The file size is already present; only the file type is missing."]
+          });
+          else if (label.status === "missing-size") add("file-link-size", link, linkText || href, null, {
+            flaggedToken: label.raw,
+            matchText: label.raw,
+            matchIndex: Math.max(0, (linkText || "").indexOf(label.raw)),
+            diagnostics: ["The file type is already present; only the file size is missing."]
+          });
+          else if ((expectedType || label.type || link.hasAttribute("download")) && !label.valid) add("file-link-label", link, linkText || href);
+        }
       }
-      const punctuationIssue = linkPunctuationIssue(linkText);
-      if (punctuationIssue === "punctuation-only") add("punctuation-only-link", link, linkText);
-      else if (punctuationIssue === "terminal") add("linked-period", link, linkText);
+      if (!standaloneEmptyLink) {
+        const punctuationIssue = linkPunctuationIssue(linkText);
+        if (punctuationIssue === "punctuation-only") add("punctuation-only-link", link, linkText);
+        else if (punctuationIssue === "terminal") add("linked-period", link, linkText);
+      }
       if (href.startsWith("#") && href.length > 1) {
         const target = fragmentTarget(doc, href);
         if (!target) {
@@ -1885,7 +2631,7 @@ function fragmentTarget(doc, href) {
       });
     });
 
-    const lists = Array.from(root.querySelectorAll("ul,ol")).filter(inScanArea);
+    const lists = Array.from(root.querySelectorAll("ul,ol")).filter(inScanArea).filter(isMeaningfulList);
     lists.forEach(list => {
       const navigationalList = Boolean(list.closest("nav,[role='navigation']"));
       let depth = 1;
@@ -1894,9 +2640,15 @@ function fragmentTarget(doc, href) {
       if (depth > 2 && !navigationalList) add("list-depth", list, "List depth: " + depth);
       const items = Array.from(list.children).filter(item => item.tagName === "LI");
       if (items.length > 7 && !navigationalList) add("list-long", list, items.length + " items");
-      const precedingParagraph = list.previousElementSibling && list.previousElementSibling.tagName === "P" ? list.previousElementSibling : null;
+      const listComponent = list.closest(CMS_LITE_COMPONENT_SELECTORS);
+      const precedingBlocks = Array.from(root.querySelectorAll("p,h1,h2,h3,h4,h5,h6,summary"))
+        .filter(inScanArea)
+        .filter(element => !element.contains(list) && Boolean(element.compareDocumentPosition(list) & 4))
+        .filter(element => (element.closest(CMS_LITE_COMPONENT_SELECTORS) || null) === (listComponent || null));
+      const precedingBlock = precedingBlocks[precedingBlocks.length - 1] || null;
+      const precedingParagraph = precedingBlock && precedingBlock.tagName === "P" ? precedingBlock : null;
       const precedingText = precedingParagraph ? normalizeSpace(precedingParagraph.textContent) : "";
-      const onThisPageList = /^on this page:?$/i.test(precedingText) || Boolean(list.closest("[class*='jump' i],[class*='on-this-page' i]"));
+      const onThisPageList = isOnThisPageList(list, onThisPagePattern, root, inScanArea);
       if (englishLanguage && !navigationalList && !onThisPageList && precedingParagraph && precedingText && !/:$/.test(precedingText)) {
         add("list-introduction", precedingParagraph, precedingText);
       }
@@ -1914,10 +2666,29 @@ function fragmentTarget(doc, href) {
         return itemLinks.length === 1 && normalizeSpace(item.textContent) === normalizeSpace(itemLinks[0].textContent);
       });
       if (englishLanguage && !navigationalList && !linkDirectory) {
-        const openings = items.map(item => firstWords(item.textContent, 2)).filter(Boolean);
-        const repeated = openings.find((opening, index) => openings.indexOf(opening) !== index);
-        if (repeated && items.length >= 2) add("list-repetition", list, "Repeated opening: ‘" + repeated + "’");
+        const openings = items.map(item => firstWords(item.textContent, 2)).map(opening => /^[a-zà-öø-ÿ]/i.test(opening) ? opening : "");
+        const counts = new Map();
+        openings.filter(Boolean).forEach(opening => counts.set(opening, (counts.get(opening) || 0) + 1));
+        const repeated = Array.from(counts.entries()).find(([opening, count]) => {
+          if (count < 3) return false;
+          let consecutive = 0;
+          let maxConsecutive = 0;
+          openings.forEach(item => {
+            consecutive = item === opening ? consecutive + 1 : 0;
+            maxConsecutive = Math.max(maxConsecutive, consecutive);
+          });
+          return maxConsecutive >= 3 || count / Math.max(1, items.length) >= 0.5;
+        });
+        if (repeated) add("list-repetition", list, `Repeated opening: ‘${repeated[0]}’ in ${repeated[1]} of ${items.length} items`);
       }
+    });
+
+    Array.from(root.querySelectorAll("p")).filter(inScanArea).forEach(paragraph => {
+      if (!englishLanguage || paragraph.closest("ul,ol,pre,code")) return;
+      const fakeList = fakeListDetails(paragraph);
+      if (fakeList) add("fake-list", paragraph, `${fakeList.count} items made with ${fakeList.marker}: ${fakeList.evidence}`, null, {
+        diagnostics: ["The content looks like a list on screen but is not marked up as a semantic list."]
+      });
     });
 
     Array.from(root.querySelectorAll("table")).filter(inScanArea).forEach(table => {
@@ -1959,9 +2730,12 @@ function fragmentTarget(doc, href) {
     }
 
     Array.from(root.querySelectorAll("img")).filter(inScanArea).filter(image => !isCmsLiteTemplateImage(image, profile)).forEach(image => {
+      const imageLink = image.closest("a");
+      const genericAlt = image.hasAttribute("alt") && image.alt !== "" && isMeaninglessAlt(image.alt);
       if (!image.hasAttribute("alt")) add("image-alt-missing", image, image.currentSrc || image.src || "Image");
       else if (image.alt === "") add("image-alt-empty", image, image.currentSrc || image.src || "Image with empty alt text");
       else {
+        if (!imageLink && genericAlt) add("image-alt-meaningless", image, image.alt, null, { matchText: image.alt, matchIndex: 0 });
         if (englishLanguage && /^\s*(?:image|photo)\s+of\b/i.test(image.alt)) add("image-alt-prefix", image, image.alt, null, {
           matchText: image.alt.match(/^\s*(?:image|photo)\s+of\b/i)[0].trim(),
           matchIndex: 0
@@ -1969,8 +2743,7 @@ function fragmentTarget(doc, href) {
         if (words(image.alt).length > 15) add("image-alt-length", image, `${words(image.alt).length} words: ${image.alt}`);
       }
       if (image.complete && image.naturalWidth === 0 && (image.currentSrc || image.src)) add("broken-image", image, image.currentSrc || image.src);
-      const imageLink = image.closest("a");
-      if (imageLink && !accessibleName(imageLink)) add("linked-image-alt", image, image.alt || image.currentSrc || image.src);
+      if (imageLink && (!accessibleName(imageLink) || genericAlt)) add("linked-image-alt", image, image.alt || image.currentSrc || image.src);
     });
 
     Array.from(root.querySelectorAll("a[href],img[src],source[src]")).filter(inScanArea).forEach(element => {
@@ -2063,7 +2836,7 @@ function fragmentTarget(doc, href) {
       pageDetails,
       totals,
       manualChecks: MANUAL_CHECKS.map((item, index) => ({ id: "manual-" + index, title: item[0], question: item[1], sourceUrl: item[2] })),
-      notes: Object.values(totals).some(value => value > perRuleLimit) ? "Repeated findings are capped at 25 examples per rule." : ""
+      notes: Object.values(totals).some(value => value > perRuleLimit) ? "Very repetitive findings are capped; distinct plain-language terms are preserved." : ""
     };
   }
 
@@ -2082,9 +2855,15 @@ function fragmentTarget(doc, href) {
       readingGrade,
       readingGradeFromBlocks,
       shouldFlagReadingGrade,
+      sectionReadingThreshold,
       isEnglishLanguage,
       passiveVoiceParticiple,
       headingStructureDetails,
+      excerptAroundMatch,
+      rangeDashOccurrences,
+      dashSeparatorOccurrences,
+      indexInsideUrl,
+      isWifiVariant,
       measurementDetails,
       educationContext,
       academicDegreeDetails,
@@ -2102,9 +2881,15 @@ function fragmentTarget(doc, href) {
       isCommonRomanNumeral,
       isPostalAcronymContext,
       doubleSpaceDetails,
+      doubleSpaceOccurrences,
       anchorTextScore,
       contrastRatio,
       isLikelyTitleCase,
+      isValidTelHref,
+      isMeaninglessAlt,
+      fakeListDetails,
+      readabilityBlockText,
+      acronymContextExcluded,
       approvedTermRanges,
       proposeExactPhrase,
       validateExceptionPhrase,
