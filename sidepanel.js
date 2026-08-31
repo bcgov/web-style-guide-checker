@@ -2381,8 +2381,7 @@ function renderFinding(finding) {
           ${canReview && finding.exceptionEligible ? `<button class="small-button exception-button" type="button">${finding.ruleId === "proofreading-pubic" ? "Ignore on this page" : "Always allow exact term"}</button>` : ""}
           <button class="small-button note-button" type="button">${note.text || note.important ? "Edit note or importance" : "Add note or importance"}</button>
         </div>
-        <details class="reference-guidance"><summary>Reference guidance</summary><a href="${escapeHtml(finding.sourceUrl)}" target="_blank" rel="noreferrer">${escapeHtml(finding.sourceLabel)} — B.C. Web Style Guide</a></details>
-        <button class="text-button finding-feedback-action" type="button">${feedbackCount ? "Edit feedback about this result" : "Add feedback about this result"}</button>
+      <div class="reference-guidance"><strong>Reference guidance:</strong> <a href="${escapeHtml(finding.sourceUrl)}" target="_blank" rel="noreferrer">${escapeHtml(finding.sourceLabel)} — B.C. Web Style Guide</a></div>        <button class="text-button finding-feedback-action" type="button">${feedbackCount ? "Edit feedback about this result" : "Add feedback about this result"}</button>
       </div>
     </article>`;
 }
