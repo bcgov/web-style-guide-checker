@@ -40,20 +40,34 @@
     return 0;
   }
 
-  function validHttpsUrl(value, { download = false } = {}) {
-    if (!value) return "";
-    try {
-      const url = new URL(String(value));
-      if (url.protocol !== "https:") return "";
-      if (download) {
-        if (!ALLOWED_DOWNLOAD_HOSTS.has(url.hostname.toLowerCase())) return "";
-        if (!/^\/bcgov\/web-style-guide-checker(?:\/|$)/i.test(url.pathname)) return "";
-      }
+function validHttpsUrl(value, { download = false } = {}) {
+  if (!value) return "";
+
+  try {
+    const url = new URL(String(value));
+
+    // Allow the approved mailto address for preview requests.
+    if (download && url.protocol === "mailto:") {
+      const recipient = decodeURIComponent(url.pathname).toLowerCase();
+
+      if (recipient !== "karmen.abrahams-munroe@gov.bc.ca") return "";
+
       return url.href;
-    } catch (_) {
-      return "";
     }
+
+    // All other accepted URLs must use HTTPS.
+    if (url.protocol !== "https:") return "";
+
+    if (download) {
+      if (!ALLOWED_DOWNLOAD_HOSTS.has(url.hostname.toLowerCase())) return "";
+      if (!/^\/bcgov\/web-style-guide-checker(?:\/|$)/i.test(url.pathname)) return "";
+    }
+
+    return url.href;
+  } catch (_) {
+    return "";
   }
+}
 
   function validatePolicy(input) {
     if (!input || typeof input !== "object" || Array.isArray(input)) return null;
