@@ -170,18 +170,265 @@ function originPattern(value) {
   return `${url.protocol}//${url.host}/*`;
 }
 
+const TRUSTED_SESSION_HOSTS = new Set([
+  "intranet.gov.bc.ca",
+  "intranet.qa.gov.bc.ca",
+  "bcgov.sharepoint.com"
+]);
+
+const TRUSTED_SESSION_SUFFIXES = [
+  ".gww.gov.bc.ca"
+];
+
+const AUTH_REDIRECT_HOSTS = new Set([
+  "logon7.gov.bc.ca",
+  "login.microsoftonline.com"
+]);
+
+const AUTH_REDIRECT_PATH = /(?:^|\/)(?:login|logon|sign-in|signin)(?:\/|$)/i;
+
+const LINK_RESULT_LABELS = {
+  broken: "Broken",
+  server: "Server error",
+  "client-error": "HTTP error",
+  "live-not-found": "Live version not found",
+  "qa-only": "Available in QA · not found live",
+  "live-only": "Available live · not found in QA",
+  "cms-only": "Available in CMS Lite only",
+  "cms-publishing-unverified": "Available in CMS Lite · publication not verified",
+  "qa-live-unverified": "Available in QA · live not verified",
+  "session-unverified": "Could not verify automatically",
+  "rate-limited": "Rate limited",
+  restricted: "Restricted",
+  redirect: "Redirect could not be verified",
+  "sign-in": "Redirected to sign-in",
+  unavailable: "Could not verify",
+  permission: "Website access needed",
+  "qa-live-ok": "Available in QA and live",
+  "session-ok": "Working",
+  "live-ok": "Live version working",
+  ok: "Working"
+};
+
+const LINK_RESULT_GROUPS = [
+  {
+    key: "problems",
+    label: "Problems",
+    description: "Links that are broken or returned an error.",
+    buckets: [
+      { label: "Broken", statuses: ["broken"] },
+      { label: "Server error", statuses: ["server"] },
+      { label: "HTTP error", statuses: ["client-error"] }
+    ]
+  },
+  {
+    key: "review",
+    label: "Needs review",
+    description: "Links that could not be fully checked.",
+    buckets: [
+      { label: "Live version not found", statuses: ["live-not-found"] },
+      { label: "Available in QA · not found live", statuses: ["qa-only"] },
+      { label: "Available live · not found in QA", statuses: ["live-only"] },
+      { label: "Available in CMS Lite only", statuses: ["cms-only"] },
+      { label: "Available in CMS Lite · publication not verified", statuses: ["cms-publishing-unverified"] },
+      { label: "Available in QA · live not verified", statuses: ["qa-live-unverified"] },
+      { label: "Could not verify automatically", statuses: ["session-unverified", "unavailable"] },
+      { label: "Rate limited", statuses: ["rate-limited"] },
+      { label: "Restricted", statuses: ["restricted"] },
+      { label: "Redirect could not be verified", statuses: ["redirect"] },
+      { label: "Redirected to sign-in", statuses: ["sign-in"] },
+      { label: "Website access needed", statuses: ["permission"] }
+    ]
+  },
+  {
+    key: "working",
+    label: "Working",
+    description: "Links the checker successfully verified.",
+    buckets: [
+      { label: "Available in QA and live", statuses: ["qa-live-ok"] },
+      { label: "Live version working", statuses: ["live-ok"] },
+      { label: "Working", statuses: ["session-ok", "ok"] }
+    ]
+  }
+];
+
+function linkResultCategoryCounts(results) {
+  const items = Array.isArray(results) ? results : [];
+  return Object.fromEntries(LINK_RESULT_GROUPS.map(group => {
+    const statuses = group.buckets.flatMap(bucket => bucket.statuses);
+    return [group.key, items.filter(result => statuses.includes(result.status)).length];
+  }));
+}
+
+function trustedSessionHost(value) {
+  const host = hostnameFor(value);
+  return TRUSTED_SESSION_HOSTS.has(host) || TRUSTED_SESSION_SUFFIXES.some(suffix => host.endsWith(suffix));
+}
+
+function authenticationRedirectHost(value) {
+  return AUTH_REDIRECT_HOSTS.has(hostnameFor(value));
+}
+
+function looksLikeAuthenticationRedirect(startingUrl, destinationUrl) {
+  if (authenticationRedirectHost(destinationUrl)) return true;
+  try {
+    const starting = new URL(startingUrl);
+    const destination = new URL(destinationUrl);
+    if (starting.hostname === destination.hostname && starting.pathname === destination.pathname) return false;
+    return AUTH_REDIRECT_PATH.test(destination.pathname);
+  } catch (_) {
+    return false;
+  }
+}
+
+function urlOrigin(value) {
+  try { return new URL(value).origin; } catch (_) { return ""; }
+}
+
 function qaProductionEquivalent(value) {
   try {
     const url = new URL(value);
-    if (url.hostname.toLowerCase() !== "www2.qa.gov.bc.ca") return "";
-    url.hostname = "www2.gov.bc.ca";
+    const host = url.hostname.toLowerCase();
+    const liveHosts = {
+      "www2.qa.gov.bc.ca": "www2.gov.bc.ca",
+      "intranet.qa.gov.bc.ca": "intranet.gov.bc.ca"
+    };
+    if (!liveHosts[host]) return "";
+    url.hostname = liveHosts[host];
     return url.href;
   } catch (_) { return ""; }
 }
 
+function qaPublishingFamily(value) {
+  const host = hostnameFor(value);
+  if (host === "www2.qa.gov.bc.ca") return "public";
+  if (host === "intranet.qa.gov.bc.ca") return "intranet";
+  return "";
+}
+
+function publicQaReviewContext(value) {
+  const host = hostnameFor(value);
+  return host === "cmslite.gov.bc.ca" || host === "www2.qa.gov.bc.ca";
+}
+
+function publicQaCmsDestination(value) {
+  try {
+    const url = new URL(value);
+    return url.hostname.toLowerCase() === "www2.qa.gov.bc.ca"
+      && /^\/(?:gov|assets)(?:\/|$)/i.test(url.pathname);
+  } catch (_) {
+    return false;
+  }
+}
+
+function publicCmsEnvironmentPair(value, sourcePageUrl) {
+  if (!publicQaReviewContext(sourcePageUrl)) return null;
+  try {
+    const url = new URL(value);
+    const host = url.hostname.toLowerCase();
+    if (!["gov.bc.ca", "www2.gov.bc.ca", "www2.qa.gov.bc.ca"].includes(host)) return null;
+    if (!/^\/(?:gov|assets)(?:\/|$)/i.test(url.pathname)) return null;
+    const qa = new URL(url.href);
+    qa.protocol = "https:";
+    qa.hostname = "www2.qa.gov.bc.ca";
+    qa.port = "";
+    const live = new URL(url.href);
+    live.protocol = "https:";
+    live.hostname = "www2.gov.bc.ca";
+    live.port = "";
+    return { qa: qa.href, live: live.href };
+  } catch (_) {
+    return null;
+  }
+}
+
+function intranetContentIdResolver(value) {
+  try {
+    const url = new URL(value);
+    const host = url.hostname.toLowerCase();
+    if (!["intranet.gov.bc.ca", "intranet.qa.gov.bc.ca"].includes(host)) return null;
+    if (url.pathname !== "/intranet/content") return null;
+    const keys = Array.from(url.searchParams.keys());
+    if (keys.length !== 1 || keys[0] !== "id") return null;
+    const id = url.searchParams.get("id") || "";
+    if (!/^[a-f0-9]{32}$/i.test(id)) return null;
+    return { id: id.toUpperCase(), host };
+  } catch (_) {
+    return null;
+  }
+}
+
+function canUseIntranetResolverSession(report) {
+  const sourceUrl = report && report.page && report.page.url ? report.page.url : "";
+  const sourceHost = hostnameFor(sourceUrl);
+  const cmsEditor = Boolean(
+    report && report.settings && report.settings.editorMode && cmsLiteEditorSource(sourceUrl)
+  );
+  const trustedPublishingSource = [
+    "www2.gov.bc.ca",
+    "www2.qa.gov.bc.ca",
+    "gov.bc.ca",
+    "intranet.gov.bc.ca",
+    "intranet.qa.gov.bc.ca"
+  ].includes(sourceHost);
+  return cmsEditor || trustedPublishingSource;
+}
+
+function cmsLiteManagedAssetGuid(value) {
+  try {
+    const url = new URL(value);
+    if (url.hostname.toLowerCase() !== "cmslite.gov.bc.ca") return "";
+    const match = /^\/assets\/download\/([a-f0-9]{32})(?:\/)?$/i.exec(url.pathname);
+    return match ? match[1].toUpperCase() : "";
+  } catch (_) { return ""; }
+}
+
+function cmsLiteAssetPublishingFamily(value) {
+  try {
+    const url = new URL(value);
+    if (url.hostname.toLowerCase() !== "cmslite.gov.bc.ca") return "";
+    if (/^\/assets\/gov(?:\/|$)/i.test(url.pathname)) return "public";
+    if (/^\/assets\/intranet(?:\/|$)/i.test(url.pathname)) return "intranet";
+    return "";
+  } catch (_) { return ""; }
+}
+
+function cmsLiteAssetEnvironmentUrls(guid, family) {
+  const cleanGuid = String(guid || "").toUpperCase();
+  if (!/^[A-F0-9]{32}$/.test(cleanGuid)) return null;
+  if (family === "public") {
+    return {
+      qa: `https://www2.qa.gov.bc.ca/assets/download/${cleanGuid}`,
+      live: `https://www2.gov.bc.ca/assets/download/${cleanGuid}`,
+      finalLiveOrigin: "https://gov.bc.ca/"
+    };
+  }
+  if (family === "intranet") {
+    return {
+      qa: `https://intranet.qa.gov.bc.ca/assets/download/${cleanGuid}`,
+      live: `https://intranet.gov.bc.ca/assets/download/${cleanGuid}`,
+      finalLiveOrigin: ""
+    };
+  }
+  return null;
+}
+
+function cmsLiteEditorSource(value) {
+  return hostnameFor(value) === "cmslite.gov.bc.ca";
+}
+
+function cmsLiteEditorHomeLink(report, value) {
+  if (!(report && report.settings && report.settings.editorMode)) return false;
+  if (!cmsLiteEditorSource(report.page && report.page.url ? report.page.url : "")) return false;
+  try {
+    const url = new URL(value);
+    return url.hostname.toLowerCase() === "cmslite.gov.bc.ca" && url.pathname === "/" && !url.search && !url.hash;
+  } catch (_) { return false; }
+}
+
 function signInMayBeRequired(value) {
   const host = hostnameFor(value);
-  return host === "cmslite.gov.bc.ca" || host === "logon7.gov.bc.ca" || host === "intranet.qa.gov.bc.ca";
+  return host === "cmslite.gov.bc.ca" || authenticationRedirectHost(value);
 }
 
 function prepareRemoteLink(link, pageUrl) {
@@ -195,15 +442,33 @@ function prepareRemoteLink(link, pageUrl) {
     const destination = new URL(href);
     if (destination.hash && canonicalUrl(destination.href) === canonicalUrl(pageUrl || "")) return null;
   } catch (_) {}
-  const liveEquivalent = qaProductionEquivalent(href);
+  const publicEnvironmentPair = publicCmsEnvironmentPair(href, pageUrl);
+  const liveEquivalent = publicEnvironmentPair ? publicEnvironmentPair.live : qaProductionEquivalent(href);
   const checkUrl = liveEquivalent || href;
+  const qaFamily = publicEnvironmentPair ? "public" : qaPublishingFamily(href);
+  const qaUrl = publicEnvironmentPair ? publicEnvironmentPair.qa : (qaFamily ? href : "");
+  const liveUrl = publicEnvironmentPair ? publicEnvironmentPair.live : liveEquivalent;
+  const cmsLiteSameOrigin = cmsLiteEditorSource(pageUrl) && hostnameFor(href) === "cmslite.gov.bc.ca";
+  const cmsLiteAssetGuid = cmsLiteSameOrigin ? cmsLiteManagedAssetGuid(href) : "";
   return {
     ...link,
     href,
     checkUrl,
     qaLive: Boolean(liveEquivalent),
-    signInRequired: !liveEquivalent && signInMayBeRequired(checkUrl)
+    qaFamily,
+    qaUrl,
+    liveUrl,
+    publicQaPair: Boolean(publicEnvironmentPair),
+    cmsLiteEditorLink: cmsLiteSameOrigin,
+    cmsLiteAssetGuid,
+    sessionAware: trustedSessionHost(href) || trustedSessionHost(checkUrl) || cmsLiteSameOrigin,
+    signInRequired: !liveEquivalent && !cmsLiteSameOrigin && signInMayBeRequired(checkUrl)
   };
+}
+
+function remoteLinkKey(link) {
+  if (!link) return "";
+  return canonicalUrl(link.qaFamily ? link.href : (link.checkUrl || link.href));
 }
 
 function remoteLinksForReport(report) {
@@ -211,7 +476,13 @@ function remoteLinksForReport(report) {
   (((report || {}).pageDetails || {}).links || []).forEach(originalLink => {
     const link = prepareRemoteLink(originalLink, report && report.page ? report.page.url : "");
     if (!link) return;
-    const key = canonicalUrl(link.checkUrl || link.href);
+    if (link.cmsLiteAssetGuid) {
+      const matchingAsset = (report.assets || []).find(asset =>
+        asset.selector === link.selector && editorSourceKey(asset) === editorSourceKey(link)
+      );
+      link.cmsLiteAssetFamily = cmsLiteAssetPublishingFamily(matchingAsset && matchingAsset.finalUrl ? matchingAsset.finalUrl : "");
+    }
+    const key = remoteLinkKey(link);
     if (unique.has(key)) unique.get(key).occurrences += 1;
     else unique.set(key, { ...link, occurrences: 1 });
   });
@@ -223,15 +494,47 @@ function linkResultFromRemote(link, result) {
     status: result.status,
     code: result.code,
     link,
-    checkedUrl: link.checkUrl || link.href,
-    finalUrl: result.finalUrl || link.checkUrl || link.href,
+    linkKey: remoteLinkKey(link),
+    checkedUrl: result.checkedUrl || link.checkUrl || link.href,
+    finalUrl: result.finalUrl || result.checkedUrl || link.checkUrl || link.href,
     redirected: Boolean(result.redirected),
     error: result.error || "",
-    qaLive: Boolean(link.qaLive)
+    qaLive: Boolean(link.qaLive),
+    cmsStatus: result.cmsStatus || "",
+    cmsCode: result.cmsCode || "",
+    cmsCheckedUrl: result.cmsCheckedUrl || "",
+    qaStatus: result.qaStatus || "",
+    qaCode: result.qaCode || "",
+    qaCheckedUrl: result.qaCheckedUrl || "",
+    liveStatus: result.liveStatus || "",
+    liveCode: result.liveCode || "",
+    liveCheckedUrl: result.liveCheckedUrl || "",
+    accessMode: result.accessMode || ""
   };
-  if (link.qaLive && result.status === "ok") output.status = "live-ok";
-  if (link.qaLive && result.status === "broken") output.status = "live-not-found";
+  if (result.combinedStatus) output.status = result.combinedStatus;
+  else if (link.qaLive && result.status === "ok") output.status = "live-ok";
+  else if (link.qaLive && result.status === "broken") output.status = "live-not-found";
+  else if (link.sessionAware && result.status === "ok" && result.accessMode === "current-session") output.status = "session-ok";
   return output;
+}
+
+function permissionOriginsForPreparedLink(link) {
+  const values = [link && (link.checkUrl || link.href)];
+  if (link && link.qaLive) {
+    if (link.qaUrl) values.push(link.qaUrl);
+    else if (link.href) values.push(link.href);
+    if (link.liveUrl) values.push(link.liveUrl);
+  }
+  if (link && link.cmsLiteAssetGuid) {
+    const families = link.cmsLiteAssetFamily ? [link.cmsLiteAssetFamily] : ["public", "intranet"];
+    families.forEach(family => {
+      const environments = cmsLiteAssetEnvironmentUrls(link.cmsLiteAssetGuid, family);
+      if (!environments) return;
+      values.push(environments.qa, environments.live);
+      if (environments.finalLiveOrigin) values.push(environments.finalLiveOrigin);
+    });
+  }
+  return Array.from(new Set(values.filter(Boolean).flatMap(permissionOriginsForRemoteUrl)));
 }
 
 function permissionOriginsForRemoteUrl(value) {
@@ -408,21 +711,21 @@ function updateSettingsExplanation() {
   const settings = selectedSettings();
   const isCmsLite = settings.profile === "cms-lite";
   const cmsEditor = isCmsLite && isCmsLiteEditorUrl((state.activeTab && state.activeTab.url) || "");
-  elements["profile-badge"].textContent = cmsEditor ? "CMS Lite editor detected" : isCmsLite ? "CMS Lite detected" : "Standard website";
+  elements["profile-badge"].textContent = cmsEditor ? "CMS Lite editor" : isCmsLite ? "CMS Lite page" : "Standard website";
   elements["cms-lite-settings"].hidden = !isCmsLite;
   elements["standard-scope-settings"].hidden = isCmsLite;
   elements["cms-whole-scan"].disabled = cmsEditor;
   elements["colour-control-row"].hidden = settings.scope === "whole" || isCmsLite;
   if (cmsEditor) {
-    elements["scope-note"].textContent = "The scan reviews editable CMS Lite rich-text regions. Page-level metadata, cross-region navigation and first-use checks, template components and colour contrast require the rendered page.";
+    elements["scope-note"].textContent = "Checks the editable CMS Lite fields. Check the QA or live page for the full page structure, metadata and colour contrast.";
   } else if (settings.scope === "whole") {
-    elements["scope-note"].textContent = "The scan includes navigation, footer, templates, controls and colour contrast.";
+    elements["scope-note"].textContent = "Checks the full page, including navigation, footer, controls and colour contrast.";
   } else if (isCmsLite) {
-    elements["scope-note"].textContent = "The scan focuses on the CMS Lite title and editable page body. Template contrast and global components are excluded.";
+    elements["scope-note"].textContent = "Checks the page title and editable content. Site-wide template elements and colour contrast are not included.";
   } else {
     elements["scope-note"].textContent = settings.canControlColour
-      ? "The scan focuses on authored content and includes colour contrast."
-      : "The scan focuses on authored content. Colour contrast is classified as template-owned and excluded.";
+      ? "Checks the page title and main content, including colour contrast."
+      : "Checks the page title and main content. Colour contrast is not included.";
   }
   elements["section-scope-label"].textContent = state.selectedSection
     ? `${state.selectedSection.level} — ${state.selectedSection.text}`
@@ -537,11 +840,11 @@ function showStaleState(report, pageChanged) {
   const rulesChanged = Boolean(report && report.ruleVersion !== globalThis.BCWebStyleGuideChecker.ruleVersion);
   elements["stale-report-banner"].hidden = !rulesChanged && !pageChanged;
   if (pageChanged) {
-    elements["stale-report-title"].textContent = "The page has reloaded since this review.";
-    elements["stale-report-message"].textContent = "Your saved decisions are still here. Review the scan options, then check the current page content.";
+    elements["stale-report-title"].textContent = "The page has changed since this review.";
+    elements["stale-report-message"].textContent = "Your saved decisions are still here. Check the page again to update the findings.";
   } else if (rulesChanged) {
-    elements["stale-report-title"].textContent = "New checker rules are available.";
-    elements["stale-report-message"].textContent = "Review the scan options, then check the page again to update the findings.";
+    elements["stale-report-title"].textContent = "The checker has been updated.";
+    elements["stale-report-message"].textContent = "Check the page again to update the findings.";
   }
 }
 
@@ -1247,29 +1550,51 @@ function isManualRedirect(response) {
   return Boolean(response && (response.type === "opaqueredirect" || response.status >= 300 && response.status < 400));
 }
 
-async function fetchRemoteFollowingRedirects(url, signal) {
-  let response = await fetch(url, { method: "HEAD", credentials: "omit", redirect: "follow", signal, cache: "no-store" });
-  if ([405, 501].includes(response.status)) {
-    response = await fetch(url, {
+async function fetchRemoteFollowingRedirects(url, signal, { sessionAware = false, allowGetFallback = true } = {}) {
+  const credentials = sessionAware ? "include" : "omit";
+  const rangedGet = async () => {
+    const response = await fetch(url, {
       method: "GET",
       headers: { Range: "bytes=0-0" },
-      credentials: "omit",
+      credentials,
       redirect: "follow",
       signal,
       cache: "no-store"
     });
     if (response.body && response.body.cancel) response.body.cancel().catch(() => {});
+    return response;
+  };
+
+  try {
+    const response = await fetch(url, { method: "HEAD", credentials, redirect: "follow", signal, cache: "no-store" });
+    if (allowGetFallback && [405, 501].includes(response.status)) return rangedGet();
+    if (allowGetFallback && !sessionAware && isManualRedirect(response)) {
+      // Some public servers treat HEAD differently from a normal page request.
+      // Before reporting the destination as an unverified redirect, retry with
+      // the same bounded anonymous GET used for other public HEAD failures.
+      // This lets the checker verify the page the browser would actually open.
+      try { return await rangedGet(); } catch (_) { return response; }
+    }
+    return response;
+  } catch (error) {
+    // Public sites sometimes reject or mishandle HEAD requests even though a
+    // normal GET (and its redirect chain) works. Retrying anonymously with a
+    // one-byte range lets us verify those destinations without broadening the
+    // signed-in path: authenticated checks remain HEAD-only unless a separate,
+    // explicitly scoped resolver handles the URL.
+    if (!allowGetFallback || sessionAware) throw error;
+    return rangedGet();
   }
-  return response;
 }
 
-async function fetchRemoteOnce(url, signal) {
-  let response = await fetch(url, { method: "HEAD", credentials: "omit", redirect: "manual", signal, cache: "no-store" });
-  if ([405, 501].includes(response.status)) {
+async function fetchRemoteOnce(url, signal, { sessionAware = false, allowGetFallback = true } = {}) {
+  const credentials = sessionAware ? "include" : "omit";
+  let response = await fetch(url, { method: "HEAD", credentials, redirect: "manual", signal, cache: "no-store" });
+  if (allowGetFallback && [405, 501].includes(response.status)) {
     response = await fetch(url, {
       method: "GET",
       headers: { Range: "bytes=0-0" },
-      credentials: "omit",
+      credentials,
       redirect: "manual",
       signal,
       cache: "no-store"
@@ -1279,45 +1604,87 @@ async function fetchRemoteOnce(url, signal) {
   return response;
 }
 
-async function checkRemoteUrl(value, timeoutMs = 10000) {
-  if (signInMayBeRequired(value)) return { status: "sign-in", finalUrl: value, error: "This destination may require browser sign-in." };
+function sessionVerificationMessage(status) {
+  if (status === "sign-in") return "This link redirected to sign-in. Open it to continue.";
+  if (status === "restricted") return "This link returned an access error. Open it to check whether you have access.";
+  return "The checker could not fully check this link. Open it to confirm.";
+}
+
+async function checkRemoteUrl(value, timeoutMs = 10000, options = {}) {
+  const sessionAware = Boolean(options.sessionAware && trustedSessionHost(value));
+  if (signInMayBeRequired(value)) return { status: "sign-in", checkedUrl: value, finalUrl: value, error: sessionVerificationMessage("sign-in") };
   let startingUrl;
-  try { startingUrl = new URL(value).href; } catch (_) { return { status: "unavailable", finalUrl: value, error: "The destination address is invalid." }; }
+  try { startingUrl = new URL(value).href; } catch (_) { return { status: "unavailable", checkedUrl: value, finalUrl: value, error: "The destination address is invalid." }; }
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
-  const classifyResponse = (response, url, redirected) => {
-    const result = { response, code: response.status, finalUrl: response.url || url, redirected };
+  const classifyResponse = (response, url, redirected, accessMode = "") => {
+    const result = { response, code: response.status, checkedUrl: startingUrl, finalUrl: response.url || url, redirected, accessMode };
     if (response.status === 404 || response.status === 410) return { ...result, status: "broken" };
     if (response.status >= 500) return { ...result, status: "server" };
-    if ([401, 403].includes(response.status)) return { ...result, status: "restricted" };
+    if ([401, 403].includes(response.status)) return { ...result, status: sessionAware ? "session-unverified" : "restricted", error: sessionAware ? sessionVerificationMessage("restricted") : "" };
     if (response.status === 429) return { ...result, status: "rate-limited" };
     if (response.status >= 400) return { ...result, status: "client-error" };
     if (response.status >= 200 && response.status < 300) return { ...result, status: "ok" };
-    return { ...result, status: "unavailable", error: "The website returned an unexpected response." };
+    return { ...result, status: sessionAware ? "session-unverified" : "unavailable", error: sessionAware ? sessionVerificationMessage("unavailable") : "The website returned an unexpected response." };
   };
   const permittedFor = async url => {
     try { return await chrome.permissions.contains({ origins: [originPattern(url)] }); } catch (_) { return false; }
   };
-  const visit = async (url, depth, redirected) => {
-    if (!await permittedFor(url)) return { status: "permission", finalUrl: url, redirected };
-    if (signInMayBeRequired(url)) return { status: "sign-in", finalUrl: url, redirected, error: "This destination may require browser sign-in." };
-
-    // Start by letting Fetch follow the redirect chain. This verifies ordinary
-    // same-origin redirects with the permission already granted for that site,
-    // and also verifies cross-origin redirects when the reviewer granted the
-    // destination origin (or broad all-sites access). If a redirect crosses to
-    // an origin the extension cannot access, Fetch may fail and we fall back to
-    // a manual request so the result is reported as unverified rather than broken.
+  const visitSessionAware = async (url, depth, redirected) => {
+    if (!await permittedFor(url)) return { status: "permission", checkedUrl: startingUrl, finalUrl: url, redirected };
+    if (!trustedSessionHost(url)) return { status: "session-unverified", checkedUrl: startingUrl, finalUrl: startingUrl, redirected, error: sessionVerificationMessage("unavailable") };
     try {
-      const followed = await fetchRemoteFollowingRedirects(url, controller.signal);
+      const response = await fetchRemoteOnce(url, controller.signal, { sessionAware: true, allowGetFallback: false });
+      if ([405, 501].includes(response.status)) {
+        return {
+          status: "session-unverified",
+          code: response.status,
+          checkedUrl: startingUrl,
+          finalUrl: url,
+          redirected,
+          error: "This site could not be checked automatically. Open the link to confirm it."
+        };
+      }
+      if (isManualRedirect(response)) {
+        let location = "";
+        try { location = response.headers.get("location") || ""; } catch (_) {}
+        let nextUrl = "";
+        try { nextUrl = location ? new URL(location, url).href : ""; } catch (_) {}
+        if (nextUrl && authenticationRedirectHost(nextUrl)) {
+          return { status: "sign-in", checkedUrl: startingUrl, finalUrl: startingUrl, redirected: true, error: sessionVerificationMessage("sign-in") };
+        }
+        if (nextUrl && depth < 3 && trustedSessionHost(nextUrl) && await permittedFor(nextUrl)) return visitSessionAware(nextUrl, depth + 1, true);
+        return { status: "session-unverified", checkedUrl: startingUrl, finalUrl: startingUrl, redirected: true, error: sessionVerificationMessage("unavailable") };
+      }
+      return classifyResponse(response, url, redirected, "current-session");
+    } catch (error) {
+      return {
+        status: "session-unverified",
+        checkedUrl: startingUrl,
+        finalUrl: startingUrl,
+        redirected,
+        error: error && error.name === "AbortError" ? "Timed out while checking with your current browser access." : sessionVerificationMessage("unavailable")
+      };
+    }
+  };
+  const visitAnonymous = async (url, depth, redirected) => {
+    if (!await permittedFor(url)) return { status: "permission", checkedUrl: startingUrl, finalUrl: url, redirected };
+    if (signInMayBeRequired(url)) return { status: "sign-in", checkedUrl: startingUrl, finalUrl: startingUrl, redirected, error: sessionVerificationMessage("sign-in") };
+
+    try {
+      const followed = await fetchRemoteFollowingRedirects(url, controller.signal, { sessionAware: false, allowGetFallback: true });
       const finalUrl = followed.url || url;
       const didRedirect = Boolean(redirected || followed.redirected || canonicalUrl(finalUrl) !== canonicalUrl(url));
+      if (didRedirect && looksLikeAuthenticationRedirect(startingUrl, finalUrl)) {
+        return { status: "sign-in", checkedUrl: startingUrl, finalUrl: startingUrl, redirected: true, error: sessionVerificationMessage("sign-in") };
+      }
       if (didRedirect && finalUrl !== url && !await permittedFor(finalUrl)) {
         return {
           status: "redirect",
+          checkedUrl: startingUrl,
           finalUrl,
           redirected: true,
-          error: "The destination redirects to a website outside the current website access, so the final page was not verified."
+          error: "This link redirects to another website that could not be checked. Open it to confirm the final page."
         };
       }
       if (!isManualRedirect(followed)) return classifyResponse(followed, finalUrl, didRedirect);
@@ -1326,7 +1693,7 @@ async function checkRemoteUrl(value, timeoutMs = 10000) {
       // redirect from a general network failure when possible.
     }
 
-    const response = await fetchRemoteOnce(url, controller.signal);
+    const response = await fetchRemoteOnce(url, controller.signal, { sessionAware: false, allowGetFallback: true });
     if (isManualRedirect(response)) {
       let location = "";
       try { location = response.headers.get("location") || ""; } catch (_) {}
@@ -1334,13 +1701,14 @@ async function checkRemoteUrl(value, timeoutMs = 10000) {
         let nextUrl = "";
         try { nextUrl = new URL(location, url).href; } catch (_) {}
         if (nextUrl) {
-          if (signInMayBeRequired(nextUrl)) return { status: "sign-in", finalUrl: nextUrl, redirected: true, error: "This destination redirects to a sign-in service." };
-          if (await permittedFor(nextUrl)) return visit(nextUrl, depth + 1, true);
+          if (looksLikeAuthenticationRedirect(startingUrl, nextUrl) || signInMayBeRequired(nextUrl)) return { status: "sign-in", checkedUrl: startingUrl, finalUrl: startingUrl, redirected: true, error: sessionVerificationMessage("sign-in") };
+          if (await permittedFor(nextUrl)) return visitAnonymous(nextUrl, depth + 1, true);
           return {
             status: "redirect",
+            checkedUrl: startingUrl,
             finalUrl: nextUrl,
             redirected: true,
-            error: "The destination redirects to a website outside the current website access, so the final page was not verified."
+            error: "This link redirects to another website that could not be checked. Open it to confirm the final page."
           };
         }
       }
@@ -1349,27 +1717,416 @@ async function checkRemoteUrl(value, timeoutMs = 10000) {
         if (current.protocol === "http:" && depth < 3) {
           current.protocol = "https:";
           const httpsUrl = current.href;
-          if (await permittedFor(httpsUrl)) return visit(httpsUrl, depth + 1, true);
+          if (await permittedFor(httpsUrl)) return visitAnonymous(httpsUrl, depth + 1, true);
         }
       } catch (_) {}
       return {
         status: "redirect",
+        checkedUrl: startingUrl,
         finalUrl: url,
         redirected: true,
-        error: "The website redirects, but the checker could not verify the final destination with the current website access."
+        error: "This link redirects, but the final page could not be checked. Open it to confirm."
       };
     }
     return classifyResponse(response, url, redirected);
   };
   try {
-    return await visit(startingUrl, 0, false);
+    return sessionAware ? await visitSessionAware(startingUrl, 0, false) : await visitAnonymous(startingUrl, 0, false);
   } catch (error) {
     return {
-      status: "unavailable",
+      status: sessionAware ? "session-unverified" : "unavailable",
+      checkedUrl: startingUrl,
       finalUrl: startingUrl,
-      error: error && error.name === "AbortError" ? "Timed out" : "The website blocked or did not complete the automated check."
+      error: error && error.name === "AbortError" ? "Timed out" : sessionAware ? sessionVerificationMessage("unavailable") : "The website did not complete the link check."
     };
   } finally { clearTimeout(timeout); }
+}
+
+async function checkPublicQaWithCurrentAccess(report, value, timeoutMs = 10000, useCurrentAccess = false) {
+  if (!publicQaCmsDestination(value) || !useCurrentAccess) {
+    return checkRemoteUrl(value, timeoutMs, { sessionAware: false });
+  }
+
+  // When the QA page itself is open, prefer a same-origin request from that
+  // page. This uses the browser session that is already allowing the reviewer
+  // to view QA, without exposing or reading any sign-in data.
+  const pageResult = report ? await checkWithCurrentPageSession(report, value, Math.min(timeoutMs, 8000)) : null;
+  if (pageResult && ["ok", "broken", "server", "rate-limited", "client-error"].includes(pageResult.status)) return pageResult;
+
+  let startingUrl;
+  try { startingUrl = new URL(value).href; } catch (_) {
+    return { status: "unavailable", checkedUrl: value, finalUrl: value, error: "The QA address is invalid." };
+  }
+
+  const origins = [originPattern(startingUrl)];
+  const permitted = await chrome.permissions.contains({ origins }).catch(() => false);
+  if (!permitted) return { status: "permission", checkedUrl: startingUrl, finalUrl: startingUrl, error: "Website access is needed to check the QA version." };
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  const rangedGet = () => fetch(startingUrl, {
+    method: "GET",
+    headers: { Range: "bytes=0-0" },
+    credentials: "include",
+    redirect: "follow",
+    signal: controller.signal,
+    cache: "no-store"
+  });
+
+  try {
+    let response;
+    try {
+      response = await fetch(startingUrl, {
+        method: "HEAD",
+        credentials: "include",
+        redirect: "follow",
+        signal: controller.signal,
+        cache: "no-store"
+      });
+      if ([405, 501].includes(response.status)) response = await rangedGet();
+    } catch (_) {
+      // QA is a known CMS publishing environment. A bounded GET is allowed
+      // here because HEAD can behave differently from normal QA navigation.
+      response = await rangedGet();
+    }
+
+    const finalUrl = response.url || startingUrl;
+    const redirected = Boolean(response.redirected || canonicalUrl(finalUrl) !== canonicalUrl(startingUrl));
+    if (response.body && response.body.cancel) response.body.cancel().catch(() => {});
+
+    if (hostnameFor(finalUrl) !== "www2.qa.gov.bc.ca") {
+      if (looksLikeAuthenticationRedirect(startingUrl, finalUrl) || authenticationRedirectHost(finalUrl)) {
+        return { status: "sign-in", checkedUrl: startingUrl, finalUrl: startingUrl, redirected: true, error: "The QA version redirected to sign-in." };
+      }
+      return {
+        status: "session-unverified",
+        checkedUrl: startingUrl,
+        finalUrl: startingUrl,
+        redirected,
+        error: "The QA version left the QA site, so the final page could not be confirmed."
+      };
+    }
+
+    const base = {
+      code: response.status,
+      checkedUrl: startingUrl,
+      finalUrl,
+      redirected,
+      accessMode: "current-session"
+    };
+    if (response.status === 404 || response.status === 410) return { ...base, status: "broken" };
+    if (response.status >= 500) return { ...base, status: "server" };
+    if ([401, 403].includes(response.status)) return { ...base, status: "session-unverified", error: "The QA version returned an access error." };
+    if (response.status === 429) return { ...base, status: "rate-limited" };
+    if (response.status >= 400) return { ...base, status: "client-error" };
+    if (response.status >= 200 && response.status < 300) return { ...base, status: "ok" };
+    return { ...base, status: "session-unverified", error: "The QA version returned a response the checker could not confirm." };
+  } catch (error) {
+    return {
+      status: "session-unverified",
+      checkedUrl: startingUrl,
+      finalUrl: startingUrl,
+      error: error && error.name === "AbortError"
+        ? "Timed out while checking the QA version."
+        : "The QA version could not be checked with your current browser access."
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function checkIntranetContentIdResolver(report, value, timeoutMs = 10000) {
+  const resolver = intranetContentIdResolver(value);
+  if (!resolver || !canUseIntranetResolverSession(report)) return null;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  let startingUrl;
+  try {
+    startingUrl = new URL(value).href;
+
+    // Fetch hides the Location header for a manual redirect in this context.
+    // This exact legacy CMS resolver therefore uses a narrowly scoped ranged
+    // GET and follows the redirect, then accepts the result only if it ends on
+    // the same intranet environment. No other authenticated URL gets this
+    // automatic GET-follow behaviour.
+    const response = await fetch(startingUrl, {
+      method: "GET",
+      headers: { Range: "bytes=0-0" },
+      credentials: "include",
+      redirect: "follow",
+      cache: "no-store",
+      signal: controller.signal
+    });
+
+    const finalUrl = response.url || startingUrl;
+    const redirected = Boolean(response.redirected || canonicalUrl(finalUrl) !== canonicalUrl(startingUrl));
+    if (response.body && response.body.cancel) response.body.cancel().catch(() => {});
+
+    if (redirected && (looksLikeAuthenticationRedirect(startingUrl, finalUrl) || authenticationRedirectHost(finalUrl))) {
+      return {
+        status: "sign-in",
+        checkedUrl: startingUrl,
+        finalUrl: startingUrl,
+        redirected: true,
+        error: sessionVerificationMessage("sign-in")
+      };
+    }
+
+    if (hostnameFor(finalUrl) !== resolver.host) {
+      return {
+        status: "session-unverified",
+        checkedUrl: startingUrl,
+        finalUrl: startingUrl,
+        redirected,
+        error: "The intranet link redirected somewhere unexpected, so the final page could not be confirmed."
+      };
+    }
+
+    const base = {
+      code: response.status,
+      checkedUrl: startingUrl,
+      finalUrl,
+      redirected,
+      accessMode: "current-session"
+    };
+    if (response.status === 404 || response.status === 410) return { ...base, status: "broken" };
+    if (response.status >= 500) return { ...base, status: "server" };
+    if ([401, 403].includes(response.status)) return { ...base, status: "session-unverified", error: sessionVerificationMessage("restricted") };
+    if (response.status === 429) return { ...base, status: "rate-limited" };
+    if (response.status >= 400) return { ...base, status: "client-error" };
+    if (response.status >= 200 && response.status < 300) return { ...base, status: "ok" };
+    return { ...base, status: "session-unverified", error: "The intranet link returned a response the checker could not confirm." };
+  } catch (error) {
+    return {
+      status: "session-unverified",
+      checkedUrl: startingUrl || value,
+      finalUrl: startingUrl || value,
+      error: error && error.name === "AbortError"
+        ? "Timed out while checking the intranet link."
+        : "The intranet link could not be checked with your current browser access."
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function checkWithCurrentPageSession(report, value, timeoutMs = 8000) {
+  if (!report) return null;
+  const sourceUrl = report.page && report.page.url ? report.page.url : "";
+  const cmsLiteEditorSession = Boolean(
+    report.settings &&
+    report.settings.editorMode &&
+    cmsLiteEditorSource(sourceUrl) &&
+    hostnameFor(value) === "cmslite.gov.bc.ca"
+  );
+  const publicQaPageSession = Boolean(
+    hostnameFor(sourceUrl) === "www2.qa.gov.bc.ca" &&
+    publicQaCmsDestination(value)
+  );
+  if (!trustedSessionHost(value) && !cmsLiteEditorSession && !publicQaPageSession) return null;
+  if (!sourceUrl || urlOrigin(sourceUrl) !== urlOrigin(value)) return null;
+  const tab = await currentReviewTab().catch(() => null);
+  if (!tab || !tab.id || urlOrigin(tab.url || "") !== urlOrigin(value)) return null;
+  try {
+    const results = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      args: [value, timeoutMs],
+      func: async (targetUrl, timeoutValue) => {
+        const startingOrigin = location.origin;
+        let parsed;
+        try { parsed = new URL(targetUrl, location.href); } catch (_) { return null; }
+        if (parsed.origin !== startingOrigin) return null;
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), timeoutValue);
+        try {
+          const response = await fetch(parsed.href, {
+            method: "HEAD",
+            credentials: "include",
+            redirect: "follow",
+            cache: "no-store",
+            signal: controller.signal
+          });
+          const finalUrl = response.url || parsed.href;
+          let finalOrigin = "";
+          try { finalOrigin = new URL(finalUrl).origin; } catch (_) {}
+          if (finalOrigin && finalOrigin !== startingOrigin) {
+            return { status: "session-unverified", checkedUrl: parsed.href, finalUrl: parsed.href, redirected: true, error: "This link left the signed-in website, so the final page could not be confirmed." };
+          }
+          const contentRange = response.headers.get("content-range") || "";
+          const totalFromRange = (contentRange.match(/\/(\d+)$/) || [])[1] || "";
+          const base = {
+            code: response.status,
+            checkedUrl: parsed.href,
+            finalUrl,
+            redirected: Boolean(response.redirected),
+            accessMode: "current-session",
+            headers: {
+              contentLength: totalFromRange || response.headers.get("content-length") || "",
+              contentType: response.headers.get("content-type") || "",
+              contentDisposition: response.headers.get("content-disposition") || ""
+            }
+          };
+          if (response.status === 404 || response.status === 410) return { ...base, status: "broken" };
+          if (response.status >= 500) return { ...base, status: "server" };
+          if ([401, 403].includes(response.status)) return { ...base, status: "session-unverified", error: "This link returned an access error. Open it to check whether you have access." };
+          if (response.status === 429) return { ...base, status: "rate-limited" };
+          if ([405, 501].includes(response.status)) return { ...base, status: "session-unverified", error: "This site could not be checked automatically. Open the link to confirm it." };
+          if (response.status >= 400) return { ...base, status: "client-error" };
+          if (response.status >= 200 && response.status < 300) return { ...base, status: "ok" };
+          return { ...base, status: "session-unverified", error: "The site returned a response the checker could not confirm." };
+        } catch (error) {
+          return {
+            status: "session-unverified",
+            checkedUrl: parsed.href,
+            finalUrl: parsed.href,
+            error: error && error.name === "AbortError" ? "Timed out while checking this link." : "This link could not be fully checked from the current page."
+          };
+        } finally { clearTimeout(timeout); }
+      }
+    });
+    return results && results[0] ? results[0].result : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function managedAssetNotFoundText(value) {
+  const text = normalizeSpace(value);
+  return /\bAsset Not Found\b/i.test(text) || /\bThe asset cannot be found\b/i.test(text);
+}
+
+async function checkCmsLiteManagedAssetSource(report, value, timeoutMs = 10000) {
+  if (!cmsLiteManagedAssetGuid(value)) return null;
+  if (!(report && report.settings && report.settings.editorMode)) return null;
+  const sourceUrl = report.page && report.page.url ? report.page.url : "";
+  if (!cmsLiteEditorSource(sourceUrl) || urlOrigin(sourceUrl) !== urlOrigin(value)) return null;
+  const tab = await currentReviewTab().catch(() => null);
+  if (!tab || !tab.id || urlOrigin(tab.url || "") !== urlOrigin(value)) return null;
+  try {
+    const results = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      args: [value, timeoutMs],
+      func: async (targetUrl, timeoutValue) => {
+        let parsed;
+        try { parsed = new URL(targetUrl, location.href); } catch (_) { return null; }
+        if (parsed.origin !== location.origin || parsed.hostname.toLowerCase() !== "cmslite.gov.bc.ca") return null;
+        if (!/^\/assets\/download\/[a-f0-9]{32}(?:\/)?$/i.test(parsed.pathname)) return null;
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), timeoutValue);
+        try {
+          // CMS Lite does not support HEAD on this route. A narrowly scoped,
+          // same-origin ranged GET is safe for this known download endpoint and
+          // lets the checker see the resolved /assets/gov or /assets/intranet path.
+          const response = await fetch(parsed.href, {
+            method: "GET",
+            headers: { Range: "bytes=0-0" },
+            credentials: "include",
+            redirect: "follow",
+            cache: "no-store",
+            signal: controller.signal
+          });
+          const finalUrl = response.url || parsed.href;
+          let finalOrigin = "";
+          try { finalOrigin = new URL(finalUrl).origin; } catch (_) {}
+          const base = {
+            code: response.status,
+            checkedUrl: parsed.href,
+            finalUrl,
+            redirected: Boolean(response.redirected),
+            accessMode: "current-session",
+            headers: {
+              contentLength: response.headers.get("content-length") || "",
+              contentType: response.headers.get("content-type") || "",
+              contentDisposition: response.headers.get("content-disposition") || ""
+            }
+          };
+          if (response.body && response.body.cancel) response.body.cancel().catch(() => {});
+          if (finalOrigin && finalOrigin !== location.origin) {
+            return { ...base, status: "session-unverified", finalUrl: parsed.href, error: "The CMS Lite asset redirected outside CMS Lite, so it could not be confirmed." };
+          }
+          if (response.status === 404 || response.status === 410) return { ...base, status: "broken" };
+          if (response.status >= 500) return { ...base, status: "server" };
+          if ([401, 403].includes(response.status)) return { ...base, status: "session-unverified", error: "The CMS Lite asset could not be accessed from the open editor." };
+          if (response.status === 429) return { ...base, status: "rate-limited" };
+          if (response.status >= 400) return { ...base, status: "client-error" };
+          if (response.status >= 200 && response.status < 300) return { ...base, status: "ok" };
+          return { ...base, status: "session-unverified", error: "CMS Lite returned a response the checker could not confirm for this asset." };
+        } catch (error) {
+          return {
+            status: "session-unverified",
+            checkedUrl: parsed.href,
+            finalUrl: parsed.href,
+            error: error && error.name === "AbortError" ? "Timed out while checking the CMS Lite asset." : "The CMS Lite asset could not be checked from the open editor."
+          };
+        } finally { clearTimeout(timeout); }
+      }
+    });
+    return results && results[0] ? results[0].result : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function knownManagedAssetEnvironmentUrl(value) {
+  try {
+    const url = new URL(value);
+    const allowedHosts = new Set([
+      "www2.qa.gov.bc.ca",
+      "www2.gov.bc.ca",
+      "intranet.qa.gov.bc.ca",
+      "intranet.gov.bc.ca"
+    ]);
+    return allowedHosts.has(url.hostname.toLowerCase()) && /^\/assets\/download\/[a-f0-9]{32}(?:\/)?$/i.test(url.pathname);
+  } catch (_) { return false; }
+}
+
+async function checkManagedAssetEnvironmentUrl(value, family, timeoutMs = 10000) {
+  const sessionAware = family === "intranet";
+  const result = await checkRemoteUrl(value, timeoutMs, { sessionAware });
+  if (!result || result.status !== "ok") return result;
+
+  const response = result.response;
+  const contentType = String(
+    response && response.headers ? response.headers.get("content-type") || "" : ""
+  ).toLowerCase();
+  if (!contentType.includes("text/html") || !knownManagedAssetEnvironmentUrl(value)) return result;
+
+  // Managed asset download routes are expected to return files. B.C. government
+  // publishing can return an HTML "Asset Not Found" page with a successful HTTP
+  // status, so inspect only this known asset route when the HEAD response is HTML.
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(value, {
+      method: "GET",
+      headers: { Range: "bytes=0-8191" },
+      credentials: sessionAware ? "include" : "omit",
+      redirect: "follow",
+      signal: controller.signal,
+      cache: "no-store"
+    });
+    const finalUrl = response.url || value;
+    if (response.redirected && looksLikeAuthenticationRedirect(value, finalUrl)) {
+      return { status: "sign-in", checkedUrl: value, finalUrl: value, redirected: true, error: sessionVerificationMessage("sign-in") };
+    }
+    const body = await response.text();
+    if (managedAssetNotFoundText(body)) {
+      return {
+        status: "broken",
+        code: response.status,
+        checkedUrl: value,
+        finalUrl,
+        redirected: Boolean(response.redirected),
+        error: "The asset returned the B.C. government ‘Asset Not Found’ page."
+      };
+    }
+    return result;
+  } catch (_) {
+    return result;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 async function verifyOneAsset(report, asset) {
@@ -1387,8 +2144,12 @@ async function verifyOneAsset(report, asset) {
   asset.checkedUrl = checkUrl;
   asset.liveEquivalent = liveEquivalent || "";
 
+  const pageSessionResult = cmsLiteManagedAssetGuid(checkUrl)
+    ? await checkCmsLiteManagedAssetSource(report, checkUrl, 8000)
+    : await checkWithCurrentPageSession(report, checkUrl, 8000);
+
   const result =
-    await checkRemoteUrl(checkUrl, 8000);
+    pageSessionResult || await checkRemoteUrl(checkUrl, 8000, { sessionAware: trustedSessionHost(checkUrl) });
 
   asset.finalUrl =
     result.finalUrl || checkUrl;
@@ -1424,10 +2185,11 @@ async function verifyOneAsset(report, asset) {
       asset.verificationStatus =
         "server-error";
     } else if (
-      result.status === "restricted"
+      result.status === "restricted" ||
+      result.status === "session-unverified"
     ) {
       asset.verificationStatus =
-        "restricted";
+        result.status === "session-unverified" ? "current-access-unverified" : "restricted";
     } else if (
       result.status === "rate-limited"
     ) {
@@ -1451,9 +2213,11 @@ async function verifyOneAsset(report, asset) {
   const response = result.response;
 
   const lengthHeader =
-    response && response.headers
-      ? response.headers.get("content-length")
-      : "";
+    result.headers && result.headers.contentLength
+      ? result.headers.contentLength
+      : response && response.headers
+        ? response.headers.get("content-length")
+        : "";
 
   const actualSize =
     lengthHeader &&
@@ -1462,14 +2226,18 @@ async function verifyOneAsset(report, asset) {
       : null;
 
   const actualType = mimeAssetType(
-    response && response.headers
-      ? response.headers.get("content-type")
-      : "",
-    response && response.headers
-      ? response.headers.get(
-          "content-disposition"
-        )
-      : "",
+    result.headers && result.headers.contentType
+      ? result.headers.contentType
+      : response && response.headers
+        ? response.headers.get("content-type")
+        : "",
+    result.headers && result.headers.contentDisposition
+      ? result.headers.contentDisposition
+      : response && response.headers
+        ? response.headers.get(
+            "content-disposition"
+          )
+        : "",
     result.finalUrl || checkUrl
   );
 
@@ -1655,9 +2423,275 @@ async function scanTab(tabId, options) {
   return report;
 }
 
+function publicQaLiveRemoteResult(link, qaResult, liveResult) {
+  const qaUrl = link.qaUrl || link.href;
+  const liveUrl = link.liveUrl || link.checkUrl || link.href;
+  const base = {
+    code: "",
+    qaStatus: qaResult.status,
+    qaCode: qaResult.code || "",
+    qaCheckedUrl: qaUrl,
+    liveStatus: liveResult.status,
+    liveCode: liveResult.code || "",
+    liveCheckedUrl: liveUrl,
+    checkedUrl: qaUrl,
+    finalUrl: qaResult.finalUrl || qaUrl
+  };
+  if (qaResult.status === "ok" && liveResult.status === "ok") {
+    return {
+      ...base,
+      status: "ok",
+      combinedStatus: "qa-live-ok",
+      error: "Available in QA and live."
+    };
+  }
+  if (qaResult.status === "ok" && liveResult.status === "broken") {
+    return {
+      ...base,
+      status: "broken",
+      combinedStatus: "qa-only",
+      error: "Works in QA. The live version was not found."
+    };
+  }
+  if (qaResult.status === "broken" && liveResult.status === "ok") {
+    return {
+      ...base,
+      status: "broken",
+      combinedStatus: "live-only",
+      error: "Works live. The QA version was not found."
+    };
+  }
+  if (qaResult.status === "broken" && liveResult.status === "broken") {
+    return {
+      ...base,
+      status: "broken",
+      error: "The link was not found in QA or live."
+    };
+  }
+  if (qaResult.status === "ok") {
+    return {
+      ...base,
+      status: liveResult.status,
+      combinedStatus: "qa-live-unverified",
+      error: `Works in QA. The live version could not be checked.${liveResult.error ? ` ${liveResult.error}` : ""}`
+    };
+  }
+  if (liveResult.status === "ok") {
+    return {
+      ...base,
+      status: qaResult.status === "session-unverified" ? "session-unverified" : "unavailable",
+      error: `Works live. The QA version could not be checked.${qaResult.error ? ` ${qaResult.error}` : ""}`
+    };
+  }
+  const priority = ["server", "client-error", "rate-limited", "restricted", "redirect", "sign-in", "permission", "session-unverified", "unavailable"];
+  const status = priority.find(candidate => [qaResult.status, liveResult.status].includes(candidate)) || "unavailable";
+  return {
+    ...base,
+    status,
+    error: `QA and live could not both be checked.${qaResult.error ? ` QA: ${qaResult.error}` : ""}${liveResult.error ? ` Live: ${liveResult.error}` : ""}`
+  };
+}
+
+function combinedPublicQaResult(link, qaResult, liveResult) {
+  return linkResultFromRemote(link, publicQaLiveRemoteResult(link, qaResult, liveResult));
+}
+
+function combinedIntranetQaResult(link, qaResult, liveResult) {
+  if (!qaResult || qaResult.status !== "ok") {
+    return linkResultFromRemote({ ...link, qaLive: false }, {
+      ...qaResult,
+      checkedUrl: link.href,
+      error: qaResult && qaResult.error ? qaResult.error : "The QA version could not be checked."
+    });
+  }
+  const base = {
+    qaStatus: "ok",
+    qaCode: qaResult.code || "",
+    qaCheckedUrl: link.href,
+    liveStatus: liveResult.status,
+    liveCode: liveResult.code || "",
+    liveCheckedUrl: link.checkUrl,
+    checkedUrl: link.href,
+    finalUrl: qaResult.finalUrl || link.href,
+    accessMode: qaResult.accessMode || "current-session"
+  };
+  if (liveResult.status === "ok") {
+    return linkResultFromRemote(link, {
+      ...base,
+      status: "ok",
+      combinedStatus: "qa-live-ok",
+      error: "Available in QA and live. Live was verified using your current browser access."
+    });
+  }
+  if (liveResult.status === "broken") {
+    return linkResultFromRemote(link, {
+      ...base,
+      status: "broken",
+      combinedStatus: "qa-only",
+      code: "",
+      error: "Works in QA. The live intranet version was not found."
+    });
+  }
+  return linkResultFromRemote(link, {
+    ...base,
+    status: liveResult.status,
+    combinedStatus: "qa-live-unverified",
+    code: "",
+    error: `Works in QA. The live intranet version could not be checked.${liveResult.error ? ` ${liveResult.error}` : ""}`
+  });
+}
+
+async function checkCmsLiteManagedAssetLink(report, link) {
+  const cmsResult = await checkCmsLiteManagedAssetSource(report, link.href, 10000);
+  if (!cmsResult || cmsResult.status !== "ok") {
+    const fallback = cmsResult || {
+      status: "session-unverified",
+      checkedUrl: link.href,
+      finalUrl: link.href,
+      error: "The asset could not be checked from the open CMS Lite editor."
+    };
+    return linkResultFromRemote(link, fallback);
+  }
+
+  const family = link.cmsLiteAssetFamily || cmsLiteAssetPublishingFamily(cmsResult.finalUrl || link.href);
+  const environments = cmsLiteAssetEnvironmentUrls(link.cmsLiteAssetGuid, family);
+  const cmsBase = {
+    cmsStatus: "ok",
+    cmsCode: cmsResult.code || "",
+    cmsCheckedUrl: link.href,
+    checkedUrl: link.href,
+    finalUrl: cmsResult.finalUrl || link.href,
+    accessMode: cmsResult.accessMode || "current-session"
+  };
+
+  if (!family || !environments) {
+    return linkResultFromRemote(link, {
+      ...cmsBase,
+      status: "session-unverified",
+      combinedStatus: "cms-publishing-unverified",
+      code: "",
+      error: "The asset works in CMS Lite, but the checker could not tell whether it belongs to the public site or intranet."
+    });
+  }
+
+  const qaResult = await checkManagedAssetEnvironmentUrl(environments.qa, family, 10000);
+  const liveResult = await checkManagedAssetEnvironmentUrl(environments.live, family, 10000);
+  const base = {
+    ...cmsBase,
+    qaStatus: qaResult && qaResult.status ? qaResult.status : "unavailable",
+    qaCode: qaResult && qaResult.code ? qaResult.code : "",
+    qaCheckedUrl: environments.qa,
+    liveStatus: liveResult && liveResult.status ? liveResult.status : "unavailable",
+    liveCode: liveResult && liveResult.code ? liveResult.code : "",
+    liveCheckedUrl: environments.live
+  };
+
+  if (qaResult.status === "ok" && liveResult.status === "ok") {
+    return linkResultFromRemote(link, {
+      ...base,
+      status: "ok",
+      combinedStatus: "qa-live-ok",
+      code: "",
+      error: "Available in QA and live."
+    });
+  }
+
+  if (qaResult.status === "ok" && liveResult.status === "broken") {
+    return linkResultFromRemote(link, {
+      ...base,
+      status: "broken",
+      combinedStatus: "qa-only",
+      code: "",
+      error: "Works in CMS Lite and QA. The live asset was not found."
+    });
+  }
+
+  if (qaResult.status === "broken" && liveResult.status === "ok") {
+    return linkResultFromRemote(link, {
+      ...base,
+      status: "ok",
+      combinedStatus: "live-only",
+      code: "",
+      error: "Works in CMS Lite and live. The QA asset was not found."
+    });
+  }
+
+  if (qaResult.status === "broken" && liveResult.status === "broken") {
+    return linkResultFromRemote(link, {
+      ...base,
+      status: "broken",
+      combinedStatus: "cms-only",
+      code: "",
+      error: "Works in CMS Lite, but the asset was not found in QA or live."
+    });
+  }
+
+  if (liveResult.status === "ok") {
+    return linkResultFromRemote(link, {
+      ...base,
+      status: "ok",
+      combinedStatus: "live-ok",
+      code: "",
+      error: `Works in CMS Lite and live. The QA asset could not be checked.${qaResult.error ? ` ${qaResult.error}` : ""}`
+    });
+  }
+
+  if (qaResult.status === "ok") {
+    return linkResultFromRemote(link, {
+      ...base,
+      status: liveResult.status,
+      combinedStatus: "qa-live-unverified",
+      code: "",
+      error: `Works in CMS Lite and QA. The live asset could not be checked.${liveResult.error ? ` ${liveResult.error}` : ""}`
+    });
+  }
+
+  return linkResultFromRemote(link, {
+    ...base,
+    status: "session-unverified",
+    combinedStatus: "cms-publishing-unverified",
+    code: "",
+    error: `Works in CMS Lite, but QA and live could not both be checked.${qaResult.error ? ` QA: ${qaResult.error}` : ""}${liveResult.error ? ` Live: ${liveResult.error}` : ""}`
+  });
+}
+
 async function checkOneHttpLink(report, link) {
-  if (link.signInRequired) return linkResultFromRemote(link, { status: "sign-in", finalUrl: link.checkUrl || link.href, error: "This destination may require browser sign-in." });
-  const result = await checkRemoteUrl(link.checkUrl || link.href, 10000);
+  if (link.cmsLiteAssetGuid) return checkCmsLiteManagedAssetLink(report, link);
+  if (cmsLiteEditorHomeLink(report, link.href)) {
+    return linkResultFromRemote(link, {
+      status: "ok",
+      combinedStatus: "session-ok",
+      checkedUrl: link.href,
+      finalUrl: link.href,
+      accessMode: "current-session"
+    });
+  }
+  if (link.signInRequired) return linkResultFromRemote(link, { status: "sign-in", checkedUrl: link.checkUrl || link.href, finalUrl: link.checkUrl || link.href, error: sessionVerificationMessage("sign-in") });
+
+  if (link.qaFamily === "public" && link.qaLive) {
+    const qaResult = await checkPublicQaWithCurrentAccess(
+      report,
+      link.qaUrl || link.href,
+      10000,
+      Boolean(link.publicQaPair)
+    );
+    const liveResult = await checkRemoteUrl(link.liveUrl || link.checkUrl, 10000, { sessionAware: false });
+    return combinedPublicQaResult(link, qaResult, liveResult);
+  }
+
+  if (link.qaFamily === "intranet" && link.qaLive) {
+    const qaResult = await checkIntranetContentIdResolver(report, link.href, 10000)
+      || await checkWithCurrentPageSession(report, link.href, 10000)
+      || await checkRemoteUrl(link.href, 10000, { sessionAware: true });
+    if (!qaResult || qaResult.status !== "ok") return combinedIntranetQaResult(link, qaResult || { status: "session-unverified", checkedUrl: link.href, finalUrl: link.href, error: sessionVerificationMessage("unavailable") }, { status: "unavailable" });
+    const liveResult = await checkIntranetContentIdResolver(report, link.checkUrl, 10000)
+      || await checkRemoteUrl(link.checkUrl, 10000, { sessionAware: true });
+    return combinedIntranetQaResult(link, qaResult, liveResult);
+  }
+
+  const legacyIntranetResult = await checkIntranetContentIdResolver(report, link.checkUrl || link.href, 10000);
+  const pageSessionResult = legacyIntranetResult || await checkWithCurrentPageSession(report, link.checkUrl || link.href, 10000);
+  const result = pageSessionResult || await checkRemoteUrl(link.checkUrl || link.href, 10000, { sessionAware: Boolean(link.sessionAware) });
   return linkResultFromRemote(link, result);
 }
 
@@ -1666,8 +2700,15 @@ function summarizeLinkCheck(totalFound, results) {
   return {
     totalFound,
     completed: results.length,
-    okay: count("ok") + count("live-ok"),
-    liveWorking: count("live-ok"),
+    okay: count("ok") + count("live-ok") + count("session-ok") + count("qa-live-ok"),
+    liveWorking: count("live-ok") + count("qa-live-ok"),
+    sessionVerified: count("session-ok"),
+    qaOnly: count("qa-only"),
+    liveOnly: count("live-only"),
+    cmsOnly: count("cms-only"),
+    cmsPublishingUnverified: count("cms-publishing-unverified"),
+    qaLiveUnverified: count("qa-live-unverified"),
+    sessionUnverified: count("session-unverified"),
     broken: count("broken"),
     liveNotFound: count("live-not-found"),
     redirects: count("redirect"),
@@ -1811,7 +2852,7 @@ async function checkHttpLinks(options = {}) {
   }
   const origins = Array.from(new Set(links
     .filter(link => !link.signInRequired)
-    .flatMap(link => permissionOriginsForRemoteUrl(link.checkUrl || link.href))
+    .flatMap(link => permissionOriginsForPreparedLink(link))
     .filter(Boolean)));
   const permissionGranted = !origins.length || await chrome.permissions.request({ origins }).catch(() => false);
   if (!permissionGranted) {
@@ -1878,9 +2919,12 @@ async function checkHttpLinks(options = {}) {
   state.linkCheckWaiters = [];
   await storeReport(report).catch(() => { });
   if (state.activeReport === report) renderCurrentReport();
-  if (!options.quiet) showToast(wasStopped
-    ? `Link check stopped after ${report.linkCheck.completed} of ${report.linkCheck.totalFound}.`
-    : `Link check complete: ${report.linkCheck.broken} broken, ${report.linkCheck.liveNotFound || 0} live versions not found, ${report.linkCheck.serverErrors} server errors.`);
+  if (!options.quiet) {
+    const categories = linkResultCategoryCounts(results);
+    showToast(wasStopped
+      ? `Link check stopped after ${report.linkCheck.completed} of ${report.linkCheck.totalFound}.`
+      : `Link check complete: ${categories.problems || 0} problems, ${categories.review || 0} need review, ${categories.working || 0} working.`);
+  }
   return report.linkCheck;
 }
 
@@ -1908,14 +2952,16 @@ function stopLinkCheck() {
 
 function linkedOriginPatterns(report) {
   const pageOrigin = (() => { try { return new URL(report.page.url).origin; } catch (_) { return ""; } })();
-  return Array.from(new Set((report.pageDetails.links || []).filter(link => /^https?:/i.test(link.href || "")).filter(link => {
-    try { return new URL(link.href).origin !== pageOrigin; } catch (_) { return false; }
-  }).map(link => originPattern(link.href))));
+  return Array.from(new Set(remoteLinksForReport(report)
+    .flatMap(permissionOriginsForPreparedLink)
+    .filter(pattern => {
+      try { return new URL(pattern.replace(/\*$/, "")).origin !== pageOrigin; } catch (_) { return true; }
+    })));
 }
 
 async function openPermissionDialog() {
   const allGranted = await chrome.permissions.contains({ origins: ["http://*/*", "https://*/*"] }).catch(() => false);
-  elements["permission-status"].textContent = allGranted ? "All-sites access is currently allowed." : "All-sites access is not currently allowed.";
+  elements["permission-status"].textContent = allGranted ? "Access to all websites is currently allowed." : "Access to all websites is not currently allowed.";
   elements["permission-linked"].textContent = state.activeReport ? "Allow linked sites on this page" : "Allow the current website";
   elements["permission-dialog"].showModal();
 }
@@ -1926,25 +2972,25 @@ async function requestLinkedPermissions() {
     const tab = await currentReviewTab();
     if (tab && isScannableUrl(tab.url || "")) origins = [originPattern(tab.url)];
   }
-  if (!origins.length) { elements["permission-status"].textContent = state.activeReport ? "This page has no external HTTP or HTTPS destinations." : "Open a regular website first."; return; }
+  if (!origins.length) { elements["permission-status"].textContent = state.activeReport ? "This page has no external web links." : "Open a regular website first."; return; }
   const granted = await chrome.permissions.request({ origins }).catch(() => false);
-  elements["permission-status"].textContent = granted ? `Access allowed for ${origins.length} linked site${origins.length === 1 ? "" : "s"}.` : "Linked-site access was not granted.";
+  elements["permission-status"].textContent = granted ? `Website access allowed for ${origins.length} linked site${origins.length === 1 ? "" : "s"}.` : "Website access was not allowed.";
 }
 
 async function requestAllPermissions() {
   const granted = await chrome.permissions.request({ origins: ["http://*/*", "https://*/*"] }).catch(() => false);
-  elements["permission-status"].textContent = granted ? "All-sites access is now allowed." : "All-sites access was not granted.";
+  elements["permission-status"].textContent = granted ? "Access to all websites is now allowed." : "Access to all websites was not allowed.";
 }
 
 async function revokeAllPermissions() {
   const removed = await chrome.permissions.remove({ origins: ["http://*/*", "https://*/*"] }).catch(() => false);
-  elements["permission-status"].textContent = removed ? "All-sites access was removed. Individually granted sites may remain available." : "No broad all-sites access was removed.";
+  elements["permission-status"].textContent = removed ? "Access to all websites was removed. Access granted to individual sites may remain." : "There was no all-websites access to remove.";
 }
 
 function readableScanError(error) {
   const message = error && error.message ? error.message : String(error);
   if (/Cannot access contents of url|Missing host permission|extensions gallery|cannot be scripted/i.test(message)) {
-    return "This protected page cannot be checked. Open a regular HTTP or HTTPS webpage and try again.";
+    return "This protected page cannot be checked. Open a regular web page and try again.";
   }
   return message;
 }
@@ -2087,7 +3133,7 @@ function renderCurrentReport() {
   elements["scan-context-title"].textContent = report.page.title || "Current page";
   const scopeLabel = report.settings.sectionLabel
     ? `Section: ${report.settings.sectionLabel}`
-    : report.settings.scope === "whole" ? "Whole website" : report.settings.profile === "cms-lite" ? "Editable content" : "Page content";
+    : report.settings.scope === "whole" ? "Whole page" : report.settings.profile === "cms-lite" ? "Editable content" : "Page content";
   elements["scan-context-details"].textContent = `${report.settings.profileLabel} · ${scopeLabel} · ${formatDate(report.scannedAt)}`;
 
   const existingCategory = elements["category-filter"].value || "all";
@@ -2205,8 +3251,9 @@ function renderFindings() {
   elements["showing-count"].textContent = `${groups.length} issue type${groups.length === 1 ? "" : "s"} · ${occurrences} finding${occurrences === 1 ? "" : "s"}`;
   renderReviewLauncher(groups);
   const linkCheck = state.activeReport && state.activeReport.linkCheck;
+  const linkCategories = linkCheck ? linkResultCategoryCounts(linkCheck.results) : null;
   elements["link-check-shortcut-status"].textContent = linkCheck
-    ? `${linkCheck.completed || 0} checked · ${linkCheck.broken || 0} broken · ${(linkCheck.liveNotFound || 0) + (linkCheck.serverErrors || 0) + (linkCheck.unavailable || 0) + (linkCheck.permissionRequired || 0) + (linkCheck.redirects || 0) + (linkCheck.signInRequired || 0)} need review`
+    ? `${linkCheck.completed || 0} checked · ${linkCategories.problems || 0} problems · ${linkCategories.review || 0} need review · ${linkCategories.working || 0} working`
     : "Not checked · optional website access";
   if (!items.length) {
     const openCount = openIssues(state.activeReport).length;
@@ -2600,6 +3647,29 @@ function moveGuided(amount) {
   persistReviewContext(state.activePageKey).catch(() => { });
 }
 
+function syncLinkResultCategoryToggle(category) {
+  if (!category) return;
+  const button = category.querySelector(".link-result-category-toggle");
+  if (!button) return;
+  const groups = Array.from(category.querySelectorAll(".link-result-group"));
+  const allOpen = Boolean(groups.length) && groups.every(group => group.open);
+  const action = allOpen ? "Collapse" : "Expand";
+  const label = button.dataset.linkCategoryLabel || "link";
+  button.textContent = `${action} all`;
+  button.setAttribute("aria-expanded", String(allOpen));
+  button.setAttribute("aria-label", `${action} all ${label} results`);
+}
+
+function toggleLinkResultCategory(button) {
+  const category = button && button.closest(".link-result-category");
+  if (!category) return;
+  const groups = Array.from(category.querySelectorAll(".link-result-group"));
+  if (!groups.length) return;
+  const shouldOpen = groups.some(group => !group.open);
+  groups.forEach(group => { group.open = shouldOpen; });
+  syncLinkResultCategoryToggle(category);
+}
+
 function metadataDefinition(label, value) {
   const present = value !== undefined && value !== null && String(value).trim() !== "";
   return `<dt>${escapeHtml(label)}</dt><dd class="${present ? "" : "metadata-empty"}">${present ? escapeHtml(value) : "Not published"}</dd>`;
@@ -2610,7 +3680,7 @@ function renderPageDetails(section = "overview") {
   const details = report && report.pageDetails;
   elements["manual-review"].hidden = section !== "overview";
   if (!details) {
-    elements["page-details"].innerHTML = `<div class="empty-state"><strong>Page details are unavailable in this saved report.</strong><br>Rescan the page to collect them.</div>`;
+    elements["page-details"].innerHTML = `<div class="empty-state"><strong>Page details are not available in this saved review.</strong><br>Check the page again to add them.</div>`;
     return;
   }
   state.pageDetailSection = section;
@@ -2625,58 +3695,59 @@ function renderPageDetails(section = "overview") {
   const open = report.issues.filter(finding => effectiveStatus(finding) === "open");
   const headingRows = headings => headings.length ? headings.map(heading => `<li class="heading-outline-row heading-level-${heading.level}${heading.component ? " cms-generated-heading" : ""}"><button class="detail-jump" type="button" data-selector="${escapeHtml(heading.selector)}" ${editorDataAttributes(heading)}><span class="detail-level level-h${heading.level}">H${heading.level}</span><span class="heading-outline-text">${escapeHtml(heading.text)}</span>${(heading.flags || []).map(flag => `<span class="detail-flag">${escapeHtml(flag)}</span>`).join("")}</button></li>`).join("") : `<li class="detail-empty-row">No visible headings found.</li>`;
   const linkCheck = report.linkCheck || null;
-  const couldNotVerify = linkCheck ? (linkCheck.permissionRequired || 0) + (linkCheck.restricted || 0) + (linkCheck.rateLimited || 0) + (linkCheck.unavailable || 0) + (linkCheck.redirects || 0) + (linkCheck.signInRequired || 0) : 0;
-  const responseErrors = linkCheck ? (linkCheck.serverErrors || 0) + (linkCheck.clientErrors || 0) : 0;
+  const resultCategoryCounts = linkResultCategoryCounts(linkCheck && linkCheck.results);
   const linkCheckText = linkCheck
     ? linkCheck.state === "permission-denied"
       ? `Website access declined · 0 of ${linkCheck.totalFound || 0} checked`
-      : `${linkCheck.completed || 0} of ${linkCheck.totalFound || 0} processed · ${linkCheck.okay || 0} working · ${linkCheck.broken || 0} broken · ${linkCheck.liveNotFound || 0} live versions not found · ${responseErrors} errors · ${couldNotVerify} could not verify`
+      : `${linkCheck.completed || 0} of ${linkCheck.totalFound || 0} checked · ${resultCategoryCounts.problems || 0} problems · ${resultCategoryCounts.review || 0} need review · ${resultCategoryCounts.working || 0} working`
     : "Not checked yet";
-  const resultPriority = ["broken", "live-not-found", "server", "client-error", "rate-limited", "restricted", "redirect", "sign-in", "unavailable", "permission", "live-ok", "ok"];
-  const resultLabels = {
-    broken: "Broken",
-    "live-not-found": "Live version not found",
-    server: "Server error",
-    "client-error": "HTTP error",
-    "rate-limited": "Rate limited",
-    restricted: "Restricted",
-    redirect: "Redirect could not be verified",
-    "sign-in": "Sign-in may be required",
-    unavailable: "Could not verify",
-    permission: "Website access needed",
-    "live-ok": "Live version working",
-    ok: "Working"
-  };
   const renderLinkResult = result => `
     <li class="link-result ${escapeHtml(result.status)}">
-      <div class="link-result-heading"><span class="status-label ${escapeHtml(result.status)}">${escapeHtml(resultLabels[result.status] || result.status)}</span>${result.code ? `<strong>HTTP ${result.code}</strong>` : ""}${result.link.occurrences > 1 ? `<span>${result.link.occurrences} occurrences</span>` : ""}</div>
+      <div class="link-result-heading"><span class="status-label ${escapeHtml(result.status)}">${escapeHtml(linkResultLabel(result.status))}</span>${result.code ? `<strong>HTTP ${result.code}</strong>` : ""}${result.link.occurrences > 1 ? `<span>${result.link.occurrences} occurrences</span>` : ""}</div>
       <strong>${escapeHtml(result.link.text || "[No accessible name]")}</strong>
       ${result.link.location ? `<span class="link-redirect">Under: ${escapeHtml(result.link.location)}</span>` : ""}
       <span class="link-destination">${escapeHtml(result.link.href)}</span>
-      ${result.qaLive && result.checkedUrl ? `<span class="link-redirect">Checked live version: ${escapeHtml(result.checkedUrl)}</span>` : result.redirected && result.finalUrl && result.finalUrl !== result.link.href ? `<span class="link-redirect">Redirects to ${escapeHtml(result.finalUrl)}</span>` : ""}
+      ${result.cmsCheckedUrl ? `<span class="link-redirect">CMS Lite: ${escapeHtml(result.cmsStatus === "ok" ? "Working" : sentenceLabel(result.cmsStatus))}${result.cmsCode ? ` · HTTP ${escapeHtml(result.cmsCode)}` : ""}</span>` : ""}
+      ${result.qaCheckedUrl ? `<span class="link-redirect">QA: ${escapeHtml(result.qaStatus === "ok" ? "Working" : result.qaStatus === "broken" ? "Not found" : sentenceLabel(result.qaStatus))}${result.qaCode ? ` · HTTP ${escapeHtml(result.qaCode)}` : ""}</span>` : ""}
+      ${result.liveCheckedUrl ? `<span class="link-redirect">Live: ${escapeHtml(result.liveStatus === "ok" ? "Working" : result.liveStatus === "broken" ? "Not found" : sentenceLabel(result.liveStatus))}${result.liveCode ? ` · HTTP ${escapeHtml(result.liveCode)}` : ""}</span>` : result.qaLive && result.checkedUrl ? `<span class="link-redirect">Checked live version: ${escapeHtml(result.checkedUrl)}</span>` : result.redirected && result.finalUrl && result.finalUrl !== result.link.href ? `<span class="link-redirect">Redirects to ${escapeHtml(result.finalUrl)}</span>` : ""}
+      ${result.status === "session-ok" && result.accessMode === "current-session" && !result.qaCheckedUrl ? `<span class="link-redirect">${result.link.cmsLiteEditorLink ? "Verified using the open CMS Lite editor session." : "Verified using your current browser access. Other users may have different access."}</span>` : ""}
       ${result.error ? `<span class="link-error">${escapeHtml(result.error)}</span>` : ""}
       <div class="link-result-actions">${result.link.selector ? `<button class="button tertiary compact detail-jump" type="button" data-selector="${escapeHtml(result.link.selector)}" ${editorDataAttributes(result.link)}>${workspaceSurface ? "Show in source tab" : "Show on page"}</button>` : ""}<button class="button tertiary compact open-background-link" type="button" data-url="${escapeHtml(result.link.href)}">Open in background</button></div>
     </li>`;
-  const linkResultGroups = linkCheck && Array.isArray(linkCheck.results) ? resultPriority.map(status => {
-    const results = linkCheck.results.filter(result => result.status === status);
-    if (!results.length) return "";
-    const opensByDefault = ["broken", "live-not-found", "server", "client-error", "permission"].includes(status);
-    return `<details class="link-result-group ${escapeHtml(status)}"${opensByDefault ? " open" : ""}><summary><span>${escapeHtml(resultLabels[status])}</span><strong>${results.length}</strong></summary><ul class="link-results">${results.map(renderLinkResult).join("")}</ul></details>`;
+  const linkResultGroups = linkCheck && Array.isArray(linkCheck.results) ? LINK_RESULT_GROUPS.map(group => {
+    const statusGroups = group.buckets.map(bucket => {
+      const results = linkCheck.results.filter(result => bucket.statuses.includes(result.status));
+      if (!results.length) return "";
+      const statusClass = bucket.statuses[0] || "unavailable";
+      return `<details class="link-result-group ${escapeHtml(statusClass)}"><summary><span>${escapeHtml(bucket.label)}</span><strong>${results.length}</strong></summary><ul class="link-results">${results.map(renderLinkResult).join("")}</ul></details>`;
+    }).filter(Boolean);
+    if (!statusGroups.length) return "";
+    const count = resultCategoryCounts[group.key] || 0;
+    return `<section class="link-result-category ${escapeHtml(group.key)}" aria-label="${escapeHtml(group.label)}">
+      <div class="link-result-category-heading">
+        <div><strong>${escapeHtml(group.label)}</strong><span>${escapeHtml(group.description)}</span></div>
+        <div class="link-result-category-heading-actions">
+          <button class="text-button link-result-category-toggle" type="button" data-link-category-toggle="${escapeHtml(group.key)}" data-link-category-label="${escapeHtml(group.label)}" aria-expanded="false" aria-label="Expand all ${escapeHtml(group.label)} results">Expand all</button>
+          <span class="link-result-category-count">${count}</span>
+        </div>
+      </div>
+      <div class="link-result-category-groups">${statusGroups.join("")}</div>
+    </section>`;
   }).join("") : "";
   const back = section === "overview" ? "" : `<button class="text-button detail-section-back" type="button" data-detail-section="overview">← Page details</button>`;
 
   if (section === "overview") {
-    const brokenSummary = linkCheck ? `${linkCheck.broken || 0} broken · ${linkCheck.liveNotFound || 0} live versions not found · ${couldNotVerify} could not verify` : "Link check has not been run";
+    const brokenSummary = linkCheck ? `${resultCategoryCounts.problems || 0} problems · ${resultCategoryCounts.review || 0} need review · ${resultCategoryCounts.working || 0} working` : "Link check has not been run";
     const grade = cmsEditorMode
-      ? "Reading grade not combined across editable fields"
+      ? "Reading grade unavailable across multiple CMS Lite fields"
       : report.stats.readingGrade === null
         ? "Not enough prose"
         : `Estimated grade ${report.stats.readingGrade}`;
     elements["page-details"].innerHTML = `
-      <p class="eyebrow">Inspect the page</p><h2>Page details</h2>
-      <p class="hint">Choose an area to inspect. Findings remain available in the Findings tab.</p>
+      <p class="eyebrow">Review the page</p><h2>Page details</h2>
+      <p class="hint">Choose an area to review. Findings remain available in the Findings tab.</p>
       <div class="details-landing">
-        <button class="detail-card" type="button" data-detail-section="headings"><span><strong>Headings</strong><span>${headingIssues} outline flag${headingIssues === 1 ? "" : "s"}${generatedHeadings.length ? ` · ${generatedHeadings.length} CMS-generated` : ""}</span></span><span class="detail-card-count">${authoredHeadings.length}</span></button>
+        <button class="detail-card" type="button" data-detail-section="headings"><span><strong>Headings</strong><span>${headingIssues} heading issue${headingIssues === 1 ? "" : "s"}${generatedHeadings.length ? ` · ${generatedHeadings.length} accordion heading${generatedHeadings.length === 1 ? "" : "s"}` : ""}</span></span><span class="detail-card-count">${authoredHeadings.length}</span></button>
         <button class="detail-card" type="button" data-detail-section="images"><span><strong>Images and alt text</strong><span>${details.counts.imagesMissingAlt} missing alt · ${details.counts.imagesEmptyAlt} empty alt</span></span><span class="detail-card-count">${details.counts.images}</span></button>
         <button class="detail-card" type="button" data-detail-section="links"><span><strong>Links and assets</strong><span>${brokenSummary}</span></span><span class="detail-card-count">${details.counts.links}</span></button>
         <button class="detail-card" type="button" data-detail-section="metadata"><span><strong>Metadata and SEO</strong><span>${metadataUnavailable ? "Not checked in editor mode" : metadata.description ? "Description published" : "Meta description missing"}</span></span><span class="detail-card-count">›</span></button>
@@ -2687,7 +3758,7 @@ function renderPageDetails(section = "overview") {
   }
 
   if (section === "headings") {
-    elements["page-details"].innerHTML = `${back}<h2>Heading outline</h2><p class="detail-help">Indentation and level badges show the hierarchy. Select a row to find that heading on the page.</p><ul class="detail-list heading-outline">${headingRows(authoredHeadings)}</ul>${generatedHeadings.length ? `<details class="detail-section cms-heading-section"><summary>CMS-generated accordion headings (${generatedHeadings.length})</summary><p class="detail-help">CMS Lite renders these component headings. They stay separate from the authored outline and “On this page” comparison.</p><ul class="detail-list heading-outline">${headingRows(generatedHeadings)}</ul></details>` : ""}`;
+    elements["page-details"].innerHTML = `${back}<h2>Heading outline</h2><p class="detail-help">Indentation and level badges show the hierarchy. Select a row to find that heading on the page.</p><ul class="detail-list heading-outline">${headingRows(authoredHeadings)}</ul>${generatedHeadings.length ? `<details class="detail-section cms-heading-section"><summary>CMS Lite accordion headings (${generatedHeadings.length})</summary><p class="detail-help">These accordion headings are added by CMS Lite and are not part of the editable heading outline.</p><ul class="detail-list heading-outline">${headingRows(generatedHeadings)}</ul></details>` : ""}`;
     return;
   }
 
@@ -2700,14 +3771,14 @@ function renderPageDetails(section = "overview") {
     const linkCheckButtonLabel = linkCheck && linkCheck.state === "permission-denied" ? "Allow access and check links" : linkCheck ? "Check again" : "Check links";
     const permissionHelp = linkCheck && linkCheck.state === "permission-denied"
       ? `<p class="detail-help permission-warning"><strong>No links were checked.</strong> Select “Allow access and check links” and approve the browser prompt.</p>`
-      : `<p class="detail-help">Checks web links without using your browser sign-in. Links to www2.qa.gov.bc.ca are checked against the matching live www2.gov.bc.ca address. Same-origin redirects are followed automatically. Redirects to another website are followed when that website is included in the granted access; otherwise the final destination may remain unverified.</p>`;
+      : `<p class="detail-help">CMS Lite links are checked in QA and live when applicable.<br><br>Most other links are checked without signing in. For supported internal sites, the checker can use your current browser access. It does not read or store your sign-in information.</p>`;
     elements["page-details"].innerHTML = `${back}<h2>Links and assets</h2><section class="link-check-panel"><div><strong>Check whether links work</strong><span>${linkCheckText}</span></div>${linkCheck ? `<progress class="link-check-progress" max="${Math.max(1, linkCheck.totalFound || 1)}" value="${linkCheck.completed || 0}">${linkCheck.completed || 0} of ${linkCheck.totalFound || 0}</progress>` : ""}<div class="link-check-actions">${state.linkCheckRunning ? `<button class="button secondary compact link-check-pause" type="button">${state.linkCheckPaused ? "Resume" : "Pause"}</button><button class="button tertiary compact link-check-stop" type="button">Stop</button>` : `<button class="button primary compact link-check-button" type="button">${linkCheckButtonLabel}</button>`}<button class="button secondary compact manage-permissions-button" type="button">Website access</button></div>${permissionHelp}</section>${linkCheck ? (linkResultGroups || `<div class="empty-state">No individual link results are available.</div>`) : `<div class="empty-state">Check the links to see each destination and its result.</div>`}<details class="detail-section"><summary>All page links (${details.links.length})</summary><ul class="detail-list">${details.links.length ? details.links.map(link => { const asset = assetBySelector.get(assetKey(link)); const verification = asset ? ` · asset ${String(asset.verificationStatus || "not checked").replace(/-/g, " ")}${asset.actualSize ? ` · ${displayBytes(asset.actualSize)}` : ""}` : ""; return `<li><button class="detail-jump" type="button" data-selector="${escapeHtml(link.selector)}" ${editorDataAttributes(link)}><strong>${escapeHtml(link.text || "[No accessible name]")}</strong><br><span class="component-note">${escapeHtml(link.location || "Page content")} · ${escapeHtml(link.href)}${escapeHtml(verification)}</span></button></li>`; }).join("") : `<li class="detail-empty-row">No visible links found.</li>`}</ul></details>`;
     return;
   }
 
   if (section === "metadata") {
     if (metadataUnavailable) {
-      elements["page-details"].innerHTML = `${back}<h2>Metadata and SEO</h2><div class="empty-state"><strong>Metadata is not checked in CMS Lite editor mode.</strong><br>Check the rendered page to review its title, description, language and other page-level metadata.</div>`;
+      elements["page-details"].innerHTML = `${back}<h2>Metadata and SEO</h2><div class="empty-state"><strong>Metadata is not available in the CMS Lite editor.</strong><br>Check the QA or live page to review the title, description, language and other metadata.</div>`;
       return;
     }
     elements["page-details"].innerHTML = `${back}<h2>Metadata and SEO</h2><dl class="metadata-list">${metadataDefinition("HTML title", metadata.documentTitle)}${metadataDefinition("Meta description", metadata.description)}${metadataDefinition("Keywords", metadata.keywords)}${metadataDefinition("Canonical URL", metadata.canonical)}${metadataDefinition("Robots", metadata.robots)}${metadataDefinition("Page language", metadata.language)}${metadataDefinition("Structured data", `${metadata.jsonLdCount || 0} JSON-LD block${metadata.jsonLdCount === 1 ? "" : "s"}`)}${(metadata.custom || []).filter(item => !["keywords", "robots"].includes(item.name.toLowerCase())).map(item => metadataDefinition(item.name, item.value)).join("")}</dl>`;
@@ -3535,7 +4606,7 @@ function openExceptionDialog(finding) {
   elements["exception-all-scope"].hidden = pageOnly;
   elements["exception-guardrail"].textContent = pageOnly
     ? "This ignores ‘pubic’ in any capitalization on this page only. Other proofreading and style checks remain active."
-    : "Capitalization and wording must match exactly. Single-word formal names and acronyms are allowed. ‘BC’ by itself cannot be allowed. A single-word exception applies to every exact match for this rule within the selected scope. Structure, accessibility and sentence-case checks remain active.";
+    : "Capitalization and wording must match exactly. Single-word terms are allowed, except ‘BC’ on its own. Structure, accessibility and sentence case are still checked.";
   elements["exception-submit"].textContent = pageOnly ? "Ignore on this page" : "Allow exact term";
   const selectedRadio = document.querySelector(`input[name='exception-scope'][value='${pageOnly ? "page" : "site"}']`);
   if (selectedRadio) selectedRadio.checked = true;
@@ -3598,7 +4669,7 @@ function browserLabel() {
 function reportScopeLabel(report) {
   if (!report || !report.settings) return "";
   if (report.settings.sectionLabel) return `Section: ${report.settings.sectionLabel}`;
-  if (report.settings.scope === "whole") return "Whole website";
+  if (report.settings.scope === "whole") return "Whole page";
   return report.settings.profile === "cms-lite" ? "Editable CMS Lite content" : "Page content";
 }
 
@@ -3672,8 +4743,8 @@ function feedbackContextPreview(context) {
   return [
     metadataDefinition("Page", context && context.pageTitle),
     metadataDefinition("Address", context && context.pageUrl),
-    metadataDefinition("Detected site profile", context && context.detectedProfile),
-    metadataDefinition("Scan scope", context && context.scanScope),
+    metadataDefinition("Site type", context && context.detectedProfile),
+    metadataDefinition("Review area", context && context.scanScope),
     metadataDefinition("Page section", context && context.pageSection),
     context && context.selectedText ? metadataDefinition("Selected page text", context.selectedText) : "",
     finding ? metadataDefinition("Finding", finding.title) : "",
@@ -3879,8 +4950,8 @@ function feedbackReportText(notes = readyFeedbackNotes()) {
     } else {
       if (context.pageTitle) lines.push(`Page: ${context.pageTitle}`);
       lines.push(`Address: ${context.pageUrl}`);
-      if (context.detectedProfile) lines.push(`Detected site profile: ${context.detectedProfile}`);
-      if (context.scanScope) lines.push(`Scan scope: ${context.scanScope}`);
+      if (context.detectedProfile) lines.push(`Site type: ${context.detectedProfile}`);
+      if (context.scanScope) lines.push(`Review area: ${context.scanScope}`);
       if (context.pageSection) lines.push(`Page section: ${context.pageSection}`);
       if (context.selectedText) lines.push(`Selected page text: ${context.selectedText}`);
       if (finding) {
@@ -3962,7 +5033,7 @@ async function handleFeedbackCopyMode(mode) {
 }
 
 const FEEDBACK_CSV_HEADER = [
-  "Note ID", "Created", "Sent", "Sent at", "Feedback type", "Important", "Feedback note", "Include page context", "Page title", "Page URL", "Domain", "Detected site profile", "Scan scope", "Page section",
+  "Note ID", "Created", "Sent", "Sent at", "Feedback type", "Important", "Feedback note", "Include page context", "Page title", "Page URL", "Domain", "Site type", "Review area", "Page section",
   "Selected page text", "Finding", "Rule ID", "Category", "Review level", "Flagged wording", "Finding evidence", "Extension version", "Rules version", "Browser"
 ];
 
@@ -4527,7 +5598,7 @@ function summarySheetRows(report) {
     sheetRow(["Page", report.page.title]),
     sheetRow(["URL", report.page.url]),
     sheetRow(["Checked", formatDate(report.scannedAt)]),
-    sheetRow(["Scope", `${report.settings.scope === "whole" ? "Whole website" : "Page content"} · ${report.settings.profileLabel}`]),
+    sheetRow(["Scope", `${report.settings.scope === "whole" ? "Whole page" : "Page content"} · ${report.settings.profileLabel}`]),
     sheetRow(["Link check", linkCheckCoverage(report)]),
     sheetRow(["Link check results", linkCheckResultSummary(report)]),
     sheetRow(["Automated review profile"], "section"),
@@ -4803,20 +5874,7 @@ function metadataRow(report, submittedUrl) {
 }
 
 function linkResultLabel(status) {
-  return ({
-    ok: "Working",
-    "live-ok": "Live version working",
-    broken: "Broken",
-    "live-not-found": "Live version not found",
-    redirect: "Redirect could not be verified",
-    "sign-in": "Sign-in may be required",
-    permission: "Website access needed",
-    server: "Server error",
-    restricted: "Could not verify",
-    "rate-limited": "Could not verify",
-    "client-error": "Could not verify",
-    unavailable: "Could not verify"
-  })[status] || sentenceLabel(status || "Not checked");
+  return LINK_RESULT_LABELS[status] || sentenceLabel(status || "Not checked");
 }
 
 function linkCheckResultSummary(report) {
@@ -4827,8 +5885,14 @@ function linkCheckResultSummary(report) {
   if (check.okay) parts.push(`${check.okay} working`);
   if (check.broken) parts.push(`${check.broken} broken`);
   if (check.liveNotFound) parts.push(`${check.liveNotFound} live version${check.liveNotFound === 1 ? "" : "s"} not found`);
+  if (check.qaOnly) parts.push(`${check.qaOnly} available in QA but not found live`);
+  if (check.liveOnly) parts.push(`${check.liveOnly} available live but not found in QA`);
+  if (check.cmsOnly) parts.push(`${check.cmsOnly} available only in CMS Lite`);
+  if (check.cmsPublishingUnverified) parts.push(`${check.cmsPublishingUnverified} CMS Lite asset publication state unverified`);
+  if (check.qaLiveUnverified) parts.push(`${check.qaLiveUnverified} available in QA with live version unverified`);
+  if (check.sessionUnverified) parts.push(`${check.sessionUnverified} could not be verified automatically`);
   if (check.redirects) parts.push(`${check.redirects} redirect${check.redirects === 1 ? "" : "s"} to review`);
-  if (check.signInRequired) parts.push(`${check.signInRequired} may require sign-in`);
+  if (check.signInRequired) parts.push(`${check.signInRequired} sign-in redirect${check.signInRequired === 1 ? "" : "s"} encountered`);
   if (check.serverErrors) parts.push(`${check.serverErrors} server error${check.serverErrors === 1 ? "" : "s"}`);
   const couldNotVerify = (check.permissionRequired || 0) + (check.restricted || 0) + (check.rateLimited || 0) + (check.clientErrors || 0) + (check.unavailable || 0);
   if (couldNotVerify) parts.push(`${couldNotVerify} could not be verified`);
@@ -4845,6 +5909,12 @@ function aggregateLinkCheckResultSummary(reports) {
   const okay = total("okay");
   const broken = total("broken");
   const liveNotFound = total("liveNotFound");
+  const qaOnly = total("qaOnly");
+  const liveOnly = total("liveOnly");
+  const cmsOnly = total("cmsOnly");
+  const cmsPublishingUnverified = total("cmsPublishingUnverified");
+  const qaLiveUnverified = total("qaLiveUnverified");
+  const sessionUnverified = total("sessionUnverified");
   const redirects = total("redirects");
   const signInRequired = total("signInRequired");
   const serverErrors = total("serverErrors");
@@ -4854,8 +5924,14 @@ function aggregateLinkCheckResultSummary(reports) {
   if (okay) parts.push(`${okay} working`);
   if (broken) parts.push(`${broken} broken`);
   if (liveNotFound) parts.push(`${liveNotFound} live version${liveNotFound === 1 ? "" : "s"} not found`);
+  if (qaOnly) parts.push(`${qaOnly} available in QA but not found live`);
+  if (liveOnly) parts.push(`${liveOnly} available live but not found in QA`);
+  if (cmsOnly) parts.push(`${cmsOnly} available only in CMS Lite`);
+  if (cmsPublishingUnverified) parts.push(`${cmsPublishingUnverified} CMS Lite asset publication state unverified`);
+  if (qaLiveUnverified) parts.push(`${qaLiveUnverified} available in QA with live version unverified`);
+  if (sessionUnverified) parts.push(`${sessionUnverified} could not be verified automatically`);
   if (redirects) parts.push(`${redirects} redirect${redirects === 1 ? "" : "s"} to review`);
-  if (signInRequired) parts.push(`${signInRequired} may require sign-in`);
+  if (signInRequired) parts.push(`${signInRequired} sign-in redirect${signInRequired === 1 ? "" : "s"} encountered`);
   if (serverErrors) parts.push(`${serverErrors} server error${serverErrors === 1 ? "" : "s"}`);
   if (couldNotVerify) parts.push(`${couldNotVerify} could not be verified`);
   if (pending) parts.push(`${pending} not checked`);
@@ -4867,17 +5943,21 @@ function linkRows(report) {
   const results = report.linkCheck && Array.isArray(report.linkCheck.results) ? report.linkCheck.results : [];
   const resultByDestination = new Map();
   results.forEach(result => {
-    const key = canonicalUrl(result.checkedUrl || (result.link && (result.link.checkUrl || result.link.href)) || "");
+    const key = result.linkKey || remoteLinkKey(result.link) || canonicalUrl(result.checkedUrl || "");
     if (key) resultByDestination.set(key, result);
   });
   return allLinks.map(link => {
     const prepared = prepareRemoteLink(link, report.page.url);
-    const result = prepared ? resultByDestination.get(canonicalUrl(prepared.checkUrl || prepared.href)) : null;
+    const result = prepared ? resultByDestination.get(remoteLinkKey(prepared)) : null;
     let checkResult = "Not checked";
     let detail = "";
     if (result) {
       checkResult = linkResultLabel(result.status);
-      detail = result.error || "";
+      const environmentDetail = [];
+      if (result.cmsCheckedUrl) environmentDetail.push(`CMS Lite: ${result.cmsStatus === "ok" ? "Working" : linkResultLabel(result.cmsStatus)}${result.cmsCode ? ` (HTTP ${result.cmsCode})` : ""}`);
+      if (result.qaCheckedUrl) environmentDetail.push(`QA: ${result.qaStatus === "ok" ? "Working" : result.qaStatus === "broken" ? "Not found" : linkResultLabel(result.qaStatus)}${result.qaCode ? ` (HTTP ${result.qaCode})` : ""}`);
+      if (result.liveCheckedUrl) environmentDetail.push(`Live: ${result.liveStatus === "ok" ? "Working" : result.liveStatus === "broken" ? "Not found" : linkResultLabel(result.liveStatus)}${result.liveCode ? ` (HTTP ${result.liveCode})` : ""}`);
+      detail = [...environmentDetail, result.error || ""].filter(Boolean).join(" · ");
     } else if (String(link.rawHref || "").startsWith("#")) checkResult = "Checked on page";
     else if (link.kind === "email") checkResult = "Email link · not a web check";
     else if (link.kind === "phone") checkResult = "Phone link · not a web check";
@@ -4956,8 +6036,8 @@ function updateCurrentExportDialog() {
     ? `Copy detailed findings — ${findingCount} finding${findingCount === 1 ? "" : "s"}`
     : `Copy detailed findings — ${findingCount} rows · ${occurrenceCount} occurrences`;
   elements["current-export-preset-description"].textContent = preset === "custom"
-    ? "Choose exactly which sheets to include."
-    : "Complete workbook with the review summary, grouped issues, every finding, page details, links and metadata.";
+    ? "Choose which sheets to include."
+    : "Includes the summary, findings, page details, links and metadata.";
   elements["current-export-custom"].hidden = preset !== "custom";
 
   const needsLinkCheck = currentWorkbookNeedsLinkCheck();
@@ -4979,25 +6059,25 @@ function updateCurrentExportDialog() {
   }
 
   if (!remoteCount) {
-    status.textContent = "No web links need a network check. In-page links are checked as part of the page scan.";
+    status.textContent = "No web links need checking. In-page links are checked with the page.";
     downloadButton.textContent = "Download workbook";
     downloadButton.className = "button primary";
   } else if (state.linkCheckRunning) {
     const check = report.linkCheck || {};
-    status.textContent = `Checking links: ${check.completed || 0} of ${check.totalFound || remoteCount} processed. You can download the current results or wait for the check to finish.`;
+    status.textContent = `Checking links: ${check.completed || 0} of ${check.totalFound || remoteCount} checked. You can download now or wait for the check to finish.`;
     checkButton.textContent = "Checking links…";
     downloadButton.textContent = "Download current results";
     downloadButton.className = "button secondary";
   } else if (coverage === "Complete") {
-    status.textContent = `Link status check complete: ${report.linkCheck.totalFound || 0} unique web destination${(report.linkCheck.totalFound || 0) === 1 ? "" : "s"} processed.`;
+    status.textContent = `Link check complete: ${report.linkCheck.totalFound || 0} link${(report.linkCheck.totalFound || 0) === 1 ? "" : "s"} checked.`;
     downloadButton.textContent = "Download workbook";
     downloadButton.className = "button primary";
   } else {
     status.textContent = coverage === "Website access declined"
-      ? "Website access was declined. The report can still be exported, but unchecked web links will not appear as broken-link findings."
+      ? "Website access was not allowed. You can still export the report, but unchecked links will not be reported as broken."
       : coverage === "Partially checked"
-        ? "Link status was only partly checked. The report will show that coverage; unchecked web links will not be treated as working."
-        : "Link status has not been checked. Broken web links will not appear as findings unless the link check is run.";
+        ? "Some links could not be checked. The report will show which ones; unchecked links are not treated as working."
+        : "Links have not been checked. Broken links will not be included in the findings.";
     checkButton.textContent = coverage === "Website access declined" ? "Allow access, check links and download" : "Check links and download";
     downloadButton.textContent = coverage === "Partially checked" ? "Download current results" : "Download without checking";
     downloadButton.className = "button secondary";
@@ -5105,7 +6185,7 @@ function batchPagesRows(records) {
       profileValue(m.profile, "Structure and navigation"), profileValue(m.profile, "Accessibility"), profileValue(m.profile, "Links and documents"),
       profileValue(m.profile, "Style and proofreading"), m.readingGrade, m.difficultSections, m.longestWithoutHeading, m.longSentences, m.sentences,
       m.longSentencePct, m.words, m.fixes, m.checks, m.reviews, m.total, m.issueTypes, m.linkCheck, m.linkResults, m.links, m.linksFlagged,
-      m.images, m.imagesFlagged, m.headings, m.lists, report.settings.scope === "whole" ? "Whole website" : "Page content", report.settings.profileLabel,
+      m.images, m.imagesFlagged, m.headings, m.lists, report.settings.scope === "whole" ? "Whole page" : "Page content", report.settings.profileLabel,
       "Complete", formatDate(report.scannedAt), report.ruleVersion || ""
     ];
   });
@@ -5274,7 +6354,7 @@ function renderBatchValidation() {
 async function requestBatchPermissions(urls) {
   const origins = Array.from(new Set(urls.map(originPattern)));
   const granted = await chrome.permissions.request({ origins });
-  if (!granted) throw new Error("Access to the submitted sites was not granted. The batch scan cannot inspect them without that permission.");
+  if (!granted) throw new Error("Website access was not allowed, so the batch scan cannot check these pages.");
 }
 
 function waitForTabComplete(tabId, timeoutMs) {
@@ -5363,8 +6443,22 @@ function batchLinkPlan(records) {
     const pageLinks = remoteLinksForReport(record.report);
     perRecord.set(record, pageLinks);
     pageLinks.forEach(link => {
-      const key = canonicalUrl(link.checkUrl || link.href);
-      if (!destinations.has(key)) destinations.set(key, { key, checkUrl: link.checkUrl || link.href, signInRequired: Boolean(link.signInRequired) });
+      const key = remoteLinkKey(link);
+      if (!destinations.has(key)) destinations.set(key, {
+        key,
+        checkUrl: link.checkUrl || link.href,
+        href: link.href,
+        qaFamily: link.qaFamily || "",
+        qaLive: Boolean(link.qaLive),
+        qaUrl: link.qaUrl || "",
+        liveUrl: link.liveUrl || "",
+        publicQaPair: Boolean(link.publicQaPair),
+        cmsLiteAssetGuid: link.cmsLiteAssetGuid || "",
+        cmsLiteAssetFamily: link.cmsLiteAssetFamily || "",
+        cmsLiteEditorLink: Boolean(link.cmsLiteEditorLink),
+        sessionAware: Boolean(link.sessionAware),
+        signInRequired: Boolean(link.signInRequired)
+      });
     });
   });
   return { perRecord, destinations };
@@ -5373,7 +6467,7 @@ function batchLinkPlan(records) {
 function batchLinkPermissionOrigins(plan) {
   return Array.from(new Set(Array.from(plan.destinations.values())
     .filter(item => !item.signInRequired)
-    .flatMap(item => permissionOriginsForRemoteUrl(item.checkUrl))
+    .flatMap(item => permissionOriginsForPreparedLink(item))
     .filter(Boolean)));
 }
 
@@ -5385,8 +6479,8 @@ async function batchLinkPermissionsGranted(origins) {
 function applyBatchLinkPermissionDenied(plan) {
   plan.perRecord.forEach((links, record) => {
     const results = links.map(link => linkResultFromRemote(link, link.signInRequired
-      ? { status: "sign-in", finalUrl: link.checkUrl || link.href, error: "This destination may require browser sign-in." }
-      : { status: "permission", finalUrl: link.checkUrl || link.href, error: "Website access was not granted." }));
+      ? { status: "sign-in", checkedUrl: link.checkUrl || link.href, finalUrl: link.checkUrl || link.href, error: sessionVerificationMessage("sign-in") }
+      : { status: "permission", checkedUrl: link.checkUrl || link.href, finalUrl: link.checkUrl || link.href, error: "Website access was not granted." }));
     record.report.linkCheck = {
       state: "permission-denied",
       permissionDeclined: true,
@@ -5429,9 +6523,55 @@ async function runBatchLinkChecks(plan) {
       if (batch.cancelled) break;
       const destination = destinations[index];
       index += 1;
-      const result = destination.signInRequired
-        ? { status: "sign-in", finalUrl: destination.checkUrl, error: "This destination may require browser sign-in." }
-        : await checkRemoteUrl(destination.checkUrl, 10000);
+      let result;
+      if (destination.cmsLiteAssetGuid) {
+        result = {
+          status: "session-unverified",
+          combinedStatus: "cms-publishing-unverified",
+          checkedUrl: destination.href,
+          finalUrl: destination.href,
+          error: "CMS Lite assets cannot be fully checked in a batch because the editor must stay open."
+        };
+      } else if (destination.signInRequired) {
+        result = { status: "sign-in", checkedUrl: destination.checkUrl, finalUrl: destination.checkUrl, error: sessionVerificationMessage("sign-in") };
+      } else if (destination.qaFamily === "public" && destination.qaLive) {
+        const qaResult = await checkPublicQaWithCurrentAccess(
+          null,
+          destination.qaUrl || destination.href,
+          10000,
+          Boolean(destination.publicQaPair)
+        );
+        const liveResult = await checkRemoteUrl(destination.liveUrl || destination.checkUrl, 10000, { sessionAware: false });
+        result = publicQaLiveRemoteResult(destination, qaResult, liveResult);
+      } else if (destination.qaFamily === "intranet" && destination.qaLive) {
+        const qaResult = await checkRemoteUrl(destination.href, 10000, { sessionAware: true });
+        if (qaResult.status === "ok") {
+          const liveResult = await checkRemoteUrl(destination.checkUrl, 10000, { sessionAware: true });
+          result = {
+            status: liveResult.status,
+            combinedStatus: liveResult.status === "ok" ? "qa-live-ok" : liveResult.status === "broken" ? "qa-only" : "qa-live-unverified",
+            code: "",
+            checkedUrl: destination.href,
+            finalUrl: qaResult.finalUrl || destination.href,
+            qaStatus: "ok",
+            qaCode: qaResult.code || "",
+            qaCheckedUrl: destination.href,
+            liveStatus: liveResult.status,
+            liveCode: liveResult.code || "",
+            liveCheckedUrl: destination.checkUrl,
+            accessMode: qaResult.accessMode || "current-session",
+            error: liveResult.status === "ok"
+              ? "Available in QA and live. Live was verified using your current browser access."
+              : liveResult.status === "broken"
+                ? "Works in QA. The live intranet version was not found."
+                : `Works in QA. The live intranet version could not be checked.${liveResult.error ? ` ${liveResult.error}` : ""}`
+          };
+        } else {
+          result = { ...qaResult, checkedUrl: destination.href };
+        }
+      } else {
+        result = await checkRemoteUrl(destination.checkUrl, 10000, { sessionAware: destination.sessionAware });
+      }
       resultByDestination.set(destination.key, result);
       batch.linkCheckCompleted = resultByDestination.size;
       renderBatchProgress();
@@ -5441,8 +6581,8 @@ async function runBatchLinkChecks(plan) {
 
   plan.perRecord.forEach((links, record) => {
     const results = links.map(link => {
-      const key = canonicalUrl(link.checkUrl || link.href);
-      const remoteResult = resultByDestination.get(key) || { status: "unavailable", finalUrl: link.checkUrl || link.href, error: "The batch link check stopped before this destination was checked." };
+      const key = remoteLinkKey(link);
+      const remoteResult = resultByDestination.get(key) || { status: "unavailable", finalUrl: link.checkUrl || link.href, error: "The batch link check stopped before this link was checked." };
       return linkResultFromRemote(link, remoteResult);
     });
     addHttpLinkFindings(record.report, results);
@@ -5516,8 +6656,8 @@ function batchExportSnapshotFromUi() {
 function updateBatchExportDescription() {
   const preset = elements["batch-export-preset"].value === "custom" ? "custom" : "full";
   elements["batch-export-description"].textContent = preset === "custom"
-    ? "Choose exactly which sheets to include."
-    : "Complete audit with summary, page review priorities, site-wide findings, page issue summary, detailed findings, links, metadata and scan log.";
+    ? "Choose which sheets to include."
+    : "Includes the summary, page priorities, findings, links, metadata and scan log.";
   elements["batch-export-custom"].hidden = preset !== "custom";
 }
 
@@ -5566,7 +6706,7 @@ function renderBatchProgress() {
       elements["batch-progress-label"].textContent = batch.paused ? "Batch scan paused" : `Scanning ${hostnameFor(current) || current}`;
     }
   } else if (waitingForLinkAccess) {
-    elements["batch-progress-label"].textContent = "Pages scanned · website access needed to finish link checking";
+    elements["batch-progress-label"].textContent = "Pages checked · allow website access to finish checking links";
   } else if (resumable) {
     elements["batch-progress-label"].textContent = `Batch scan paused · ${done} of ${batch.urls.length} pages`;
   } else if (batch.cancelled) {
@@ -5574,7 +6714,7 @@ function renderBatchProgress() {
   } else if (batch.phase === "done" || done) {
     const accessDeclined = batch.records.some(record => record.status === "complete" && record.report.linkCheck && record.report.linkCheck.state === "permission-denied");
     elements["batch-progress-label"].textContent = accessDeclined
-      ? "Batch scan complete · website access declined"
+      ? "Batch scan complete · website access not allowed"
       : batch.checkLinks ? "Batch scan and link check complete" : "Batch scan complete";
   }
 
@@ -5682,7 +6822,7 @@ async function startBatchScan() {
 
   const parsed = renderBatchValidation();
   if (!parsed.valid.length) {
-    elements["batch-error-message"].textContent = "Add at least one valid HTTP or HTTPS URL.";
+    elements["batch-error-message"].textContent = "Add at least one valid web address.";
     elements["batch-error"].hidden = false;
     return;
   }
@@ -5693,7 +6833,7 @@ async function startBatchScan() {
   if (snapshot.checkLinks && snapshot.linkPermissionMode === "all") {
     allWebsiteAccessGranted = await requestAllWebsiteAccessForBatch();
     if (!allWebsiteAccessGranted) {
-      elements["batch-error-message"].textContent = "Access to all websites was not granted. Choose ‘Ask only for websites found in this scan’ and start again to request only the access needed for this batch.";
+      elements["batch-error-message"].textContent = "Access to all websites was not allowed. Choose ‘Ask only for websites in this scan’ and start again.";
       elements["batch-error"].hidden = false;
       return;
     }
@@ -5770,7 +6910,7 @@ async function requestBatchLinkAccessAndFinish() {
   try {
     const result = await prepareBatchLinkCheck({ requestPermissions: true });
     if (result.permissionDeclined) {
-      elements["batch-error-message"].textContent = "Website access was not granted. The workbook will still be created, and link-check coverage will show that the destinations were not verified.";
+      elements["batch-error-message"].textContent = "Website access was not allowed. The workbook will still be created, but those links will remain unchecked.";
       elements["batch-error"].hidden = false;
     }
     await finalizeBatchScan(true);
@@ -6015,6 +7155,7 @@ function bindEvents() {
     else if (button.classList.contains("link-check-pause")) toggleLinkCheckPause();
     else if (button.classList.contains("link-check-stop")) stopLinkCheck();
     else if (button.classList.contains("manage-permissions-button")) openPermissionDialog();
+    else if (button.classList.contains("link-result-category-toggle")) toggleLinkResultCategory(button);
     else if (button.classList.contains("detail-jump")) locateFinding(
       button.dataset.selector,
       Number(button.dataset.editorRegion) || null,
@@ -6026,6 +7167,11 @@ function bindEvents() {
     }
   };
   elements["page-details"].addEventListener("click", handlePageAuditClick);
+  elements["page-details"].addEventListener("toggle", event => {
+    const details = event.target;
+    if (!(details instanceof HTMLDetailsElement) || !details.classList.contains("link-result-group")) return;
+    syncLinkResultCategoryToggle(details.closest(".link-result-category"));
+  }, true);
 
   elements["exception-form"].addEventListener("submit", saveException);
   elements["exception-cancel"].addEventListener("click", () => elements["exception-dialog"].close());
