@@ -3,7 +3,7 @@
   "pilotStatus": "active",
   "latestVersion": "1.3.2",
   "promptBelowVersion": "1.3.2",
-  "minimumSupportedVersion": "1.3.0",
+  "minimumSupportedVersion": "1.3.2",
   "blockedVersions": [],
   "downloadUrl": "https://github.com/bcgov/web-style-guide-checker/releases/latest",
   "message": "",
