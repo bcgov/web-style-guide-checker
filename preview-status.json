@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "pilotStatus": "active",
+  "latestVersion": "1.3.1",
+  "promptBelowVersion": "1.3.0",
+  "minimumSupportedVersion": "1.3.0",
+  "blockedVersions": [],
+  "downloadUrl": "mailto:karmen.abrahams-munroe@gov.bc.ca?subject=Request%20latest%20Web%20Style%20Guide%20Checker%20preview&body=Hi%20Karmen%2C%0A%0ACould%20you%20please%20send%20me%20the%20latest%20preview%20release%20of%20the%20B.C.%20Web%20Style%20Guide%20Checker%3F%0A%0AThanks!"
+  "message": "",
+  "lastUpdated": "2026-09-01T19:30:00Z"
+}

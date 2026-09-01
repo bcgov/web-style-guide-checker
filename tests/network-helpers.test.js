@@ -56,8 +56,13 @@ const qaLink = helpers.prepareRemoteLink({ rawHref: "/gov/content/test", href: "
 assert.equal(qaLink.qaLive, true);
 assert.equal(qaLink.checkUrl, "https://www2.gov.bc.ca/gov/content/test");
 assert.equal(qaLink.signInRequired, false);
-const cmsLink = helpers.prepareRemoteLink({ rawHref: "/page", href: "https://cmslite.gov.bc.ca/page" }, "https://cmslite.gov.bc.ca/source");
-assert.equal(cmsLink.signInRequired, true);
+const cmsLink = helpers.prepareRemoteLink(
+  { rawHref: "/page", href: "https://cmslite.gov.bc.ca/page" },
+  "https://cmslite.gov.bc.ca/source"
+);
+assert.equal(cmsLink.cmsLiteEditorLink, true);
+assert.equal(cmsLink.sessionAware, true);
+assert.equal(cmsLink.signInRequired, false);
 assert.deepEqual(Array.from(helpers.permissionOriginsForRemoteUrl("http://www.clicklaw.bc.ca/page")), ["http://www.clicklaw.bc.ca/*", "https://www.clicklaw.bc.ca/*"]);
 
 const deduped = helpers.remoteLinksForReport({
@@ -97,7 +102,40 @@ const plan = context.batchPlan([
     }
   }
 ]);
-assert.equal(plan.destinations.size, 2, "Batch link checking must deduplicate the same live destination across pages, including QA-to-live equivalents");
+assert.equal(
+  plan.destinations.size,
+  3,
+  "Batch link checking must keep a QA/live publishing pair separate from an independently discovered live-only destination"
+);
+const plannedDestinations = Array.from(plan.destinations.values());
+
+assert.equal(
+  plannedDestinations.some(destination =>
+    destination.qaFamily === "public" &&
+    destination.qaLive === true &&
+    destination.qaUrl === "https://www2.qa.gov.bc.ca/gov/content/shared" &&
+    destination.liveUrl === "https://www2.gov.bc.ca/gov/content/shared"
+  ),
+  true,
+  "The QA-page link must retain its QA/live publishing pair"
+);
+
+assert.equal(
+  plannedDestinations.some(destination =>
+    destination.href === "https://www2.gov.bc.ca/gov/content/shared" &&
+    destination.qaLive === false
+  ),
+  true,
+  "A separately discovered live-page link must remain a live-only destination"
+);
+
+assert.equal(
+  plannedDestinations.filter(destination =>
+    destination.href === "https://example.com/shared"
+  ).length,
+  1,
+  "Ordinary duplicate destinations across batch pages must still be deduplicated"
+);
 
 const remoteChunk = sourceBetween("function isManualRedirect(response)", "async function verifyOneAsset");
 vm.runInNewContext(`${remoteChunk}\nthis.remoteHelpers = { isManualRedirect, fetchRemoteFollowingRedirects, fetchRemoteOnce, checkRemoteUrl };`, context);
@@ -190,10 +228,28 @@ function response(status, { type = "basic", url = "https://example.com/", header
   };
   result = await remote.checkRemoteUrl("https://example.com/page");
   assert.equal(result.status, "redirect");
-  assert.match(result.error, /could not verify the final destination/i);
-  assert.equal(calls.length, 2, "An inaccessible redirect should fall back to a manual check rather than being marked broken");
-  assert.equal(calls[0].options.redirect, "follow");
-  assert.equal(calls[1].options.redirect, "manual");
+  assert.equal(
+  result.error,
+  "This link redirects, but the final page could not be checked. Open it to confirm."
+  );
+  assert.equal(
+  calls.length,
+  3,
+  "An inaccessible public redirect should try HEAD, then a bounded GET, before falling back to a manual redirect check"
+);
+
+assert.equal(calls[0].options.method, "HEAD");
+assert.equal(calls[0].options.redirect, "follow");
+assert.equal(calls[0].options.credentials, "omit");
+
+assert.equal(calls[1].options.method, "GET");
+assert.equal(calls[1].options.redirect, "follow");
+assert.equal(calls[1].options.credentials, "omit");
+assert.equal(calls[1].options.headers.Range, "bytes=0-0");
+
+assert.equal(calls[2].options.method, "HEAD");
+assert.equal(calls[2].options.redirect, "manual");
+assert.equal(calls[2].options.credentials, "omit");
 
   context.chrome.permissions.contains = async ({ origins }) => !String(origins[0]).includes("blocked.example");
   result = await remote.checkRemoteUrl("https://blocked.example/page");
