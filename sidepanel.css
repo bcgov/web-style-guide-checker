@@ -493,14 +493,36 @@ mark { padding: 0 2px; color: var(--ink); background: #ffe19b; }
 .link-check-panel span { margin-top: 2px; color: var(--muted); font-size: 12px; }
 .link-check-panel .permission-warning { margin: 10px 0 0; padding: 9px; color: var(--ink); background: var(--check-bg); border-left: 3px solid var(--check); }
 .link-check-progress, progress { width: 100%; height: 10px; margin: 9px 0; accent-color: var(--navy); }
-.link-result-group > summary { display: flex; justify-content: space-between; }
+.link-result-category { margin-top: 14px; overflow: hidden; border: 1px solid var(--line); border-left: 4px solid var(--line-strong); border-radius: var(--radius-sm); }
+.link-result-category.problems { border-left-color: var(--fix); }
+.link-result-category.review { border-left-color: var(--check); }
+.link-result-category.working { border-left-color: var(--success); }
+.link-result-category-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; }
+.link-result-category-heading > div { min-width: 0; }
+.link-result-category-heading-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex: 0 0 auto; }
+.link-result-category-toggle { white-space: nowrap; font-size: 12px; }
+.link-result-category-heading strong, .link-result-category-heading span { display: block; }
+.link-result-category-heading span { margin-top: 2px; color: var(--muted); font-size: 12px; }
+.link-result-category.problems .link-result-category-heading { background: var(--fix-bg); }
+.link-result-category.review .link-result-category-heading { background: var(--check-bg); }
+.link-result-category.working .link-result-category-heading { background: var(--success-bg); }
+.link-result-category-count { display: grid !important; min-width: 30px; height: 30px; flex: 0 0 auto; place-items: center; margin: 0 !important; color: var(--navy) !important; background: var(--white); border-radius: 999px; font-weight: 700; }
+.link-result-category-groups { padding: 0 10px 10px; }
+.link-result-group { margin-top: 8px; }
+.link-result-group > summary { display: flex; justify-content: space-between; gap: 10px; }
+.link-result-category.problems .link-result-group > summary { color: var(--fix-dark); border-left: 3px solid var(--fix); }
+.link-result-category.review .link-result-group > summary { color: #6b4700; border-left: 3px solid var(--check); }
+.link-result-category.working .link-result-group > summary { color: #236430; border-left: 3px solid var(--success); }
+.link-result-category.problems .link-result-group[open] > summary { background: var(--fix-bg); }
+.link-result-category.review .link-result-group[open] > summary { background: var(--check-bg); }
+.link-result-category.working .link-result-group[open] > summary { background: var(--success-bg); }
 .link-result { padding: 11px 12px; }
 .link-result > strong, .link-result > span { display: block; }
 .link-result-heading { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; }
 .link-destination, .link-redirect, .link-error { overflow-wrap: anywhere; color: var(--muted); font-size: 12px; }
 .status-label.broken, .status-label.server, .status-label.client-error { color: var(--fix-dark); background: var(--fix-bg); }
-.status-label.ok, .status-label.live-ok { color: #236430; background: var(--success-bg); }
-.status-label.permission, .status-label.unavailable, .status-label.restricted, .status-label.rate-limited, .status-label.redirect, .status-label.sign-in, .status-label.live-not-found { color: #6b4700; background: var(--check-bg); }
+.status-label.ok, .status-label.live-ok, .status-label.session-ok, .status-label.qa-live-ok { color: #236430; background: var(--success-bg); }
+.status-label.permission, .status-label.unavailable, .status-label.restricted, .status-label.rate-limited, .status-label.redirect, .status-label.sign-in, .status-label.live-not-found, .status-label.session-unverified, .status-label.qa-only, .status-label.live-only, .status-label.cms-only, .status-label.cms-publishing-unverified, .status-label.qa-live-unverified { color: #6b4700; background: var(--check-bg); }
 .link-result-actions { margin-top: 8px; }
 
 .finding-breakdown { padding: 12px; }

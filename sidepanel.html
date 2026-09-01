@@ -42,7 +42,7 @@
             <span>Checks the page title and editable body content.</span>
             <details>
               <summary>More scan options</summary>
-              <label class="check-row"><input id="cms-whole-scan" type="checkbox"> Include the delivered template and code</label>
+              <label class="check-row"><input id="cms-whole-scan" type="checkbox"> Include the page template and controls</label>
             </details>
           </div>
 
@@ -50,11 +50,11 @@
             <legend>Review scope</legend>
             <label>
               <input type="radio" name="scope" value="content" checked>
-              <span><strong>Page content</strong><small>Page title and main authored content</small></span>
+              <span><strong>Page content</strong><small>Page title and main content</small></span>
             </label>
             <label>
               <input type="radio" name="scope" value="whole">
-              <span><strong>Whole website</strong><small>Includes navigation, templates and code</small></span>
+              <span><strong>Whole page</strong><small>Includes navigation, footer and page controls</small></span>
             </label>
           </fieldset>
 
@@ -80,7 +80,7 @@
         <section id="current-loading" class="state-panel" hidden aria-live="polite">
           <span class="spinner" aria-hidden="true"></span>
           <strong>Checking the page</strong>
-          <span>Applying the style guide rules in your browser.</span>
+          <span>Checking against the B.C. Web Style Guide.</span>
         </section>
 
         <section id="current-error" class="state-panel error" hidden role="alert">
@@ -164,7 +164,7 @@
               <div id="page-details"></div>
               <details id="manual-review" class="manual-review">
                 <summary>Manual review checklist</summary>
-                <p>These requirements need editorial or site-wide judgement.</p>
+                <p>These checks need your judgement.</p>
                 <div id="manual-checks"></div>
               </details>
             </section>
@@ -193,7 +193,7 @@
           <p class="eyebrow">Send your feedback</p>
           <h2 id="send-feedback-heading">Email your saved notes</h2>
           <p id="feedback-send-status"><strong>0 notes are saved on this device.</strong> They have not been sent.</p>
-          <p>The extension keeps each email small enough to include the complete feedback batch. When a batch reaches the safe email size, send it before recording more notes.</p>
+          <p>If your notes do not fit in one email, the checker keeps the rest for the next one.</p>
           <button id="create-feedback-email" class="button primary" type="button">Create feedback email</button>
           <div class="feedback-export-actions">
             <button id="copy-feedback-report" class="text-button" type="button">Copy report</button>
@@ -204,7 +204,7 @@
 
         <details id="archived-feedback" class="archived-feedback" hidden>
           <summary>Sent feedback <span id="archived-feedback-count"></span></summary>
-          <p>These notes were marked sent and stay available for copying or export. Restore a note if it still needs to be emailed again.</p>
+          <p>Sent notes stay available for copying or export. Restore a note if you need to send it again.</p>
           <div id="archived-feedback-list" class="feedback-list"></div>
         </details>
       </section>
@@ -226,18 +226,18 @@
               <label>Review scope
                 <select id="batch-scope">
                   <option value="content">Page content</option>
-                  <option value="whole">Whole website</option>
+                  <option value="whole">Whole page</option>
                 </select>
               </label>
               <label class="check-row"><input id="batch-colour-control" type="checkbox" checked> Include content colour contrast outside CMS Lite</label>
               <label class="check-row"><input id="batch-check-links" type="checkbox"> Check whether links work</label>
-              <p class="hint batch-option-note">Checks each unique web destination after the page scan. This takes longer and may ask for access to linked websites. QA links on www2.qa.gov.bc.ca are checked against the matching live www2.gov.bc.ca address.</p>
+              <p class="hint batch-option-note">Checks links after each page. This takes longer and may ask for access to linked websites. CMS Lite links are checked in QA and live when applicable. Some internal links may use your current browser access.</p>
               <fieldset id="batch-link-access-options" class="custom-export-options" hidden>
                 <legend>Website access for link checking</legend>
-                <label class="check-row"><input id="batch-link-access-found" type="radio" name="batch-link-access" value="found" checked> Ask only for websites found in this scan</label>
-                <p class="hint batch-option-note">More limited access. If new websites need access, the checker asks once after the page scan.</p>
-                <label class="check-row"><input id="batch-link-access-all" type="radio" name="batch-link-access" value="all"> Allow all websites when the scan starts</label>
-                <p class="hint batch-option-note">One-step link checking, but the browser grants broader website access until you remove it in Settings.</p>
+                <label class="check-row"><input id="batch-link-access-found" type="radio" name="batch-link-access" value="found" checked> Ask only for websites in this scan</label>
+                <p class="hint batch-option-note">Only asks for access to websites found in the scan.</p>
+                <label class="check-row"><input id="batch-link-access-all" type="radio" name="batch-link-access" value="all"> Allow access to all websites</label>
+                <p class="hint batch-option-note">Avoids extra access prompts, but gives the checker access to all websites until you remove it in Settings.</p>
               </fieldset>
               <label>Workbook type
                 <select id="batch-export-preset">
@@ -245,7 +245,7 @@
                   <option value="custom">Customize workbook</option>
                 </select>
               </label>
-              <p id="batch-export-description" class="hint batch-option-note">Complete audit workbook, including link inventory, metadata and scan log.</p>
+              <p id="batch-export-description" class="hint batch-option-note">Includes the summary, findings, links, metadata and scan log.</p>
               <fieldset id="batch-export-custom" class="custom-export-options" hidden>
                 <legend>Workbook sheets</legend>
                 <label class="check-row"><input id="batch-custom-summary" type="checkbox" data-sheet="Summary" checked> Summary</label>
@@ -290,13 +290,13 @@
 
         <section class="workspace-card" aria-labelledby="personal-terms-heading">
           <div class="list-heading"><h2 id="personal-terms-heading">Allowed terms</h2><span id="personal-term-count"></span></div>
-          <p>An exact term is ignored only for the rule that flagged it. Structure, accessibility and sentence-case checks remain active.</p>
+          <p>Allowed terms apply only to the rule that flagged them. Other checks still apply.</p>
           <div id="personal-terms" class="term-list"></div>
         </section>
 
         <details class="workspace-card built-in-terms">
           <summary>Built-in approved names</summary>
-          <p>These established names are excluded from the “Use B.C.” check.</p>
+          <p>These names are already allowed for the “Use B.C.” check.</p>
           <div id="built-in-terms-list" class="term-chips"></div>
         </details>
       </section>
@@ -382,7 +382,7 @@
           <label id="exception-site-scope"><input type="radio" name="exception-scope" value="site" checked> This website</label>
           <label id="exception-all-scope"><input type="radio" name="exception-scope" value="all"> Every website</label>
         </fieldset>
-        <p id="exception-guardrail" class="guardrail">Capitalization and wording must match exactly. Single-word formal names and acronyms are allowed. “BC” by itself cannot be allowed. A single-word exception applies to every exact match for this rule within the selected scope. Structure, accessibility and sentence-case checks remain active.</p>
+        <p id="exception-guardrail" class="guardrail">Capitalization and wording must match exactly. Single-word terms are allowed, except “BC” on its own. Structure, accessibility and sentence case are still checked.</p>
         <div class="dialog-actions"><button id="exception-cancel" class="button secondary" type="button">Cancel</button><button id="exception-submit" class="button primary" type="submit">Allow exact term</button></div>
       </form>
     </dialog>
@@ -399,13 +399,13 @@
     <dialog id="permission-dialog">
       <form method="dialog">
         <div class="dialog-heading"><div><p class="eyebrow">Link checking</p><h2>Website access</h2></div><button id="permission-close" class="icon-button" type="button" aria-label="Close website access settings">×</button></div>
-        <p>Content checks run in your browser. Link checks contact destination websites without sending cookies or browser sign-in details. The browser requires website access before the checker can read response codes such as 200 or 404.</p>
+        <p>Content checks run in your browser. Most links are checked without signing in. For supported internal sites, the checker can use your current browser access. CMS Lite assets may be checked in CMS Lite, QA and live. To check these assets, the checker may briefly read the response from the asset link, including the B.C. government “Asset Not Found” page. The checker does not read or store your sign-in information. If a link cannot be checked safely, you’ll be asked to open it yourself.</p>
         <div class="permission-options">
           <button id="permission-linked" class="button primary" type="button">Allow linked sites on this page</button>
-          <p>Your browser lists the requested sites before granting access.</p>
+          <p>Your browser will show which websites the checker is asking to access.</p>
           <button id="permission-all" class="button secondary" type="button">Allow all websites</button>
-          <p>This supports uninterrupted large link checks and produces a broader browser permission warning.</p>
-          <button id="permission-revoke" class="button tertiary" type="button">Remove all-sites access</button>
+          <p>Checks links without extra access prompts, but gives the checker access to all websites until you remove it.</p>
+          <button id="permission-revoke" class="button tertiary" type="button">Remove access to all websites</button>
         </div>
         <p id="permission-status" class="hint" aria-live="polite"></p>
       </form>
@@ -445,7 +445,7 @@
             <dl id="feedback-context-preview" class="metadata-list"></dl>
           </details>
         </section>
-        <p class="hint">Page context can include the title, address, detected site profile, scan scope, page section and related finding. Complete page content and form entries are not captured.</p>
+        <p class="hint">Page context can include the page title, address, review settings, section and related finding. The checker does not capture the full page or form entries.</p>
         <div class="dialog-actions"><button id="feedback-cancel" class="button secondary" type="button">Cancel</button><button class="button primary" type="submit">Save note</button></div>
       </form>
     </dialog>
