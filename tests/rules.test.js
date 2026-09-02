@@ -68,17 +68,43 @@ function has(report, ruleId) {
   assert.equal(has(report, "time-zone"), true);
   report = await scan(page, "<p>The meeting starts at 9 am NT.</p>");
   assert.equal(has(report, "province-abbreviation"), false);
+  report = await scan(page, "<p>The meeting starts at 4:00 pm PT.</p>");
+  assert.equal(has(report, "time-format"), true, "A whole-hour time must still be corrected when it is followed by PT");
+  assert.equal(report.issues.some(issue => issue.ruleId === "undefined-acronym" && issue.flaggedToken === "PT"), false, "PT after a clock time is a time zone, not an undefined acronym");
+  report = await scan(page, "<p>The meeting starts at 4 pm PT.</p>");
+  assert.equal(has(report, "time-format"), false, "A correctly formatted whole-hour time with PT must remain valid");
+  assert.equal(report.issues.some(issue => issue.ruleId === "undefined-acronym" && issue.flaggedToken === "PT"), false);
+  report = await scan(page, "<p>The PT program is changing.</p>");
+  assert.equal(report.issues.some(issue => issue.ruleId === "undefined-acronym" && issue.flaggedToken === "PT"), true, "PT outside a clock-time context must still be checked");
   report = await scan(page, "<p>People in NB can apply.</p>");
   assert.equal(has(report, "province-abbreviation"), true);
+  report = await scan(page, "<p>Mail the form to Victoria, BC V8W 9M8.</p>");
+  assert.equal(has(report, "bc-abbreviation"), false, "BC in a Canadian postal address must not be rewritten");
+  report = await scan(page, "<p>People in BC can apply.</p>");
+  assert.equal(has(report, "bc-abbreviation"), true, "BC outside a postal or approved-name context must still be checked");
 
   report = await scan(page, "<p>The fee is $0.75.</p>");
   assert.equal(has(report, "currency-cents"), true);
   report = await scan(page, "<p>The fee is $75.00.</p>");
   assert.equal(has(report, "currency-trailing-zeros"), true);
+  report = await scan(page, "<p>The fee is $1,000.00.</p>");
+  assert.equal(has(report, "currency-trailing-zeros"), true, "Comma-formatted monetary amounts must still be checked for unnecessary .00");
+  assert.equal(has(report, "currency-comma"), false);
+  report = await scan(page, "<p>The fee is $1,000.50.</p>");
+  assert.equal(has(report, "currency-trailing-zeros"), false, "A non-zero decimal amount must retain its precision");
   report = await scan(page, "<p>The grant is $15000.</p>");
   assert.equal(has(report, "currency-comma"), true);
+  assert.equal(has(report, "number-comma"), false, "A monetary amount must not also receive the ordinary-number finding");
   report = await scan(page, "<p>Funding ranges from $200-$400.</p>");
   assert.equal(has(report, "currency-range"), true);
+
+  report = await scan(page, "<p>The program received 15000 applications.</p>");
+  assert.equal(has(report, "number-comma"), true);
+  assert.equal(report.issues.find(issue => issue.ruleId === "number-comma").replacement, "15,000");
+  report = await scan(page, "<p>The year is 2026.</p>");
+  assert.equal(has(report, "number-comma"), false, "A 4-digit year must not be treated as an ordinary number");
+  report = await scan(page, "<p>Reference ID 15000</p>");
+  assert.equal(has(report, "number-comma"), false, "A labelled identifier must not receive thousands separators");
 
   report = await scan(page, "<p>The route is 100kms long.</p>");
   assert.equal(has(report, "metric-plural"), true);
@@ -116,8 +142,21 @@ function has(report, ruleId) {
 
   report = await scan(page, "<p>The event is on 2026-08-24.</p>");
   assert.equal(has(report, "numeric-date"), true);
+  report = await scan(page, "<p>The event was held on 2019/06/30.</p>");
+  assert.equal(has(report, "numeric-date"), true, "A year/month/day date with slashes must be written out in body content");
+  assert.equal(has(report, "number-comma"), false, "A numeric date must not also receive a thousands-separator finding");
   report = await scan(page, "<table><tr><th>Date</th></tr><tr><td>2026-08-24</td></tr></table>");
   assert.equal(has(report, "numeric-date"), false);
+  report = await scan(page, "<p>The event is on June 15, 201.</p>");
+  assert.equal(has(report, "incomplete-year"), true);
+  report = await scan(page, "<p>The event is on June 15, 2019.</p>");
+  assert.equal(has(report, "incomplete-year"), false, "A complete 4-digit year must remain valid");
+  report = await scan(page, "<p>The event is on January 18<sup>th</sup>, 2003.</p>");
+  assert.equal(has(report, "ordinal-date"), true, "A superscript date ordinal must still receive the date correction");
+  report = await scan(page, "<p>This is the 1<sup>st</sup> step.</p>");
+  assert.equal(has(report, "ordinal-word"), true, "A superscript ordinal under 10 must still be written as a word");
+  report = await scan(page, "<p>This is the 21<sup>st</sup> application.</p>");
+  assert.equal(has(report, "ordinal-superscript"), true, "Larger ordinal endings must not be superscripted");
   report = await scan(page, "<p>The meeting begins at 9am.</p>");
   assert.equal(has(report, "time-format"), true);
 
@@ -125,6 +164,8 @@ function has(report, ruleId) {
   assert.equal(has(report, "list-introduction"), true);
   report = await scan(page, "<p>Choose a service:</p><ul><li>Apply online</li><li>Call the office</li></ul>");
   assert.equal(has(report, "list-introduction"), false);
+  report = await scan(page, "<p>Learn about construction services</p><ul><li><a href='/construction'>Construction and rehabilitation contracting</a></li></ul>");
+  assert.equal(has(report, "list-introduction"), false, "A one-item list must not create a colon finding");
   report = await scan(page, `<p>Write content that is easy to understand by focusing on grammar, spelling and tone.</p>
     <div class="on-this-page-wrapper"><div data-component="heading"><h2>On this page</h2></div><div data-component="links"><ul>
       <li><a href="#grammar">Grammar</a></li><li><a href="#spelling">Spelling and word choice</a></li><li><a href="#tone">Tone</a></li>
@@ -141,6 +182,12 @@ function has(report, ruleId) {
   assert.equal(has(report, "list-multiple-sentences"), true, "An uppercase sentence after a corporate suffix must still be recognized when the item continues as prose");
   report = await scan(page, "<ul><li>Acme Inc. provides local services.</li></ul>");
   assert.equal(has(report, "list-multiple-sentences"), false, "A corporate suffix inside an ordinary sentence must not create a false boundary");
+  report = await scan(page, "<ul><li>1.3.1 Info and relationships – level A</li></ul>");
+  assert.equal(has(report, "list-multiple-sentences"), false, "A dotted version number must not create extra sentences");
+  report = await scan(page, "<ul><li>314 Cedar St.</li></ul>");
+  assert.equal(has(report, "list-punctuation"), false, "A street abbreviation must not be treated as removable list punctuation");
+  report = await scan(page, "<ul><li>Apply before Friday.</li></ul>");
+  assert.equal(has(report, "list-punctuation"), true, "Ordinary terminal sentence punctuation must still be reported");
 
   report = await scan(page, "<p>Therefore, applicants must provide documentation.</p>");
   assert.equal(has(report, "formal-sentence-starter"), true);
@@ -179,7 +226,7 @@ function has(report, ruleId) {
   assert.equal(overLimit.report.totals["passive-voice"], 501, "The report must preserve the detected total beyond the safety limit");
   assert.deepEqual(overLimit.report.findingLimits.truncatedRules.find(item => item.ruleId === "passive-voice"), {
     ruleId: "passive-voice",
-    title: "Rewrite the passive sentence",
+    title: "Check for passive voice",
     severity: "review",
     category: "Plain language",
     detected: 501,
@@ -204,10 +251,42 @@ function has(report, ruleId) {
   assert.match(report.issues.find(issue => issue.ruleId === "phone-link-format").evidence, /tel:18442275422/);
 
   report = await scan(page, '<p><a class="btn btn-primary" href="#destination">Search interactive map </a> <a href="#destination">Regular text link </a></p><h2 id="destination">Destination</h2>');
-  assert.equal(report.issues.filter(issue => issue.ruleId === "link-trailing-space").length, 1);
+  assert.equal(report.issues.filter(issue => issue.ruleId === "link-trailing-space").length, 0, "Collapsed source spaces must not be reported when they do not enlarge the visible link");
+  report = await scan(page, '<p><a href="#destination"><span>Regular text link&nbsp;</span></a></p><h2 id="destination">Destination</h2>');
+  assert.equal(report.issues.filter(issue => issue.ruleId === "link-trailing-space").length, 1, "A nested trailing non-breaking space that enlarges the link must be reported");
+
+  report = await scan(page, '<p>Contact <a>service.help@gov.bc.ca</a> for support.</p>');
+  assert.equal(report.issues.filter(issue => issue.ruleId === "email-link-missing").length, 1, "Email text inside an anchor without a destination must be reported");
+  report = await scan(page, '<p>Contact <a href="mailto:service.help@gov.bc.ca">service.help@gov.bc.ca</a> for support.</p>');
+  assert.equal(has(report, "email-link-missing"), false);
+
+  report = await scan(page, '<p style="text-align:justify">This paragraph is justified across the available line width.</p>');
+  assert.equal(has(report, "text-alignment"), true, "Justified body text must receive the left-alignment finding");
+  report = await scan(page, '<p style="text-align:justify">This CMS Lite paragraph is justified.</p>', { profile: "cms-lite" });
+  assert.equal(has(report, "text-alignment"), true, "Authored alignment must also be checked in CMS Lite content");
+
+  report = await scan(page, '<p>Apply&nbsp;online today.</p><p>Travel 30&nbsp;km before 4&nbsp;pm.</p>');
+  assert.equal(report.issues.filter(issue => issue.ruleId === "non-breaking-space").length, 1, "Only the contextually suspicious non-breaking space should be reviewed");
 
   report = await scan(page, '<p>• Plan ahead and prepare • Take only photos • Control your pets</p><p>- first you get the form<br>- then you fill it out<br>- then you send it in</p>');
   assert.equal(report.issues.filter(issue => issue.ruleId === "fake-list").length, 2);
+  report = await scan(page, '<p>a. the monthly strata fees payable by the owner<br>b. any amount the owner owes the strata corporation<br>c. any approved special levy due in the future</p>');
+  assert.equal(report.issues.filter(issue => issue.ruleId === "fake-list").length, 1, "Sequential lettered plain-text items must be recognized");
+  report = await scan(page, '<p>1. Submit the application<br>2. Pay the required fee<br>3. Keep the confirmation</p>');
+  assert.equal(report.issues.filter(issue => issue.ruleId === "fake-list").length, 1, "Sequential numbered plain-text items must be recognized");
+  report = await scan(page, '<p>1. Submit the application<br>3. Pay the required fee<br>5. Keep the confirmation</p>');
+  assert.equal(has(report, "fake-list"), false, "Non-sequential references must not be treated as a plain-text list");
+  report = await scan(page, '<p>Version 1.3.1 includes three corrections.</p>');
+  assert.equal(has(report, "fake-list"), false, "A dotted version number must not be treated as a numbered list");
+  report = await scan(page, '<ul><li>Documents may include:<br>- alteration agreements<br>- approved resolutions<br>- outstanding work orders</li></ul>');
+  assert.equal(report.issues.filter(issue => issue.ruleId === "fake-list").length, 1, "A typed sublist inside a semantic list item must be recognized");
+  report = await scan(page, '<ul><li>Documents may include:<ul><li>Alteration agreements</li><li>Approved resolutions</li><li>Outstanding work orders</li></ul></li></ul>');
+  assert.equal(has(report, "fake-list"), false, "A real semantic sublist must not be treated as a fake list");
+
+  report = await scan(page, '<ul><li>Ministry departments</li><li>Other public bodies</li></ul>');
+  assert.equal(report.issues.some(issue => issue.ruleId === "government-generic-term" && issue.flaggedToken === "Ministry departments"), false, "A generic government term may be capitalized at the start of a list item");
+  report = await scan(page, '<p>Contact the Ministry departments before applying.</p>');
+  assert.equal(report.issues.some(issue => issue.ruleId === "government-generic-term" && issue.flaggedToken === "Ministry departments"), true, "A mid-sentence generic government term must still be checked");
 
   report = await scan(page, '<img src="one.png" alt="image"><a href="/apply"><img src="two.png" alt="photo"></a>');
   assert.equal(report.issues.filter(issue => issue.ruleId === "image-alt-meaningless").length, 1);
@@ -367,8 +446,11 @@ function has(report, ruleId) {
   report = await scan(page, "<ul><li><a href='/old-handout.pdf' target='_blank'></a><a href='/current-form.pdf'>Notice of Complaint Form (PDF, 142KB)</a></li></ul>");
   assert.equal(report.issues.filter(issue => issue.ruleId === "empty-link").length, 1, "A different-destination invisible anchor is a real empty link");
   assert.match(report.issues.find(issue => issue.ruleId === "empty-link").evidence, /Invisible link points to:/);
-  assert.equal(report.issues.some(issue => ["file-link-label", "file-link-type", "file-link-size", "file-link-label-format", "file-link-size-spacing", "new-tab"].includes(issue.ruleId) && /old-handout/.test(issue.evidence)), false, "Empty links must suppress secondary link-text and file-label findings");
+  assert.equal(report.issues.some(issue => ["file-link-label", "file-link-type", "file-link-size", "file-link-label-format", "file-link-size-format", "file-link-size-spacing", "new-tab"].includes(issue.ruleId) && /old-handout/.test(issue.evidence)), false, "Empty links must suppress secondary link-text and file-label findings");
   assert.equal(report.assets.some(asset => /old-handout\.pdf/.test(asset.href)), true, "An empty document link should remain in the asset inventory");
+  report = await scan(page, "<p><a href='/guide.pdf'>Application guide (PDF, 1.MB)</a></p>");
+  assert.equal(has(report, "file-link-size-format"), true, "An incomplete decimal file size must receive the specific size-format finding");
+  assert.equal(has(report, "file-link-size"), false, "A malformed size must not be reported as missing");
   report = await scan(page, "<p><a href='#one'>One</a><a href='#two'>Two</a></p><h2 id='one'>One</h2><p>Text.</p><h2 id='two'>Two</h2><p>Text.</p>");
   assert.equal(has(report, "split-link"), false);
   report = await scan(page, "<p><a class='btn btn-primary' href='/apply'>Apply</a><a class='btn btn-primary' href='/apply'>Apply now</a></p>");

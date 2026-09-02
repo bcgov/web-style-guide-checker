@@ -33,6 +33,20 @@ const context = {
   closeCount: 0,
   persisted: 0,
   toast: "",
+  reviewHeadingScrollBlock: "",
+  findingFocusedWithoutScroll: false,
+  elements: {
+    "guided-review-panel": {
+      querySelector: selector => selector === ".finding-review-heading" ? {
+        scrollIntoView: options => { context.reviewHeadingScrollBlock = options.block; }
+      } : null
+    },
+    "guided-finding": {
+      querySelector: selector => selector === ".finding" ? {
+        focus: options => { context.findingFocusedWithoutScroll = options.preventScroll; }
+      } : null
+    }
+  },
   guidedFindings: () => context.queue.filter(finding => !context.state.skippedFingerprints.has(finding.fingerprint)),
   effectiveStatus() { return "open"; },
   findingAmount(finding) { return finding.occurrenceCount || 1; },
@@ -45,9 +59,10 @@ context.globalThis = context;
 
 const functions = [
   sourceBetween("function skipRemainingIssueType()", "function restoreSkippedIssueTypes()"),
-  sourceBetween("function restoreSkippedIssueTypes()", "function openRuleGroup(")
+  sourceBetween("function restoreSkippedIssueTypes()", "function openRuleGroup("),
+  sourceBetween("function resetGuidedFindingPosition()", "function renderGuidedReview(")
 ].join("\n");
-vm.runInNewContext(`${functions}\nthis.skipRemainingIssueType = skipRemainingIssueType; this.restoreSkippedIssueTypes = restoreSkippedIssueTypes;`, context);
+vm.runInNewContext(`${functions}\nthis.skipRemainingIssueType = skipRemainingIssueType; this.restoreSkippedIssueTypes = restoreSkippedIssueTypes; this.resetGuidedFindingPosition = resetGuidedFindingPosition;`, context);
 
 const finding = (fingerprint, ruleId) => ({ fingerprint, ruleId, occurrenceCount: 1 });
 context.queue = [finding("a-1", "a"), finding("b-1", "b"), finding("a-2", "a"), finding("c-1", "c")];
@@ -86,5 +101,9 @@ context.skipRemainingIssueType();
 assert.equal(context.closeCount, 1, "Skipping the final issue type must return to the findings list");
 assert.match(context.toast, /They remain open/);
 assert.deepEqual(context.state.decisions, {}, "The final skipped issue type must also remain open");
+
+context.resetGuidedFindingPosition();
+assert.equal(context.reviewHeadingScrollBlock, "start", "Each newly displayed finding must place the review heading beneath the sticky tabs");
+assert.equal(context.findingFocusedWithoutScroll, true, "Keyboard focus must move to the newly displayed finding without undoing the heading alignment");
 
 console.log("Review navigation tests passed");

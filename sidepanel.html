@@ -125,6 +125,8 @@
                 <button id="findings-review-tab" class="review-tab is-active" type="button" data-review-view="review" role="tab" aria-controls="list-review-panel guided-review-panel" aria-selected="true">Findings <span id="findings-tab-count"></span></button>
                 <button id="details-review-tab" class="review-tab" type="button" data-review-view="details" role="tab" aria-controls="page-details-panel" aria-selected="false" tabindex="-1">Page details</button>
               </div>
+            </div>
+            <div class="review-summary">
               <div id="list-controls" class="finding-controls">
                 <div id="counts" class="severity-filters" aria-label="Filter by review level"></div>
                 <button id="open-filter-button" class="button tertiary compact filter-button" type="button">Filter <span id="filter-count" class="filter-count"></span></button>
@@ -168,7 +170,6 @@
                 <button id="review-back-button" class="text-button back-button" type="button">← All findings</button>
                 <span id="guided-progress"></span>
               </div>
-              <label id="follow-page-control" class="follow-page-control"><input id="follow-page" type="checkbox" checked> Follow findings on page</label>
               <p id="workspace-review-note" class="workspace-review-note" hidden>This review is open in a separate tab. Use <strong>Show in source tab</strong> to return to the scanned page.</p>
               <div id="guided-finding"></div>
               <nav class="finding-navigation" aria-label="Finding navigation">
@@ -380,6 +381,7 @@
           <label class="check-row"><input id="current-export-reviewed" type="checkbox"> Include ignored and resolved findings</label>
         </div>
         <div id="current-export-status" class="export-status" role="status"></div>
+        <div id="current-export-confirmation" class="export-copy-confirmation" role="status" aria-live="polite" hidden></div>
         <div class="export-actions">
           <button id="check-links-and-download-current" class="button primary" type="button">Check links and download</button>
           <button id="download-current-workbook" class="button secondary" type="button">Download without checking</button>

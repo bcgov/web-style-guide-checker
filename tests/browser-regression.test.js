@@ -66,6 +66,9 @@ async function scan(page, html, options = {}) {
       <h2 id="tone">Tone</h2><p>Tone content.</p>
     </main>`, { profile: "cms-lite" });
   assert.equal(wrappedCmsToc.issues.some(issue => issue.ruleId === "list-introduction"), false);
+  assert.equal(wrappedCmsToc.issues.some(issue => issue.ruleId === "on-this-page-missing"), false);
+  assert.equal(wrappedCmsToc.issues.some(issue => issue.ruleId === "on-this-page-format"), false);
+  assert.equal(wrappedCmsToc.issues.some(issue => issue.ruleId === "on-this-page-links"), false);
 
   const authoredTocLabel = await scan(page, `
     <main><h1>Service information</h1><p>On this page:</p><ul>
@@ -114,9 +117,10 @@ async function scan(page, html, options = {}) {
   const whitespaceChecks = await scan(page, `
     <main><h1>Trail information</h1>
       <p><a href="/manual">Chapter 10 of the Recreation Manual </a></p>
+      <p><a href="/map"><span>Download the trail map&nbsp;</span></a></p>
       <p>Recreation Sites &amp;Trails BC manages this service.</p>
     </main>`);
-  assert.equal(whitespaceChecks.issues.some(issue => issue.ruleId === "link-trailing-space"), true);
+  assert.equal(whitespaceChecks.issues.filter(issue => issue.ruleId === "link-trailing-space").length, 1, "Only the visibly enlarged non-breaking-space link should be reported");
   assert.equal(whitespaceChecks.issues.some(issue => issue.ruleId === "missing-space-after-ampersand"), true);
   assert.equal(whitespaceChecks.issues.some(issue => issue.ruleId === "ampersand"), true);
 

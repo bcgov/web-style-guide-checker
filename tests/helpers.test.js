@@ -16,6 +16,7 @@ assert.equal(helpers.sentences("Contact the B.C. Wildfire Service for help. Chec
 assert.equal(helpers.sentences("Refund requests must be sent to FishandWildlife@gov.bc.ca, with the subject line Refund Request.").length, 1);
 assert.equal(helpers.sentences("Download the map (PDF, 5.17 MB).").length, 1);
 assert.equal(helpers.sentences("Read https://www2.gov.bc.ca/example. Apply online.").length, 2);
+assert.equal(helpers.sentences("1.3.1 Info and relationships – level A").length, 1);
 assert.equal(helpers.isLikelyTitleCase("Apply For Medical Insurance"), true);
 assert.equal(helpers.isLikelyTitleCase("Apply for medical insurance"), false);
 
@@ -25,6 +26,12 @@ assert.ok(helpers.readingGrade(simple) < helpers.readingGrade(complex));
 assert.equal(Number(helpers.contrastRatio([0, 0, 0, 1], [255, 255, 255, 1]).toFixed(1)), 21);
 assert.ok(helpers.contrastRatio([118.66, 118.66, 118.66, 1], [255, 255, 255, 1]) < 4.5, "Contrast thresholds must not be rounded up");
 assert.ok(Math.abs(helpers.luminance([10.2, 10.2, 10.2, 1]) - 0.0030959752) < 0.0000001, "Relative luminance must use the WCAG 2.2 sRGB breakpoint");
+assert.deepEqual(helpers.sequentialFakeListDetails("a. First item\nb. Second item\nc. Third item", "letters"), { marker: "sequential letters", count: 3 });
+assert.deepEqual(helpers.sequentialFakeListDetails("1. First item\n2. Second item\n3. Third item", "numbers"), { marker: "sequential numbers", count: 3 });
+assert.equal(helpers.sequentialFakeListDetails("1. First item\n3. Third item\n5. Fifth item", "numbers"), null);
+assert.equal(helpers.sequentialFakeListDetails("Version 1.3.1 includes three corrections.", "numbers"), null);
+assert.equal(helpers.listEndingNeedsRemoval("314 Cedar St."), false);
+assert.equal(helpers.listEndingNeedsRemoval("Apply before Friday."), true);
 
 const formalNameText = "Employees in the BC Public Service work across B.C.";
 const formalRanges = helpers.approvedTermRanges(formalNameText);
@@ -116,6 +123,7 @@ assert.equal(helpers.assetLabel("Application form (PDF, 23 KB)").replacement, "2
 assert.equal(helpers.assetLabel("Application form [PDF, 23KB]").valid, true);
 assert.equal(helpers.assetLabel("Application form [PDF, 271 KB]").status, "size-spacing");
 assert.deepEqual(helpers.assetLabel("Application form (PDF 159 KB)"), { valid: false, status: "label-format", type: "PDF", size: 159, unit: "KB", raw: "(PDF 159 KB)", sizeText: "159KB", replacement: "(PDF, 159KB)" });
+assert.deepEqual(helpers.assetLabel("Application form (PDF, 1.MB)"), { valid: false, status: "malformed-size", type: "PDF", size: null, unit: "MB", raw: "(PDF, 1.MB)", sizeText: "1.MB", replacement: "" });
 assert.equal(helpers.assetTypeFromUrl("https://example.com/files/form.docx?download=1"), "DOCX");
 assert.equal(helpers.endsStylePunctuation("Learn about B.C."), false);
 assert.equal(helpers.endsStylePunctuation("Services in N.T."), false);
@@ -154,6 +162,35 @@ assert.equal(helpers.isCommonRomanNumeral("XX"), true);
 assert.equal(helpers.isCommonRomanNumeral("MIX"), false);
 assert.equal(helpers.isPostalAcronymContext("STN", "PO Box 9363 STN PROV GOVT Victoria, B.C. V8W 9M8"), true);
 assert.equal(helpers.isPostalAcronymContext("STN", "The STN program is changing"), false);
+const seenEditorAcronyms = new Set();
+assert.equal(helpers.editorAcronymFindingIncluded({ ruleId: "undefined-acronym", flaggedToken: "ZXQ" }, [], seenEditorAcronyms), true);
+assert.equal(helpers.editorAcronymFindingIncluded({ ruleId: "undefined-acronym", flaggedToken: "ZXQ" }, [], seenEditorAcronyms), false, "Only the first undefined use across CMS Lite fields should remain");
+assert.equal(helpers.editorAcronymFindingIncluded({ ruleId: "undefined-acronym", flaggedToken: "FTA" }, ["Free Trade Agreement (FTA)"], new Set()), false, "A definition in an earlier CMS Lite field should suppress a later undefined-acronym finding");
+assert.equal(helpers.editorAcronymFindingIncluded({ ruleId: "time-format", flaggedToken: "PM" }, [], new Set()), true, "Non-acronym findings must pass through the CMS Lite aggregation helper");
+assert.equal(helpers.isBcPostalAddressContext("Victoria, BC V8W 9M8", "Victoria, BC V8W 9M8".indexOf("BC")), true);
+assert.equal(helpers.isBcPostalAddressContext("People in BC can apply", "People in BC can apply".indexOf("BC")), false);
+
+const ordinaryNumber = helpers.numberSeparatorOccurrences("The program received 15000 applications.");
+assert.equal(ordinaryNumber.length, 1);
+assert.deepEqual(ordinaryNumber[0], { text: "15000", index: 21, replacement: "15,000" });
+assert.equal(helpers.numberSeparatorOccurrences("The year is 2026.").length, 0);
+assert.equal(helpers.numberSeparatorOccurrences("The year was 1800.").length, 0);
+assert.equal(helpers.numberSeparatorOccurrences("The date was June 15, 1800.").length, 0);
+assert.equal(helpers.numberSeparatorOccurrences("Reference ID 15000").length, 0);
+assert.equal(helpers.numberSeparatorOccurrences("The grant is $15000.").length, 0);
+assert.equal(helpers.numberSeparatorOccurrences("The date is 2019/06/30.").length, 0);
+assert.equal(helpers.numberSeparatorOccurrences("Read https://example.gov/item/15000").length, 0);
+assert.equal(helpers.acronymContextExcluded("The meeting starts at 4:00 pm PT.", "The meeting starts at 4:00 pm PT.".indexOf("PT"), "PT"), true);
+assert.equal(helpers.acronymContextExcluded("The PT program is changing.", "The PT program is changing.".indexOf("PT"), "PT"), false);
+
+assert.equal(helpers.nonBreakingSpaceOccurrences("Apply\u00a0online today.").length, 1);
+assert.equal(helpers.nonBreakingSpaceOccurrences("Travel 30\u00a0km today.").length, 0, "A number and measurement unit may intentionally stay together");
+assert.equal(helpers.nonBreakingSpaceOccurrences("The file is 1\u00a0MB.").length, 0, "Specific file-size formatting rules should handle a number and unit");
+assert.equal(helpers.nonBreakingSpaceOccurrences("Attendance was 10\u00a0%.").length, 0, "A number and percent sign may intentionally stay together");
+assert.equal(helpers.nonBreakingSpaceOccurrences("The event is June\u00a015, 2026.").length, 0, "A month and day may intentionally stay together");
+assert.equal(helpers.nonBreakingSpaceOccurrences("Mail it to V8W\u00a09M8.").length, 0, "A Canadian postal code may intentionally stay together");
+assert.equal(helpers.nonBreakingSpaceOccurrences("Use B.C.\u00a0government guidance.").length, 0, "An abbreviation and following word may intentionally stay together");
+assert.equal(helpers.nonBreakingSpaceOccurrences("One\u00a0\u00a0two").length, 0, "Repeated spacing is handled by the double-space rule");
 
 const visibleDoubleSpace = helpers.doubleSpaceDetails("Information is safe.  For immediate help call 911.");
 assert.equal(visibleDoubleSpace.count, 2);

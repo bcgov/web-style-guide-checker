@@ -44,7 +44,7 @@ Select the extension icon to open the checker in the browser side panel.
 4. Select **Review issues** or choose an issue type.
 5. Review each finding and record decisions as needed.
 
-The extension follows the current finding on the webpage during side-panel review and keeps that highlight visible until you move to another finding or leave the review. Turn off **Follow findings on page** when you want the page to remain still.
+The extension follows the current finding on the webpage during side-panel review and keeps that highlight visible until you move to another finding or leave the review.
 
 Use **Open full-page review** for a wider workspace. The larger workspace also contains batch scans and settings.
 

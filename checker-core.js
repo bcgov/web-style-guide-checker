@@ -76,6 +76,7 @@
     "new-tab": ["Links", "review", "Confirm the link needs a new tab", "Links should open in the same tab by default. A new tab can make sense when preserving an in-progress task or secure session.", "Change the link setting so it opens in the same tab, unless a new tab helps someone keep an in-progress form or secure session open.", "links"],
     "news-release-link": ["Links", "review", "Check the news release link", "News release links can become stale and should generally be replaced after 30 days.", "Link to maintained, static content where possible and confirm this news release remains necessary.", "links"],
     "email-link-text": ["Links", "fix", "Use the email address as link text", "The guide says an email link should display the email address.", "Use the full email address as the linked text.", "links"],
+    "email-link-missing": ["Links", "fix", "Link the email address", "This email address is inside a link element that has no destination.", "Add a mailto link for the displayed address, or remove the empty link markup if the address should not be linked.", "links"],
     "phone-unlinked": ["Links", "fix", "Link the phone number", "Phone numbers should be clickable.", "Wrap the number in a tel link using international dialling format.", "links"],
     "phone-link-format": ["Links", "fix", "Fix the phone link", "Telephone links should use international dialling format.", "Use a value such as tel:+1-250-555-0123.", "links"],
     "file-link-label": ["Links", "fix", "Add the file type and size", "Document link text should tell people the file type and size before they open it.", "Add a label such as ‘(PDF, 504KB)’ to the linked text.", "links"],
@@ -83,7 +84,8 @@
     "file-link-size": ["Links", "fix", "Add the file size", "The link already includes a file type, but people also need to know the file size before opening the document.", "Add the file size after the type, such as ‘(PDF, 504KB)’.", "links"],
     "file-link-label-format": ["Links", "fix", "Fix the file type and size label", "A document label needs a comma after the file type and no space between the size and unit.", "Use the format ‘(PDF, 159KB)’ or the equivalent for this file.", "links"],
     "file-link-size-spacing": ["Links", "fix", "Remove the space in the file size", "File sizes use no space between the number and unit.", "Remove the space between the number and unit, such as changing ‘271 KB’ to ‘271KB’.", "links"],
-    "link-trailing-space": ["Links", "fix", "Remove the trailing space from the link", "A space at the end of linked text creates an unnecessarily large link area and can make editing less predictable.", "Remove the space at the end of the linked text.", "formatting"],
+    "file-link-size-format": ["Links", "check", "Fix the file size", "The document label contains a decimal point without a complete decimal value.", "Confirm the file size and use a complete value such as ‘1MB’ or ‘1.5MB’.", "links"],
+    "link-trailing-space": ["Links", "fix", "Remove the trailing space from the link", "A non-breaking space at the end of linked text visibly enlarges the clickable link area.", "Remove the non-breaking space from the end of the linked text.", "formatting"],
     "split-link": ["Links", "fix", "Merge the split link", "Text that should be one link has been split into multiple links. Screen readers announce each part as a separate link.", "Combine the linked text into one clear, descriptive link.", "links"],
     "adjacent-links": ["Links", "review", "Check the adjacent links", "Two links are directly beside each other with no clear separation. They may look like one link, even though they go to different places.", "If they should be one link, combine the linked text into a single link. If they should go to different places, make sure each link is clearly separate.", "links"],
     "file-link-type-mismatch": ["Links", "fix", "Correct the file type in the link text", "The file type in the link text does not match the asset returned by the server.", "Update the type in the linked text or correct the asset.", "links"],
@@ -100,14 +102,16 @@
     "list-introduction": ["Lists", "check", "Introduce the list with a colon", "The guide says to introduce a list with a colon.", "Add a colon when the preceding sentence introduces this list, or confirm that the paragraph and list are separate.", "lists"],
     "list-multiple-sentences": ["Lists", "check", "Shorten the list item", "List items are easiest to scan when they contain one sentence. A second sentence may be necessary in some cases.", "Keep one main idea in the item, or confirm that the additional sentence is necessary.", "lists"],
     "list-repetition": ["Lists", "review", "Remove repeated openings", "Repeated words at the start of several list items can delay the distinguishing information, especially for screen reader users.", "Move the unique information to the beginning when the repeated opening is substantial enough to affect scanning.", "lists"],
-    "fake-list": ["Accessibility", "check", "Use a formatted list", "Content that looks like a list should use semantic list markup so browsers and assistive technology can identify its structure.", "Format these items as a bulleted or numbered list instead of typing bullet or dash characters into a text block.", "lists"],
+    "fake-list": ["Accessibility", "check", "Use a formatted list", "Content that looks like a list should use semantic list markup so browsers and assistive technology can identify its structure.", "Use the editor’s bulleted or numbered list controls. If these are sub-items, nest them under the related list item.", "lists"],
     "table-headers": ["Tables", "fix", "Add table headers", "Tables need programmatic headers so people can understand the relationships in the data.", "Use th elements for row or column headings.", "tables"],
     "table-caption": ["Tables", "review", "Check the table has a useful caption", "A short caption can make the purpose of tabular data clearer.", "Add a concise caption when the surrounding heading does not already identify the table.", "tables"],
     "table-accordion": ["Tables", "fix", "Move the table out of the accordion", "The guide says never to use tables in accordions.", "Place the table in the main page content.", "formatting"],
     "month-abbreviation": ["Numbers and dates", "check", "Write out the month", "Month names should be written in full when space is available.", "Use the full month name in body content.", "numbers"],
     "numeric-date": ["Numbers and dates", "check", "Write out the date", "Numeric dates are reserved for space-limited forms and tables and should use YYYY-MM-DD.", "Use a format such as ‘August 13, 2026’ in body content.", "numbers"],
+    "incomplete-year": ["Numbers and dates", "check", "Complete the year", "This date appears to contain an incomplete year.", "Confirm the date and write the full 4-digit year.", "numbers"],
     "ordinal-date": ["Numbers and dates", "fix", "Remove the ordinal from the date", "Dates should not use ordinals.", "Write ‘January 18, 2003’, not ‘January 18th, 2003’.", "numbers"],
     "ordinal-word": ["Numbers and dates", "check", "Write out the ordinal", "Ordinal numbers under 10 are written as words in body content.", "Write ‘first’ to ‘ninth’ unless space is limited or the number appears in a chart, table or form.", "numbers"],
+    "ordinal-superscript": ["Numbers and dates", "fix", "Remove superscript from the ordinal", "Ordinal endings use the same baseline formatting as the number.", "Use ordinary text such as ‘21st’ instead of raising the ordinal ending.", "numbers"],
     "time-format": ["Numbers and dates", "check", "Fix the time format", "Whole hours should omit :00, and am and pm use lower case without periods.", "Use ‘9 am’ for a whole hour or ‘9:45 pm’ when minutes are needed.", "numbers"],
     "time-zone": ["Numbers and dates", "check", "Use the general time zone", "Do not use standard or daylight time in web content. Use a general zone name or abbreviation instead.", "Use wording such as ‘Pacific time’ or an abbreviation such as ‘PT’ after a clock time.", "numbers"],
     "noon-midnight": ["Numbers and dates", "fix", "Use ‘noon’ or ‘midnight’", "The guide says to write noon and midnight without the number 12.", "Remove ‘12’ from ‘12 noon’ or ‘12 midnight’.", "numbers"],
@@ -118,6 +122,7 @@
     "celsius-format": ["Numbers and dates", "fix", "Fix the Celsius format", "Temperatures use no space and a capital C: 18°C.", "Remove the space and use the °C symbol.", "numbers"],
     "percent-symbol": ["Numbers and dates", "check", "Spell out ‘percent’ in body text", "The % symbol is intended for financial charts, tables, equations and calculations.", "Use ‘percent’ in a sentence unless the content is a calculation or financial data.", "numbers"],
     "fraction-symbol": ["Numbers and dates", "check", "Write out the fraction", "Fractions without a whole number should usually be written in words.", "Use wording such as ‘half’, ‘a quarter’ or ‘two-thirds’.", "numbers"],
+    "number-comma": ["Numbers and dates", "fix", "Add commas to the number", "Use commas in numbers over 999.", "Add thousands separators, such as ‘15,000’.", "numbers"],
     "currency-cents": ["Numbers and dates", "fix", "Write the amount in cents", "Amounts under one dollar are written as cents rather than as a decimal dollar amount.", "Write the amount as cents, such as ‘75 cents’.", "numbers"],
     "currency-trailing-zeros": ["Numbers and dates", "check", "Remove unnecessary decimal zeros", "Only include decimals in a monetary amount when precision is required.", "Remove ‘.00’ unless the content needs that precision.", "numbers"],
     "currency-comma": ["Numbers and dates", "fix", "Add a comma to the monetary amount", "Use commas in monetary amounts over $999.", "Add the thousands separator, such as ‘$15,000’.", "numbers"],
@@ -133,7 +138,8 @@
     "wifi-format": ["Punctuation", "check", "Write ‘Wi-Fi’", "Use the familiar form ‘Wi-Fi’ in ordinary prose. A different form may be intentional in a network name or formal product name.", "Change the wording to ‘Wi-Fi’ unless this is an exact network, product or formal name.", "punctuation"],
     "apostrophe-plural": ["Punctuation", "review", "Check the apostrophe in the plural", "Apostrophes do not normally form plurals. They may instead show possession or omitted digits.", "Remove the apostrophe when this is a plural. Keep it when it correctly shows possession or omitted digits.", "punctuation"],
     "double-space": ["Formatting", "fix", "Remove the extra space", "Use one space after a sentence.", "Replace consecutive spaces with one space.", "formatting"],
-    "text-alignment": ["Formatting", "check", "Left-align the text", "Centred and right-aligned text is harder to read except in special cases such as table captions.", "Use left alignment for body content.", "formatting"],
+    "non-breaking-space": ["Formatting", "review", "Check the non-breaking space", "A non-breaking space prevents text from wrapping at this point and may have been inserted accidentally.", "Keep it only when the words or values need to stay together; otherwise replace it with a regular space.", "formatting"],
+    "text-alignment": ["Formatting", "check", "Left-align the text", "Centred, right-aligned and justified text is harder to read except in special cases such as table captions.", "Use left alignment for body content.", "formatting"],
     "bold-block": ["Formatting", "fix", "Remove unnecessary bold formatting", "Do not bold headings, links or large blocks of text.", "Use the correct heading style or reserve bold for short, selective emphasis.", "formatting"],
     "bold-link": ["Formatting", "fix", "Remove bold from the link", "The guide says hyperlinks should not be bolded.", "Remove bold formatting and let the link styling provide emphasis.", "formatting"],
     "all-caps": ["Formatting", "fix", "Use lowercase instead of all caps", "The Web Style Guide says not to use all caps unless the word is an abbreviation or acronym.", "Use lower case or sentence case while preserving established abbreviations, acronyms and official names.", "formatting"],
@@ -303,6 +309,13 @@
       || /\bSTN\s+PROV\s+GOVT\b/.test(text);
   }
 
+  function isBcPostalAddressContext(value, index, element) {
+    if (element && element.closest && element.closest("address")) return true;
+    const text = String(value || "");
+    const after = text.slice(index + 2);
+    return /^[\s,]*(?:Canada\s*)?[ABCEGHJ-NPRSTVXY]\d[ABCEGHJ-NPRSTVWXYZ][ -]?\d[ABCEGHJ-NPRSTVWXYZ]\d\b/i.test(after);
+  }
+
   const MANUAL_CHECKS = [
     ["Purpose and audience", "Is it obvious who the page is for, why they need it and what task they can complete?", SOURCES.plain[1]],
     ["Information order", "Does the page start with its purpose and the most important information?", SOURCES.plain[1]],
@@ -380,7 +393,7 @@
         const address = trailing ? match.slice(0, -trailing.length) : match;
         return protectPeriods(address) + trailing;
       })
-      .replace(/\b\d+\.\d+(?=\D|$)/g, protectPeriods)
+      .replace(/\b\d+(?:\.\d+)+(?=\D|$)/g, protectPeriods)
       .replace(/\b(?:Mr|Mrs|Ms|Dr|St|Mt|No)\./g, match => match.replace(".", placeholder))
       .replace(/\b(?:Inc|Ltd|Corp)\./g, (suffix, offset, source) => {
         const after = source.slice(offset + suffix.length);
@@ -651,6 +664,35 @@
 
   function formattedCurrency(value) {
     return Number(value).toLocaleString("en-CA", { maximumFractionDigits: 0, useGrouping: true });
+  }
+
+  function numberSeparatorOccurrences(value, element) {
+    const text = String(value || "");
+    if (element && element.closest && element.closest("code,pre,address")) return [];
+    const results = [];
+    const expression = /\b\d{4,}\b/g;
+    let match;
+    while ((match = expression.exec(text))) {
+      const before = text.slice(0, match.index);
+      const after = text.slice(match.index + match[0].length);
+      const number = Number(match[0]);
+      if (indexInsideUrl(text, match.index)) continue;
+      const likelyYear = match[0].length === 4 && (
+        (number >= 1900 && number <= 2099)
+        || /\b(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},\s*$/i.test(before)
+        || /\b(?:calendar year|fiscal year|year|copyright|since|until)\s*(?:is|was|of|©)?\s*$/i.test(before)
+        || /^\s*(?:calendar year|fiscal year)\b/i.test(after)
+      );
+      if (likelyYear) continue;
+      if (/(?:US)?\$\s*$/i.test(before)) continue;
+      if (/[\d./-]\s*$/.test(before) || /^\s*[./-]\d/.test(after)) continue;
+      if (/\b(?:version|build|release)\s*$/i.test(before)) continue;
+      if (/\b(?:account|application|asset|case|confirmation|customer|employee|file|invoice|licen[cs]e|model|order|permit|personal|policy|record|reference|registration|serial|ticket|transaction|user)?\s*(?:ID|identifier|number|no\.?|PIN|ISBN)\s*[:#-]?\s*$/i.test(before)) continue;
+      if (/\b(?:call|fax|phone|telephone|tel|TTY)\s*[:#-]?\s*$/i.test(before)) continue;
+      if (/\b(?:PO|P\.O\.)\s+Box\s+$/i.test(before)) continue;
+      results.push({ text: match[0], index: match.index, replacement: formattedCurrency(match[0]) });
+    }
+    return results;
   }
 
   function excerpt(value, maximum) {
@@ -1254,6 +1296,7 @@
 
   function listEndingNeedsRemoval(value) {
     const text = normalizeSpace(value);
+    if (/\b(?:St|Rd|Ave|Blvd|Dr|Mt|No)\.$/i.test(text)) return false;
     return /[,;!]$/.test(text) || (endsStylePunctuation(text) && /\.$/.test(text));
   }
 
@@ -1336,6 +1379,15 @@
     return acronymDefinedInText(prefix.slice(-600), acronym);
   }
 
+  function editorAcronymFindingIncluded(finding, earlierEditorTexts, seenAcronyms) {
+    if (!finding || finding.ruleId !== "undefined-acronym") return true;
+    const token = String(finding.flaggedToken || finding.matchText || "");
+    const base = acronymBase(token);
+    if (!base || seenAcronyms.has(base)) return false;
+    seenAcronyms.add(base);
+    return !(earlierEditorTexts || []).some(text => acronymDefinedInText(text, token));
+  }
+
   function doubleSpaceOccurrences(value) {
     const text = String(value || "");
     const lines = text.split(/\r?\n/);
@@ -1362,6 +1414,47 @@
 
   function doubleSpaceDetails(value) {
     return doubleSpaceOccurrences(value)[0] || null;
+  }
+
+  function nonBreakingSpaceOccurrences(value) {
+    const text = String(value || "");
+    const occurrences = [];
+    const emailRanges = [];
+    const emailExpression = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi;
+    let email;
+    while ((email = emailExpression.exec(text))) emailRanges.push({ start: email.index, end: email.index + email[0].length });
+    const expression = /[\u00a0\u2007\u202f]/g;
+    let match;
+    while ((match = expression.exec(text))) {
+      const index = match.index;
+      const previous = text[index - 1] || "";
+      const next = text[index + 1] || "";
+      if (!previous || !next || /\s/.test(previous) || /\s/.test(next)) continue;
+      if (indexInsideUrl(text, index) || emailRanges.some(range => index >= range.start && index < range.end)) continue;
+      const before = text.slice(Math.max(0, index - 50), index);
+      const after = text.slice(index + 1, index + 51);
+      const expectedNoBreak = (
+        /\d$/i.test(before) && /^(?:%|°[CF](?:\b|$)|(?:km|kms|kg|kgs|mL|mLs|L|Ls|mm|mms|cm|cms|m|h|hs|t|ts|KB|MB|GB|PT|MT|CT|ET|AT|NT)\b|(?:a\.?m\.?|p\.?m\.?)(?:\b|$))/i.test(after)
+      ) || (
+        /\b(?:January|February|March|April|May|June|July|August|September|October|November|December)$/i.test(before) && /^\d{1,2}\b/.test(after)
+      ) || (
+        /\b\d{1,2},$/i.test(before) && /^\d{4}\b/.test(after)
+      ) || (
+        /\b[A-Z]\d[A-Z]$/i.test(before) && /^\d[A-Z]\d\b/i.test(after)
+      ) || (
+        /(?:\b[A-Z]\.|\b(?:B\.C\.|N\.B\.|N\.L\.|N\.S\.|N\.T\.|P\.E\.I\.|Dr\.|Mr\.|Mrs\.|Ms\.))$/i.test(before) && /^[A-Za-zÀ-ÖØ-öø-ÿ]/.test(after)
+      ) || (
+        /[$€£]$/i.test(before) && /^\d/.test(after)
+      );
+      if (expectedNoBreak) continue;
+      const left = normalizeSpace(text.slice(Math.max(0, index - 70), index));
+      const right = normalizeSpace(text.slice(index + 1, index + 71));
+      occurrences.push({
+        index,
+        evidence: `${left} ⟦non-breaking space⟧ ${right}`.trim()
+      });
+    }
+    return occurrences;
   }
 
   function anchorIdForHeading(heading) {
@@ -1528,6 +1621,19 @@
         replacement: `${full[2]}${full[4]}`
       };
     }
+    const malformedSize = text.match(/([\[(])(PDF|DOCX?|XLSX?|CSV|PPTX?|RTF|TXT|ODT|ODS|ODP|ZIP),\s*(\d+)\.(\s*)(KB|MB|GB)([\])])/i);
+    if (malformedSize) {
+      return {
+        valid: false,
+        status: "malformed-size",
+        type: malformedSize[2].toUpperCase(),
+        size: null,
+        unit: malformedSize[5].toUpperCase(),
+        raw: malformedSize[0],
+        sizeText: `${malformedSize[3]}.${malformedSize[4]}${malformedSize[5]}`,
+        replacement: ""
+      };
+    }
     const malformed = text.match(/([\[(])(PDF|DOCX?|XLSX?|CSV|PPTX?|RTF|TXT|ODT|ODS|ODP|ZIP)\s+(\d+(?:\.\d{1,2})?)\s*(KB|MB|GB)([\])])/i);
     if (malformed) {
       return {
@@ -1587,14 +1693,57 @@
     return Array.from(element.childNodes || []).map(walk).join("");
   }
 
-  function fakeListDetails(element) {
-    if (!element || element.closest("ul,ol,pre,code")) return null;
+  function sequentialFakeListDetails(text, type) {
+    const expression = type === "letters"
+      ? /(^|\s)([a-z])\.\s+(?=\S)/gi
+      : /(^|\s)(\d{1,3})\.\s+(?=\S)/g;
+    const matches = Array.from(String(text || "").matchAll(expression));
+    if (matches.length < 3) return null;
+
+    for (let start = 0; start <= matches.length - 3; start += 1) {
+      const run = [matches[start]];
+      for (let index = start + 1; index < matches.length; index += 1) {
+        const previous = run[run.length - 1][2];
+        const current = matches[index][2];
+        const sequential = type === "letters"
+          ? current.toLowerCase().charCodeAt(0) === previous.toLowerCase().charCodeAt(0) + 1
+          : Number(current) === Number(previous) + 1;
+        if (!sequential) break;
+        run.push(matches[index]);
+      }
+      if (run.length < 3) continue;
+
+      const completeItems = run.every((match, index) => {
+        const contentStart = match.index + match[0].length;
+        const next = run[index + 1];
+        const contentEnd = next ? next.index : String(text || "").length;
+        return words(String(text || "").slice(contentStart, contentEnd)).length >= 1;
+      });
+      if (completeItems) {
+        return {
+          marker: type === "letters" ? "sequential letters" : "sequential numbers",
+          count: run.length
+        };
+      }
+    }
+    return null;
+  }
+
+  function fakeListDetails(element, options) {
+    const allowInsideListItem = Boolean(options && options.allowInsideListItem);
+    if (!element || element.closest("pre,code")) return null;
+    if (!allowInsideListItem && element.closest("ul,ol")) return null;
+    if (allowInsideListItem && (element.tagName !== "LI" || element.querySelector(":scope > ul,:scope > ol"))) return null;
     const text = textWithBreaks(element);
     const bulletMatches = text.split(/[•●▪◦‣]/).slice(1)
       .map(item => normalizeSpace(item)).filter(item => words(item).length >= 2);
     if (bulletMatches.length >= 3) return { marker: "bullet characters", count: bulletMatches.length, evidence: excerpt(text, 180) };
     const hyphenLines = text.split(/\r?\n/).map(line => normalizeSpace(line)).filter(line => /^[-–—]\s+\S/.test(line));
     if (hyphenLines.length >= 3) return { marker: "typed dashes", count: hyphenLines.length, evidence: excerpt(text, 180) };
+    const lettered = sequentialFakeListDetails(text, "letters");
+    if (lettered) return { ...lettered, evidence: excerpt(text, 180) };
+    const numbered = sequentialFakeListDetails(text, "numbers");
+    if (numbered) return { ...numbered, evidence: excerpt(text, 180) };
     return null;
   }
 
@@ -1615,6 +1764,7 @@
     while ((email = emailExpression.exec(text))) if (index >= email.index && index < email.index + email[0].length) return true;
     const before = text.slice(0, index);
     if ((upper === "AM" || upper === "PM") && /\b\d{1,2}(?::\d{2})?\s*$/.test(before)) return true;
+    if (upper === "PT" && /\b\d{1,2}(?::\d{2})?\s*(?:am|pm)\s*$/i.test(before)) return true;
     if (new Set(["NOTE", "ALERT", "IMPORTANT", "CAUTION", "WARNING", "SUCCESS", "DANGER"]).has(upper) && /^\s*:/.test(text.slice(index + token.length))) return true;
     const left = text.slice(0, index).match(/([A-Z]{2,})-$/);
     const right = text.slice(index + token.length).match(/^-([A-Z]{2,})/);
@@ -1870,7 +2020,6 @@
     function responsibilityFor(ruleId, rule) {
       if (ruleId === "meta-description") return "CMS setting";
       if (profile === "cms-lite" && ruleId === "phone-link-format") return "CMS setting";
-      if (profile === "cms-lite" && ruleId === "text-alignment") return "Template/code";
       if (TEMPLATE_RULES.has(ruleId) || (ruleId.startsWith("contrast") && !canControlColour)) return "Template/code";
       if (rule[1] === "review") return "Editorial review";
       return "Content";
@@ -2238,6 +2387,7 @@
       let bcMatch;
       while ((bcMatch = bcExpression.exec(value))) {
         if (isInsideRange(bcMatch.index, approvedRanges)) continue;
+        if (isBcPostalAddressContext(value, bcMatch.index, parent)) continue;
         const proposal = proposeExactPhrase(value, bcMatch.index, bcMatch[0]);
         add("bc-abbreviation", parent, value, null, {
           flaggedToken: bcMatch[0],
@@ -2304,8 +2454,8 @@
       }
 
       const genericGovernmentPatterns = [
-        /\b(?:[Tt]he|[Aa])\s+(Cabinet|B\.C\. Legislature|Provincial Parliament|Ministry)\b/g,
         /\b(Ministry [Dd]epartments?)\b/g,
+        /\b(?:[Tt]he|[Aa])\s+(Cabinet|B\.C\. Legislature|Provincial Parliament|Ministry)\b/g,
         /\b(?:[Aa]\s+)?(Speech from the [Tt]hrone|Throne [Ss]peech)\b/g
       ];
       genericGovernmentPatterns.forEach(expression => {
@@ -2314,6 +2464,7 @@
           const term = match[1];
           if (/^Ministry$/.test(term) && /^\s+of\s+[A-ZÀ-ÖØ-Þ]/.test(value.slice(match.index + match[0].length))) continue;
           const termIndex = match.index + match[0].indexOf(term);
+          if (/^[A-ZÀ-ÖØ-Þ]/.test(term) && isSentenceInitial(value, termIndex)) continue;
           add("government-generic-term", parent, value, null, {
             flaggedToken: term,
             matchText: term,
@@ -2426,6 +2577,11 @@
         matchIndex: doubleSpace.index,
         diagnostics: ["Browsers normally collapse consecutive spaces on screen; this marker reports the spacing in the published source."]
       }));
+      if (!parent.closest("code,pre")) nonBreakingSpaceOccurrences(value).forEach(space => add("non-breaking-space", parent, space.evidence, null, {
+        matchText: "⟦non-breaking space⟧",
+        matchIndex: space.evidence.indexOf("⟦non-breaking space⟧"),
+        diagnostics: ["This marker represents a single non-breaking space in the published source."]
+      }));
       const slashExpression = /\b(?:and\s*\/\s*or|he\s*\/\s*she|she\s*\/\s*he|his\s*\/\s*her|her\s*\/\s*his|he\s*\/\s*him|she\s*\/\s*her|s\s*\/\s*he)\b/gi;
       let slashMatch;
       while ((slashMatch = slashExpression.exec(value))) {
@@ -2475,7 +2631,15 @@
       const ambiguousNumericDate = /\b(?:0?[1-9]|1[0-2])[\/.-](?:0?[1-9]|[12]\d|3[01])[\/.-](?:\d{2}|\d{4})\b/.test(value)
         || /\b(?:1[3-9]|2\d|3[01])[\/.-](?:0?[1-9]|1[0-2])[\/.-](?:\d{2}|\d{4})\b/.test(value);
       const isoDate = /\b\d{4}-\d{2}-\d{2}\b/.test(value);
-      if ((ambiguousNumericDate || isoDate) && !parent.closest("table,form")) add("numeric-date", parent, value);
+      const yearFirstNumericDate = /\b\d{4}[/.](?:0?[1-9]|1[0-2])[/.](?:0?[1-9]|[12]\d|3[01])\b/.test(value);
+      if ((ambiguousNumericDate || isoDate || yearFirstNumericDate) && !parent.closest("table,form")) add("numeric-date", parent, value);
+      const incompleteYear = /\b(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},\s*(\d{3})(?!\d)\b/i.exec(value);
+      if (incompleteYear) {
+        const yearIndex = incompleteYear.index + incompleteYear[0].lastIndexOf(incompleteYear[1]);
+        add("incomplete-year", parent, value, null, {
+          matchText: incompleteYear[1], matchIndex: yearIndex, contextText: value
+        });
+      }
       if (/\b(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2}(?:st|nd|rd|th)\b/i.test(value)) add("ordinal-date", parent, value);
       const ordinalWord = /\b[1-9](?:st|nd|rd|th)\b/i.exec(value);
       const ordinalIsDate = ordinalWord && /(?:January|February|March|April|May|June|July|August|September|October|November|December)\s*$/i.test(value.slice(Math.max(0, ordinalWord.index - 14), ordinalWord.index));
@@ -2502,11 +2666,19 @@
       if (/\b\d+(?:\.\d+)?%/.test(value) && !parent.closest("table,figure")) add("percent-symbol", parent, value);
       if (/[¼½¾⅓⅔⅛⅜⅝⅞]/.test(value)) add("fraction-symbol", parent, value);
 
+      numberSeparatorOccurrences(value, parent).forEach(numberOccurrence => {
+        add("number-comma", parent, value, null, {
+          matchText: numberOccurrence.text,
+          replacement: numberOccurrence.replacement,
+          matchIndex: numberOccurrence.index
+        });
+      });
+
       const cents = /\$(0\.\d{2})\b/.exec(value);
       if (cents) add("currency-cents", parent, value, null, {
         matchText: `$${cents[1]}`, replacement: `${Math.round(Number(cents[1]) * 100)} cents`, matchIndex: cents.index
       });
-      const trailingZeros = /(?:US)?\$([1-9]\d*)\.00\b/.exec(value);
+      const trailingZeros = /(?:US)?\$(?:[1-9]\d*|[1-9]\d{0,2}(?:,\d{3})+)\.00\b/.exec(value);
       if (trailingZeros) add("currency-trailing-zeros", parent, value, null, {
         matchText: trailingZeros[0], replacement: trailingZeros[0].replace(/\.00$/, ""), matchIndex: trailingZeros.index
       });
@@ -2522,6 +2694,47 @@
       const apostrophePlural = /\b(?:\d{3,4}|[A-Z]{2,6})['’]s\b/.exec(value);
       if (apostrophePlural) add("apostrophe-plural", parent, value, null, {
         matchText: apostrophePlural[0], matchIndex: apostrophePlural.index
+      });
+    });
+
+    Array.from(root.querySelectorAll("sup")).filter(inScanArea).forEach(element => {
+      const ownText = normalizeSpace(element.textContent);
+      let number = "";
+      let suffix = "";
+      let before = "";
+      if (/^\d+(?:st|nd|rd|th)$/i.test(ownText)) {
+        const ordinalMatch = /^(\d+)(st|nd|rd|th)$/i.exec(ownText);
+        number = ordinalMatch[1];
+        suffix = ordinalMatch[2];
+      } else if (/^(?:st|nd|rd|th)$/i.test(ownText)) {
+        try {
+          const range = doc.createRange();
+          range.selectNodeContents(element.parentElement);
+          range.setEndBefore(element);
+          before = range.toString();
+        } catch (_) { before = ""; }
+        const precedingNumber = before.match(/\b(\d+)$/);
+        if (precedingNumber) {
+          number = precedingNumber[1];
+          suffix = ownText;
+        }
+      }
+      if (!number || !suffix) return;
+      const ordinal = `${number}${suffix}`;
+      const contextBefore = before || "";
+      const dateContext = /(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d+$/i.test(contextBefore);
+      if (dateContext) add("ordinal-date", element, `${contextBefore.slice(-70)}${ordinal}${element.nextSibling && element.nextSibling.nodeType === 3 ? element.nextSibling.nodeValue.slice(0, 70) : ""}`, null, {
+        matchText: ordinal,
+        matchIndex: Math.max(0, contextBefore.slice(-70).length)
+      });
+      else if (Number(number) < 10 && !element.closest("table,form")) add("ordinal-word", element, ordinal, null, {
+        matchText: ordinal,
+        matchIndex: 0
+      });
+      else add("ordinal-superscript", element, ordinal, null, {
+        matchText: ordinal,
+        matchIndex: 0,
+        diagnostics: ["The ordinal ending is formatted as superscript."]
       });
     });
 
@@ -2569,10 +2782,28 @@
     });
 
     const links = Array.from(root.querySelectorAll("a[href]")).filter(inScanArea);
+    Array.from(root.querySelectorAll("a:not([href])")).filter(inScanArea).forEach(anchor => {
+      const text = accessibleName(anchor);
+      const email = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i.exec(text);
+      if (email) add("email-link-missing", anchor, text, null, {
+        flaggedToken: email[0],
+        matchText: email[0],
+        matchIndex: email.index
+      });
+    });
     const splitLinkMembers = new Set();
     const adjacentLinkMembers = new Set();
     const exactResolvedLink = link => {
       try { return new URL(link.getAttribute("href") || "", pageUrl).href; } catch (_) { return link.getAttribute("href") || ""; }
+    };
+    const lastDescendantTextNode = node => {
+      if (!node) return null;
+      if (node.nodeType === 3) return node;
+      for (let index = (node.childNodes || []).length - 1; index >= 0; index -= 1) {
+        const textNode = lastDescendantTextNode(node.childNodes[index]);
+        if (textNode) return textNode;
+      }
+      return null;
     };
     const linkTextContainer = link => link.closest("h1,h2,h3,h4,h5,h6,p,li,dd,dt,figcaption,blockquote,td,th");
     const splitLinkEligible = link => Boolean(link && !isButtonStyleLink(link) && !link.querySelector("img") && !link.closest("nav,[role='navigation']") && linkTextContainer(link));
@@ -2665,7 +2896,7 @@
       const linkText = accessibleName(link);
       const href = link.getAttribute("href") || "";
       const absoluteHref = link.href || href;
-      const finalTextNode = link.lastChild && link.lastChild.nodeType === 3 ? link.lastChild : null;
+      const finalTextNode = lastDescendantTextNode(link);
       const standaloneEmptyLink = !splitLinkMembers.has(link) && !linkText && !link.querySelector("img");
       if (
         !standaloneEmptyLink
@@ -2673,11 +2904,11 @@
         && !adjacentLinkMembers.has(link)
         && !isButtonStyleLink(link)
         && finalTextNode
-        && /[\t \u00a0\u2007\u202f]+$/.test(finalTextNode.nodeValue || "")
+        && /[\u00a0\u2007\u202f]+$/.test(finalTextNode.nodeValue || "")
       ) {
         add("link-trailing-space", link, `${linkText} ⟦trailing space⟧`, null, {
           matchText: "⟦trailing space⟧",
-          diagnostics: ["The extra space is inside the link and may not be visible on the published page."]
+          diagnostics: ["A non-breaking space is inside the link and visibly enlarges its clickable area."]
         });
       }
       if (standaloneEmptyLink) {
@@ -2727,6 +2958,12 @@
             matchText: label.raw,
             replacement: label.replacement,
             matchIndex: Math.max(0, (linkText || "").indexOf(label.raw))
+          });
+          else if (label.status === "malformed-size") add("file-link-size-format", link, linkText || href, null, {
+            flaggedToken: label.sizeText,
+            matchText: label.sizeText,
+            matchIndex: Math.max(0, (linkText || "").indexOf(label.sizeText)),
+            diagnostics: ["The checker cannot infer whether the intended value is a whole number or a decimal amount."]
           });
           else if (label.status === "missing-type") add("file-link-type", link, linkText || href, expectedType ? `Add the file type so the label reads “(${expectedType}, ${label.size}${label.unit})”.` : null, {
             flaggedToken: label.raw,
@@ -2795,12 +3032,16 @@
       const precedingParagraph = precedingBlock && precedingBlock.tagName === "P" ? precedingBlock : null;
       const precedingText = precedingParagraph ? normalizeSpace(precedingParagraph.textContent) : "";
       const onThisPageList = isOnThisPageList(list, onThisPagePattern, root, inScanArea);
-      if (englishLanguage && !navigationalList && !onThisPageList && precedingParagraph && precedingText && !/:$/.test(precedingText)) {
+      if (englishLanguage && !navigationalList && !onThisPageList && items.length >= 2 && precedingParagraph && precedingText && !/:$/.test(precedingText)) {
         add("list-introduction", precedingParagraph, precedingText);
       }
       items.forEach(item => {
         const ownText = normalizeSpace(Array.from(item.childNodes).filter(node => node.nodeType === 3 || !/^(UL|OL)$/.test(node.tagName || "")).map(node => node.textContent).join(" "));
         if (!englishLanguage || navigationalList) return;
+        const fakeSublist = fakeListDetails(item, { allowInsideListItem: true });
+        if (fakeSublist) add("fake-list", item, `${fakeSublist.count} sub-items made with ${fakeSublist.marker}: ${fakeSublist.evidence}`, null, {
+          diagnostics: ["The content looks like a nested list on screen but is not marked up as a semantic sublist."]
+        });
         if (listEndingNeedsRemoval(ownText)) add("list-punctuation", item, ownText, null,
           /;$/.test(ownText) ? { diagnostics: ["The final semicolon is also unnecessary sentence punctuation."] } : null);
         if (/^[a-zà-öø-ÿ]/.test(ownText)) add("list-lowercase", item, ownText);
@@ -2865,15 +3106,13 @@
     });
 
     const aligned = new Set();
-    if (scope === "whole" || profile !== "cms-lite") {
-      Array.from(root.querySelectorAll("p,li,h1,h2,h3,h4,blockquote")).filter(inScanArea).forEach(element => {
-        const alignment = doc.defaultView.getComputedStyle(element).textAlign;
-        if ((alignment === "center" || alignment === "right") && !element.closest("th,td,caption")) {
-          const key = alignment + ":" + normalizeSpace(element.textContent).slice(0, 30);
-          if (!aligned.has(key)) { aligned.add(key); add("text-alignment", element, alignment + " aligned: " + element.textContent); }
-        }
-      });
-    }
+    Array.from(root.querySelectorAll("p,li,h1,h2,h3,h4,blockquote")).filter(inScanArea).forEach(element => {
+      const alignment = doc.defaultView.getComputedStyle(element).textAlign;
+      if ((alignment === "center" || alignment === "right" || alignment === "justify") && !element.closest("th,td,caption")) {
+        const key = alignment + ":" + normalizeSpace(element.textContent).slice(0, 30);
+        if (!aligned.has(key)) { aligned.add(key); add("text-alignment", element, alignment + " aligned: " + element.textContent); }
+      }
+    });
 
     Array.from(root.querySelectorAll("img")).filter(inScanArea).filter(image => !isCmsLiteTemplateImage(image, profile)).forEach(image => {
       const imageLink = image.closest("a");
@@ -3084,19 +3323,24 @@
       listEndingNeedsRemoval,
       acronymDefinedInText,
       acronymDefinedAcrossParts,
+      editorAcronymFindingIncluded,
       acronymBase,
       exactTokenIndex,
       isWellKnownAcronym,
       isCommonRomanNumeral,
       isPostalAcronymContext,
+      isBcPostalAddressContext,
+      numberSeparatorOccurrences,
       doubleSpaceDetails,
       doubleSpaceOccurrences,
+      nonBreakingSpaceOccurrences,
       anchorTextScore,
       contrastRatio,
       luminance,
       isLikelyTitleCase,
       isValidTelHref,
       isMeaninglessAlt,
+      sequentialFakeListDetails,
       fakeListDetails,
       readabilityBlockText,
       acronymContextExcluded,

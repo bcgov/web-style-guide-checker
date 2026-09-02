@@ -255,9 +255,9 @@ function cacheElements() {
     "filter-panel", "filter-count", "active-filters", "clear-filters", "open-filter-button", "filter-close",
     "list-controls", "list-review-panel", "guided-review-panel", "page-details-panel", "findings", "manual-checks",
     "findings-tab-count", "review-issues-button", "review-skip-summary", "review-skip-message", "restore-skipped-rules", "finding-coverage", "view-reviewed-button", "reviewed-count", "link-check-shortcut", "link-check-shortcut-status", "review-back-button",
-    "guided-progress", "guided-finding", "guided-previous", "guided-next", "follow-page-control", "follow-page", "workspace-review-note", "page-details", "manual-review",
+    "guided-progress", "guided-finding", "guided-previous", "guided-next", "workspace-review-note", "page-details", "manual-review",
     "previous-issue-type", "next-issue-type", "current-issue-type",
-    "current-export-preset", "current-export-preset-description", "current-export-custom", "current-export-reviewed", "current-export-status",
+    "current-export-preset", "current-export-preset-description", "current-export-custom", "current-export-reviewed", "current-export-status", "current-export-confirmation",
     "current-custom-summary", "current-custom-issues", "current-custom-findings", "current-custom-page-details", "current-custom-links", "current-custom-metadata",
     "check-links-and-download-current", "download-current-workbook", "download-current-action-csv", "copy-detailed-findings",
     "batch-csv-button", "batch-urls", "batch-validation", "batch-scope", "batch-colour-control", "batch-check-links", "batch-link-access-options", "batch-link-access-found", "batch-link-access-all", "batch-include-reviewed", "batch-export-preset", "batch-export-description", "batch-export-custom",
@@ -1142,7 +1142,6 @@ async function syncActiveTab() {
     if (elements["category-filter"]) elements["category-filter"].value = "all";
     if (elements["sort-order"]) elements["sort-order"].value = "type";
     if (elements["important-filter"]) elements["important-filter"].checked = false;
-    if (elements["follow-page"]) elements["follow-page"].checked = true;
     state.activePageKey = nextPageKey;
   }
   state.activeTab = tab;
@@ -1236,6 +1235,7 @@ async function injectScanner(tabId, options) {
         };
       }
 
+      const editorTextByReport = new WeakMap();
       const frameReports = editorFrames
         .map((frame, index) => {
           const frameDocument = frame.contentDocument;
@@ -1275,6 +1275,7 @@ async function injectScanner(tabId, options) {
 
           report.editorRegion = index + 1;
           report.editorSource = editorSource;
+          editorTextByReport.set(report, text);
 
           return report;
         })
@@ -1303,8 +1304,7 @@ async function injectScanner(tabId, options) {
         "h1-count",
         "on-this-page-missing",
         "on-this-page-links",
-        "broken-anchor",
-        "undefined-acronym"
+        "broken-anchor"
       ]);
 
       const pageOrderOffsets = new Map();
@@ -1353,8 +1353,11 @@ async function injectScanner(tabId, options) {
         ) + value;
       };
 
-      const candidateIssues = frameReports.flatMap(report =>
-        report.issues
+      const checkerHelpers = globalThis.BCWebStyleGuideChecker.helpers;
+      const earlierEditorTexts = [];
+      const seenEditorAcronyms = new Set();
+      const candidateIssues = frameReports.flatMap(report => {
+        const included = report.issues
           .filter(finding => {
             if (
               editorExcludedRules.has(
@@ -1371,6 +1374,14 @@ async function injectScanner(tabId, options) {
                 "Rich Text Editor,"
               )
             ) {
+              return false;
+            }
+
+            if (!checkerHelpers.editorAcronymFindingIncluded(
+              finding,
+              earlierEditorTexts,
+              seenEditorAcronyms
+            )) {
               return false;
             }
 
@@ -1396,8 +1407,10 @@ async function injectScanner(tabId, options) {
                 report.editorSource,
                 finding.location
               )
-          }))
-      );
+          }));
+        earlierEditorTexts.push(editorTextByReport.get(report) || "");
+        return included;
+      });
 
       const perRuleFindingLimit = Number(
         frameReports[0].findingLimits?.perRule
@@ -3321,7 +3334,6 @@ function captureReviewContext() {
     category: elements["category-filter"].value,
     sortOrder: elements["sort-order"].value,
     important: elements["important-filter"].checked,
-    followPage: elements["follow-page"].checked,
     collapsed: Array.from(state.collapsedFindingGroups),
     skippedRuleIds: Array.from(state.skippedRuleIds),
     skippedFingerprints: Array.from(state.skippedFingerprints),
@@ -3354,7 +3366,6 @@ function restoreReviewContext(pageKey) {
   elements["category-filter"].value = saved.category || "all";
   elements["sort-order"].value = saved.sortOrder === "page" ? "page" : "type";
   elements["important-filter"].checked = Boolean(saved.important);
-  elements["follow-page"].checked = saved.followPage !== false;
   state.collapsedFindingGroups = new Set(saved.collapsed || []);
   state.skippedRuleIds = new Set(saved.skippedRuleIds || []);
   state.skippedFingerprints = new Set(saved.skippedFingerprints || []);
@@ -3412,7 +3423,6 @@ async function scanCurrentPage(suppliedOptions) {
     state.reviewView = preserved ? preserved.reviewView : "review";
     state.reviewMode = preserved ? preserved.reviewMode : "list";
     elements["important-filter"].checked = preserved ? preserved.important : false;
-    elements["follow-page"].checked = preserved ? preserved.followPage !== false : true;
     state.collapsedFindingGroups = new Set(preserved ? preserved.collapsed : []);
     state.skippedRuleIds = new Set();
     state.skippedFingerprints = new Set();
@@ -3828,40 +3838,14 @@ function renderedEvidence(finding) {
   return `<p class="evidence" style="overflow-wrap:anywhere; min-width:0;">${highlightedEvidence(finding)}</p>`;
 }
 
-function contrastGroupContext(finding) {
-  const contrast = finding && finding.contrast;
-  if (!contrast || !contrast.signature || !state.activeReport) return null;
-  const items = (state.activeReport.issues || [])
-    .filter(item => item.contrast && item.contrast.signature === contrast.signature)
-    .slice()
-    .sort((first, second) => (first.pageOrder || 0) - (second.pageOrder || 0));
-  const index = items.findIndex(item => item.fingerprint === finding.fingerprint);
-  return {
-    current: index >= 0 ? index + 1 : 1,
-    total: items.reduce((total, item) => total + findingOccurrences(item), 0),
-    sections: Array.from(new Set(items.map(item => item.location || "Page")))
-  };
-}
-
 function renderedContrastDetails(finding) {
   const contrast = finding && finding.contrast;
   if (!contrast) return "";
-  const group = contrastGroupContext(finding);
   const measurement = contrast.status === "confirmed"
     ? `<strong>${escapeHtml(Number(contrast.ratio).toFixed(2))}:1</strong> measured · ${escapeHtml(Number(contrast.required).toFixed(1))}:1 minimum`
     : `<strong>Manual verification needed</strong>${contrast.reason ? ` · ${escapeHtml(contrast.reason)}` : ""}`;
-  const size = Number.isFinite(Number(contrast.fontSize))
-    ? `${escapeHtml(String(contrast.fontSize))} px, weight ${escapeHtml(String(contrast.fontWeight))}${contrast.largeText ? " · large text" : " · normal text"}`
-    : "";
-  const groupText = group
-    ? `Occurrence ${group.current} of ${group.total} in this contrast group · ${group.sections.length} ${group.sections.length === 1 ? "section" : "sections"}`
-    : "";
   return `<div class="contrast-details">
     <div>${measurement}</div>
-    <div>${escapeHtml(contrast.foreground || "Unknown foreground")} on ${escapeHtml(contrast.background || "unknown background")}</div>
-    ${size ? `<div>${size}</div>` : ""}
-    <div>State: ${escapeHtml(contrast.displayState || "current rendered state")}</div>
-    ${groupText ? `<div class="contrast-group-position">${escapeHtml(groupText)}</div>` : ""}
   </div>`;
 }
 
@@ -4018,6 +4002,13 @@ function guidedFindings() {
   return state.detailQueue.map(fingerprint => byFingerprint.get(fingerprint)).filter(Boolean);
 }
 
+function resetGuidedFindingPosition() {
+  const reviewHeading = elements["guided-review-panel"].querySelector(".finding-review-heading");
+  if (reviewHeading) reviewHeading.scrollIntoView({ block: "start" });
+  const finding = elements["guided-finding"].querySelector(".finding");
+  if (finding) finding.focus({ preventScroll: true });
+}
+
 function renderGuidedReview(locate) {
   const items = guidedFindings();
   if (!items.length) {
@@ -4055,7 +4046,8 @@ function renderGuidedReview(locate) {
   elements["next-issue-type"].setAttribute("aria-hidden", "false");
   elements["next-issue-type"].tabIndex = 0;
   elements["next-issue-type"].textContent = "Skip remaining findings of this type";
-  if (locate && !workspaceSurface && elements["follow-page"].checked && finding.selector) {
+  if (locate) requestAnimationFrame(resetGuidedFindingPosition);
+  if (locate && !workspaceSurface && finding.selector) {
     highlightSelector(
       findingSelectors(finding),
       true,
@@ -6300,8 +6292,21 @@ function downloadWorkbook(sheets, filename) {
 
 async function copyCurrentDetailedFindings() {
   if (!state.activeReport) return;
-  await navigator.clipboard.writeText(detailedFindingsText(state.activeReport, elements["current-export-reviewed"].checked));
-  showToast("Detailed findings copied.");
+  const confirmation = elements["current-export-confirmation"];
+  try {
+    await navigator.clipboard.writeText(detailedFindingsText(state.activeReport, elements["current-export-reviewed"].checked));
+    confirmation.textContent = "Detailed findings copied.";
+    confirmation.hidden = false;
+    elements["copy-detailed-findings"].textContent = "Copied";
+  } catch (_) {
+    confirmation.textContent = "The findings could not be copied. Try again.";
+    confirmation.hidden = false;
+  }
+  clearTimeout(copyCurrentDetailedFindings.timeout);
+  copyCurrentDetailedFindings.timeout = setTimeout(() => {
+    confirmation.hidden = true;
+    updateCurrentExportDialog();
+  }, 2400);
 }
 
 const BATCH_METADATA_HEADER = [
@@ -6561,6 +6566,8 @@ async function checkLinksAndDownloadCurrentWorkbook() {
 }
 
 function openCurrentExportDialog() {
+  clearTimeout(copyCurrentDetailedFindings.timeout);
+  elements["current-export-confirmation"].hidden = true;
   updateCurrentExportDialog();
   elements["export-dialog"].showModal();
 }
@@ -7641,20 +7648,6 @@ function bindEvents() {
   elements["guided-next"].addEventListener("click", () => moveGuided(1));
   elements["next-issue-type"].addEventListener("click", () => jumpIssueType(1));
   elements["previous-issue-type"].addEventListener("click", () => jumpIssueType(-1));
-  elements["follow-page"].addEventListener("change", () => {
-    if (elements["follow-page"].checked && state.reviewMode === "detail") {
-      const finding = guidedFindings()[state.guidedIndex];
-      if (finding && finding.selector) highlightSelector(
-        findingSelectors(finding),
-        true,
-        false,
-        finding.editorSource || null,
-        Number(finding.editorRegion) || null
-      );
-    } else if (!elements["follow-page"].checked) clearFindingHighlight();
-    persistReviewContext(state.activePageKey).catch(() => { });
-  });
-
   const handlePageAuditClick = event => {
     const button = event.target.closest("button");
     if (!button) return;
@@ -7787,7 +7780,6 @@ async function init() {
   }
   if (workspaceSurface) {
     elements["open-workspace-button"].hidden = true;
-    elements["follow-page-control"].hidden = true;
     elements["workspace-review-note"].hidden = false;
   }
   bindEvents();
