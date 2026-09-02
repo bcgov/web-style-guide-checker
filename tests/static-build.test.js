@@ -9,7 +9,7 @@ const read = name => fs.readFileSync(path.join(root, name), "utf8");
 
 const manifest = JSON.parse(read("manifest.json"));
 assert.equal(manifest.manifest_version, 3);
-assert.equal(manifest.version, "1.3.0");
+assert.equal(manifest.version, "1.3.1");
 assert.ok(manifest.optional_host_permissions.includes("http://*/*"));
 assert.ok(manifest.optional_host_permissions.includes("https://*/*"));
 

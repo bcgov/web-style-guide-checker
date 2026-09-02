@@ -27,6 +27,20 @@
     </nav>
 
     <main>
+      <section id="preview-lifecycle-banner" class="preview-lifecycle-banner" hidden tabindex="-1" role="status" aria-live="polite">
+        <div class="preview-lifecycle-copy">
+          <p class="eyebrow">Preview</p>
+          <strong id="preview-lifecycle-title">Preview status</strong>
+          <p id="preview-lifecycle-message"></p>
+          <span id="preview-lifecycle-version" class="preview-lifecycle-version"></span>
+        </div>
+        <div class="preview-lifecycle-actions">
+          <a id="preview-download-link" class="button primary compact" href="#" target="_blank" rel="noopener noreferrer" hidden>Get latest preview</a>
+          <button id="preview-continue-button" class="button secondary compact" type="button" hidden>Continue for now</button>
+          <button id="preview-check-again-button" class="text-button" type="button" hidden>Check again</button>
+        </div>
+      </section>
+
       <section id="current-view" class="app-view" role="tabpanel" aria-labelledby="current-mode-tab">
         <section id="scan-settings" class="scan-card" aria-labelledby="scope-heading">
           <div class="scan-intro">
@@ -488,6 +502,7 @@
 
     <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
+    <script src="preview-lifecycle.js"></script>
     <script src="checker-core.js"></script>
     <script src="sidepanel.js"></script>
   </body>

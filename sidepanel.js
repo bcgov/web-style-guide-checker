@@ -97,11 +97,155 @@ const state = {
 
 const elements = {};
 
+let previewLifecycleState = null;
+let previewNoticeDismissed = false;
+
+function previewLifecycleApi() {
+  return globalThis.BCWebStyleGuidePreviewLifecycle || null;
+}
+
+function previewLifecycleBlocksUse() {
+  return Boolean(previewLifecycleState && previewLifecycleState.blocksUse);
+}
+
+function lifecycleDisplayContent(result) {
+  const installed = result && result.installedVersion
+    ? result.installedVersion
+    : chrome.runtime.getManifest().version;
+  const latest = result && result.latestVersion ? result.latestVersion : installed;
+  const customMessage = result && result.message ? result.message : "";
+
+  const content = {
+    current: {
+      title: "Preview is current",
+      message: "",
+      warning: false
+    },
+    "update-available": {
+      title: `New preview available: v${latest}`,
+      message: customMessage || `You’re using v${installed}. You can continue testing this version.`,
+      warning: false
+    },
+    "update-recommended": {
+      title: "Please update the preview",
+      message: customMessage || `You’re using v${installed}. Several changes have been made since this version was released.`,
+      warning: true
+    },
+    "update-required": {
+      title: "This preview is no longer supported",
+      message: customMessage || `Significant changes have been made since v${installed}. Get the latest preview to continue testing.`,
+      warning: false
+    },
+    "version-blocked": {
+      title: "This preview version has been retired",
+      message: customMessage || `Version ${installed} should no longer be used for testing. Get the latest preview to continue.`,
+      warning: false
+    },
+    "pilot-ended": {
+      title: "This preview has ended",
+      message: customMessage || "This testing preview is no longer active.",
+      warning: false
+    },
+    "build-expired": {
+      title: "This preview has expired",
+      message: customMessage || `This preview build expired on ${result && result.builtInExpiry ? result.builtInExpiry : "its configured expiry date"}. Get a current preview before continuing.`,
+      warning: false
+    }
+  };
+
+  return content[result && result.kind] || content.current;
+}
+
+function setLifecycleBlockedButton(button, blocked) {
+  if (!button) return;
+  if (blocked) {
+    button.dataset.previewLifecycleBlocked = "true";
+    button.disabled = true;
+  } else if (button.dataset.previewLifecycleBlocked === "true") {
+    delete button.dataset.previewLifecycleBlocked;
+    button.disabled = false;
+  }
+}
+
+function renderPreviewLifecycle(result) {
+  previewLifecycleState = result;
+  const banner = elements["preview-lifecycle-banner"];
+  if (!banner) return;
+
+  const content = lifecycleDisplayContent(result);
+  const blocked = Boolean(result && result.blocksUse);
+  const current = !result || result.kind === "current";
+
+  [
+    "scan-button",
+    "batch-start-button",
+    "check-links-and-download-current",
+    "batch-link-access-button"
+  ].forEach(id => setLifecycleBlockedButton(elements[id], blocked));
+
+  if (current || (previewNoticeDismissed && !blocked)) {
+    banner.hidden = true;
+    return;
+  }
+
+  banner.hidden = false;
+  banner.classList.toggle("warning", Boolean(content.warning));
+  banner.classList.toggle("blocked", blocked);
+  banner.setAttribute("role", blocked ? "alert" : "status");
+  banner.setAttribute("aria-live", blocked ? "assertive" : "polite");
+
+  elements["preview-lifecycle-title"].textContent = content.title;
+  elements["preview-lifecycle-message"].textContent = content.message;
+
+  const installed = result.installedVersion || chrome.runtime.getManifest().version;
+  const latest = result.latestVersion || installed;
+  elements["preview-lifecycle-version"].textContent =
+    latest && latest !== installed
+      ? `Preview v${installed} · Latest v${latest}`
+      : `Preview v${installed}`;
+
+  const downloadLink = elements["preview-download-link"];
+  downloadLink.hidden = !result.downloadUrl;
+  if (result.downloadUrl) downloadLink.href = result.downloadUrl;
+
+  elements["preview-continue-button"].hidden = result.kind !== "update-recommended";
+  elements["preview-check-again-button"].hidden = !blocked;
+}
+
+async function refreshPreviewLifecycle({ forceRemote = false, focusIfBlocked = false } = {}) {
+  const api = previewLifecycleApi();
+  if (!api) return { kind: "current", blocksUse: false };
+
+  const previousKind = previewLifecycleState && previewLifecycleState.kind;
+  const result = await api.check({ forceRemote });
+  if (result.kind !== previousKind) previewNoticeDismissed = false;
+  renderPreviewLifecycle(result);
+
+  if (focusIfBlocked && result.blocksUse && elements["preview-lifecycle-banner"]) {
+    elements["preview-lifecycle-banner"].hidden = false;
+    elements["preview-lifecycle-banner"].scrollIntoView({ behavior: "smooth", block: "start" });
+    elements["preview-lifecycle-banner"].focus({ preventScroll: true });
+  }
+
+  return result;
+}
+
+async function ensurePreviewCanRun() {
+  const result = await refreshPreviewLifecycle({
+    forceRemote: false,
+    focusIfBlocked: true
+  });
+  if (!result.blocksUse) return true;
+  showToast("Get the latest preview to continue.");
+  return false;
+}
+
 function $(id) { return document.getElementById(id); }
 
 function cacheElements() {
   [
     "active-page-label", "return-review-button", "feedback-header-button", "feedback-header-count", "profile-badge", "colour-control-row", "colour-control", "scope-note", "scan-button", "scan-permission-button", "cache-note",
+    "preview-lifecycle-banner", "preview-lifecycle-title", "preview-lifecycle-message", "preview-lifecycle-version", "preview-download-link", "preview-continue-button", "preview-check-again-button",
     "scan-settings", "cancel-settings-button", "scan-context-title", "scan-context-details", "stale-report-banner", "stale-report-title", "stale-report-message", "stale-rescan-button",
     "cms-lite-settings", "cms-whole-scan", "standard-scope-settings", "choose-section-button", "clear-section-button", "section-scope-label",
     "current-loading", "current-error", "current-error-message", "current-results", "csv-button",
@@ -916,7 +1060,7 @@ async function syncActiveTab() {
       elements["active-page-label"].textContent = tab ? (tab.title || tab.url || "Current page") : "No reviewed page";
       elements["active-page-label"].title = tab ? (tab.url || "") : "";
       if (tab) applySettings(defaultSettings(tab.url || ""));
-      elements["scan-button"].disabled = !tab || !isScannableUrl(tab.url || "");
+      elements["scan-button"].disabled = previewLifecycleBlocksUse() || !tab || !isScannableUrl(tab.url || "");
       elements["scan-settings"].hidden = false;
       showCurrentState("idle");
     }
@@ -984,7 +1128,7 @@ async function syncActiveTab() {
     elements["cache-note"].textContent = "";
     elements["stale-report-banner"].hidden = true;
   }
-  elements["scan-button"].disabled = !isScannableUrl(tab.url || "");
+  elements["scan-button"].disabled = previewLifecycleBlocksUse() || !isScannableUrl(tab.url || "");
 }
 
 async function injectScanner(tabId, options) {
@@ -2841,6 +2985,7 @@ function addHttpLinkFindings(report, results) {
 }
 
 async function checkHttpLinks(options = {}) {
+  if (!await ensurePreviewCanRun()) return null;
   const report = state.activeReport;
   if (!report || !report.pageDetails || state.linkCheckRunning) return null;
   const links = remoteLinksForReport(report);
@@ -3061,6 +3206,7 @@ function restoreReviewScroll(pageKey) {
 }
 
 async function scanCurrentPage(suppliedOptions) {
+  if (!await ensurePreviewCanRun()) return;
   const options = suppliedOptions && suppliedOptions.preserveReview ? suppliedOptions : {};
   const preserved = options.preserveReview ? captureReviewContext() : null;
   showCurrentState("loading");
@@ -6090,6 +6236,7 @@ async function checkLinksAndDownloadCurrentWorkbook() {
     downloadCurrentWorkbook();
     return;
   }
+  if (!await ensurePreviewCanRun()) return;
   elements["check-links-and-download-current"].disabled = true;
   elements["check-links-and-download-current"].textContent = "Checking links…";
   await checkHttpLinks({ quiet: true });
@@ -6667,7 +6814,7 @@ function updateBatchControls() {
   const waitingForLinkAccess = batch.phase === "link-permission";
   const resumable = batchHasIncompletePageScan();
   const lockSetup = running || waitingForLinkAccess || resumable;
-  elements["batch-start-button"].disabled = running || waitingForLinkAccess;
+  elements["batch-start-button"].disabled = previewLifecycleBlocksUse() || running || waitingForLinkAccess;
   elements["batch-start-button"].textContent = resumable ? `Resume batch scan · ${batch.records.length} of ${batch.urls.length}` : "Start batch scan";
   elements["batch-pause-button"].hidden = !running;
   elements["batch-cancel-button"].hidden = !running && !resumable;
@@ -6746,6 +6893,7 @@ async function requestAllWebsiteAccessForBatch() {
 }
 
 async function continueBatchPageScan() {
+  if (!await ensurePreviewCanRun()) return;
   const batch = state.batch;
   batch.running = true;
   batch.paused = false;
@@ -6756,6 +6904,13 @@ async function continueBatchPageScan() {
 
   for (let index = batch.records.length; index < batch.urls.length; index += 1) {
     if (batch.cancelled) break;
+    if (!await ensurePreviewCanRun()) {
+      batch.running = false;
+      batch.phase = "paused";
+      await persistBatchState().catch(() => {});
+      renderBatchProgress();
+      return;
+    }
     await waitForResume();
     if (batch.cancelled) break;
     batch.currentIndex = index;
@@ -6804,6 +6959,7 @@ async function continueBatchPageScan() {
 }
 
 async function startBatchScan() {
+  if (!await ensurePreviewCanRun()) return;
   elements["batch-error"].hidden = true;
 
   if (batchHasIncompletePageScan()) {
@@ -6906,6 +7062,7 @@ async function cancelBatch() {
 }
 
 async function requestBatchLinkAccessAndFinish() {
+  if (!await ensurePreviewCanRun()) return;
   elements["batch-error"].hidden = true;
   try {
     const result = await prepareBatchLinkCheck({ requestPermissions: true });
@@ -7044,6 +7201,28 @@ function bindEvents() {
   elements["choose-section-button"].addEventListener("click", openSectionDialog);
   elements["clear-section-button"].addEventListener("click", clearSelectedSection);
   elements["scan-button"].addEventListener("click", scanCurrentPage);
+  elements["preview-continue-button"].addEventListener("click", () => {
+    previewNoticeDismissed = true;
+    if (previewLifecycleState && !previewLifecycleState.blocksUse) {
+      elements["preview-lifecycle-banner"].hidden = true;
+    }
+  });
+  elements["preview-check-again-button"].addEventListener("click", async () => {
+    elements["preview-check-again-button"].disabled = true;
+    try {
+      const result = await refreshPreviewLifecycle({
+        forceRemote: true,
+        focusIfBlocked: true
+      });
+      if (!result.blocksUse) {
+        await syncActiveTab();
+        updateBatchControls();
+        renderPreviewLifecycle(result);
+      }
+    } finally {
+      elements["preview-check-again-button"].disabled = false;
+    }
+  });
   elements["scan-permission-button"].addEventListener("click", openPermissionDialog);
   elements["rescan-button"].addEventListener("click", () => { elements["more-dialog"].close(); showRescanSettings(); });
   elements["stale-rescan-button"].addEventListener("click", showRescanSettings);
@@ -7290,6 +7469,7 @@ async function init() {
   if (state.batch.records.length || state.batch.urls.length) renderBatchProgress();
   else updateBatchControls();
   await syncActiveTab();
+  await refreshPreviewLifecycle({ forceRemote: true });
   const requestedView = surfaceParams.get("view");
   if (workspaceSurface && ["current", "batch", "terms"].includes(requestedView)) switchView(requestedView);
 }
