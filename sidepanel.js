@@ -60,6 +60,8 @@ const state = {
   linkCheckCancelled: false,
   linkCheckWaiters: [],
   collapsedFindingGroups: new Set(),
+  skippedRuleIds: new Set(),
+  skippedFingerprints: new Set(),
   lastReviewTabId: null,
   lastReviewPageKey: "",
   batch: {
@@ -252,7 +254,7 @@ function cacheElements() {
     "counts", "rescan-button", "status-filter", "severity-filter", "category-filter", "sort-order", "important-filter", "showing-count",
     "filter-panel", "filter-count", "active-filters", "clear-filters", "open-filter-button", "filter-close",
     "list-controls", "list-review-panel", "guided-review-panel", "page-details-panel", "findings", "manual-checks",
-    "findings-tab-count", "review-issues-button", "view-reviewed-button", "reviewed-count", "link-check-shortcut", "link-check-shortcut-status", "review-back-button",
+    "findings-tab-count", "review-issues-button", "review-skip-summary", "review-skip-message", "restore-skipped-rules", "finding-coverage", "view-reviewed-button", "reviewed-count", "link-check-shortcut", "link-check-shortcut-status", "review-back-button",
     "guided-progress", "guided-finding", "guided-previous", "guided-next", "follow-page-control", "follow-page", "workspace-review-note", "page-details", "manual-review",
     "previous-issue-type", "next-issue-type", "current-issue-type",
     "current-export-preset", "current-export-preset-description", "current-export-custom", "current-export-reviewed", "current-export-status",
@@ -925,6 +927,45 @@ function openIssues(report) {
   return (report.issues || []).filter(finding => effectiveStatus(finding) === "open");
 }
 
+function truncatedFindingRules(report) {
+  return Array.isArray(report && report.findingLimits && report.findingLimits.truncatedRules)
+    ? report.findingLimits.truncatedRules
+    : [];
+}
+
+function omittedFindingCount(report) {
+  return truncatedFindingRules(report).reduce((total, item) => total + (Number(item.omitted) || 0), 0);
+}
+
+function omittedOpenCount(item) {
+  return Number.isFinite(Number(item && item.omittedOpen)) ? Number(item.omittedOpen) : (Number(item && item.omitted) || 0);
+}
+
+function omittedFindingCountForExport(report, includeReviewed) {
+  return truncatedFindingRules(report).reduce((total, item) => total + (includeReviewed ? (Number(item.omitted) || 0) : omittedOpenCount(item)), 0);
+}
+
+function findingCoverageText(report) {
+  const truncated = truncatedFindingRules(report);
+  if (!truncated.length) return "All detected findings are available for review.";
+  const limit = Number(report.findingLimits && report.findingLimits.perRule) || 500;
+  const details = truncated.map(item => `${item.title || item.ruleId}: ${Number(item.detected) || 0} detected, ${Number(item.retained) || 0} available`).join("; ");
+  return `Safety limit reached (${limit} per issue type). ${details}.`;
+}
+
+function truncatedRulesMatchingCurrentFilters(report) {
+  const status = elements["status-filter"].value;
+  const severity = elements["severity-filter"].value;
+  const category = elements["category-filter"].value;
+  if (!["open", "all"].includes(status) || elements["important-filter"].checked) return [];
+  return truncatedFindingRules(report)
+    .filter(item => omittedOpenCount(item) && (severity === "all" || item.severity === severity) && (category === "all" || item.category === category));
+}
+
+function omittedFindingsMatchingCurrentFilters(report) {
+  return truncatedRulesMatchingCurrentFilters(report).reduce((total, item) => total + omittedOpenCount(item), 0);
+}
+
 function reportCounts(report) {
   const counts = { fix: 0, check: 0, review: 0, ignored: 0, resolved: 0 };
   (report.issues || []).forEach(finding => {
@@ -932,6 +973,10 @@ function reportCounts(report) {
     const amount = finding.occurrenceCount || 1;
     if (status === "open") counts[finding.severity] += amount;
     else counts[status] += amount;
+  });
+  truncatedFindingRules(report).forEach(item => {
+    const severity = ["fix", "check", "review"].includes(item.severity) ? item.severity : "review";
+    counts[severity] += omittedOpenCount(item);
   });
   return counts;
 }
@@ -1090,6 +1135,8 @@ async function syncActiveTab() {
     state.reviewView = "review";
     state.reviewMode = "list";
     state.collapsedFindingGroups.clear();
+    state.skippedRuleIds.clear();
+    state.skippedFingerprints.clear();
     if (elements["status-filter"]) elements["status-filter"].value = "open";
     if (elements["severity-filter"]) elements["severity-filter"].value = "all";
     if (elements["category-filter"]) elements["category-filter"].value = "all";
@@ -1306,7 +1353,7 @@ async function injectScanner(tabId, options) {
         ) + value;
       };
 
-      const issues = frameReports.flatMap(report =>
+      const candidateIssues = frameReports.flatMap(report =>
         report.issues
           .filter(finding => {
             if (
@@ -1351,6 +1398,111 @@ async function injectScanner(tabId, options) {
               )
           }))
       );
+
+      const perRuleFindingLimit = Number(
+        frameReports[0].findingLimits?.perRule
+      ) || 500;
+      const detectedByRule = new Map();
+      const detectedOpenByRule = new Map();
+      const ruleDetails = new Map();
+
+      candidateIssues.forEach(issue => {
+        const amount = Math.max(
+          1,
+          Number(issue.occurrenceCount) || 1
+        );
+        detectedByRule.set(
+          issue.ruleId,
+          (detectedByRule.get(issue.ruleId) || 0) + amount
+        );
+        if (issue.automaticStatus === "open") {
+          detectedOpenByRule.set(
+            issue.ruleId,
+            (detectedOpenByRule.get(issue.ruleId) || 0) + amount
+          );
+        }
+        if (!ruleDetails.has(issue.ruleId)) {
+          ruleDetails.set(issue.ruleId, {
+            title: issue.title,
+            severity: issue.severity,
+            category: issue.category
+          });
+        }
+      });
+
+      frameReports.forEach(report => {
+        (report.findingLimits?.truncatedRules || [])
+          .filter(item => !editorExcludedRules.has(item.ruleId))
+          .forEach(item => {
+            detectedByRule.set(
+              item.ruleId,
+              (detectedByRule.get(item.ruleId) || 0) +
+                (Number(item.omitted) || 0)
+            );
+            detectedOpenByRule.set(
+              item.ruleId,
+              (detectedOpenByRule.get(item.ruleId) || 0) +
+                (Number.isFinite(Number(item.omittedOpen)) ? Number(item.omittedOpen) : (Number(item.omitted) || 0))
+            );
+            if (!ruleDetails.has(item.ruleId)) {
+              ruleDetails.set(item.ruleId, {
+                title: item.title || item.ruleId,
+                severity: item.severity || "review",
+                category: item.category || "Other"
+              });
+            }
+          });
+      });
+
+      const retainedByRule = new Map();
+      const retainedOpenByRule = new Map();
+      const issues = [];
+      candidateIssues.forEach(issue => {
+        const retained = retainedByRule.get(issue.ruleId) || 0;
+        const available = perRuleFindingLimit - retained;
+        if (available <= 0) return;
+        const amount = Math.max(
+          1,
+          Number(issue.occurrenceCount) || 1
+        );
+        const retainedAmount = Math.min(amount, available);
+        issues.push(
+          retainedAmount === amount
+            ? issue
+            : { ...issue, occurrenceCount: retainedAmount }
+        );
+        retainedByRule.set(
+          issue.ruleId,
+          retained + retainedAmount
+        );
+        if (issue.automaticStatus === "open") {
+          retainedOpenByRule.set(
+            issue.ruleId,
+            (retainedOpenByRule.get(issue.ruleId) || 0) + retainedAmount
+          );
+        }
+      });
+
+      const truncatedRules = Array.from(detectedByRule.entries())
+        .filter(([ruleId, detected]) =>
+          detected > (retainedByRule.get(ruleId) || 0)
+        )
+        .map(([ruleId, detected]) => {
+          const retained = retainedByRule.get(ruleId) || 0;
+          const detail = ruleDetails.get(ruleId) || {};
+          return {
+            ruleId,
+            title: detail.title || ruleId,
+            severity: detail.severity || "review",
+            category: detail.category || "Other",
+            detected,
+            retained,
+            omitted: detected - retained,
+            detectedOpen: detectedOpenByRule.get(ruleId) || 0,
+            retainedOpen: retainedOpenByRule.get(ruleId) || 0,
+            omittedOpen: (detectedOpenByRule.get(ruleId) || 0) - (retainedOpenByRule.get(ruleId) || 0)
+          };
+        });
 
       const severityCounts = {
         fix: 0,
@@ -1562,6 +1714,8 @@ async function injectScanner(tabId, options) {
 
         issues,
 
+        totals: Object.fromEntries(detectedByRule),
+
         /*
          * Preserve semantic editor source here too. Asset verification
          * happens after the initial scan, so findings created later still
@@ -1587,13 +1741,22 @@ async function injectScanner(tabId, options) {
 
         pageDetails: combinedDetails,
 
+        findingLimits: {
+          perRule: perRuleFindingLimit,
+          complete: truncatedRules.length === 0,
+          truncatedRules
+        },
+
         notes:
           `Scanned ${frameReports.length} CMS Lite editable field` +
           `${
             frameReports.length === 1
               ? ""
               : "s"
-          }.`
+          }.` +
+          (truncatedRules.length
+            ? ` Some issue types reached the ${perRuleFindingLimit}-finding safety limit. Detected totals are preserved in the report.`
+            : "")
       };
     },
 
@@ -3160,6 +3323,8 @@ function captureReviewContext() {
     important: elements["important-filter"].checked,
     followPage: elements["follow-page"].checked,
     collapsed: Array.from(state.collapsedFindingGroups),
+    skippedRuleIds: Array.from(state.skippedRuleIds),
+    skippedFingerprints: Array.from(state.skippedFingerprints),
     scrollTop: document.scrollingElement ? document.scrollingElement.scrollTop : 0,
     visibleFingerprint: visibleFinding ? (visibleFinding.dataset.fingerprint || "") : "",
     visibleRuleId: visibleFinding ? (visibleFinding.dataset.ruleId || "") : ""
@@ -3191,6 +3356,8 @@ function restoreReviewContext(pageKey) {
   elements["important-filter"].checked = Boolean(saved.important);
   elements["follow-page"].checked = saved.followPage !== false;
   state.collapsedFindingGroups = new Set(saved.collapsed || []);
+  state.skippedRuleIds = new Set(saved.skippedRuleIds || []);
+  state.skippedFingerprints = new Set(saved.skippedFingerprints || []);
 }
 
 function restoreReviewScroll(pageKey) {
@@ -3247,6 +3414,8 @@ async function scanCurrentPage(suppliedOptions) {
     elements["important-filter"].checked = preserved ? preserved.important : false;
     elements["follow-page"].checked = preserved ? preserved.followPage !== false : true;
     state.collapsedFindingGroups = new Set(preserved ? preserved.collapsed : []);
+    state.skippedRuleIds = new Set();
+    state.skippedFingerprints = new Set();
     let saved = true;
     await storeReport(report).catch(() => { saved = false; });
     renderCurrentReport();
@@ -3345,6 +3514,9 @@ function groupedFindingTypes(items = filteredFindings()) {
   const pageSort = elements["sort-order"] && elements["sort-order"].value === "page";
   return Array.from(groups.values()).map(group => {
     if (pageSort) group.findings.sort((first, second) => (first.pageOrder ?? Number.MAX_SAFE_INTEGER) - (second.pageOrder ?? Number.MAX_SAFE_INTEGER));
+    else if (group.findings.some(finding => finding.contrast && finding.contrast.signature)) group.findings.sort((first, second) =>
+      String(first.contrast && first.contrast.signature || "").localeCompare(String(second.contrast && second.contrast.signature || ""))
+      || (first.pageOrder ?? Number.MAX_SAFE_INTEGER) - (second.pageOrder ?? Number.MAX_SAFE_INTEGER));
     return group;
   }).sort((first, second) => pageSort
     ? first.pageOrder - second.pageOrder || first.title.localeCompare(second.title)
@@ -3394,7 +3566,16 @@ function renderFindings() {
   const items = filteredFindings();
   const groups = groupedFindingTypes(items);
   const occurrences = items.reduce((total, finding) => total + findingAmount(finding), 0);
-  elements["showing-count"].textContent = `${groups.length} issue type${groups.length === 1 ? "" : "s"} · ${occurrences} finding${occurrences === 1 ? "" : "s"}`;
+  const omitted = omittedFindingsMatchingCurrentFilters(state.activeReport);
+  const issueTypeCount = new Set([...groups.map(group => group.ruleId), ...truncatedRulesMatchingCurrentFilters(state.activeReport).map(item => item.ruleId)]).size;
+  elements["showing-count"].textContent = omitted
+    ? `${issueTypeCount} issue type${issueTypeCount === 1 ? "" : "s"} · ${occurrences} available · ${occurrences + omitted} detected`
+    : `${issueTypeCount} issue type${issueTypeCount === 1 ? "" : "s"} · ${occurrences} finding${occurrences === 1 ? "" : "s"}`;
+  const truncated = truncatedFindingRules(state.activeReport);
+  elements["finding-coverage"].hidden = truncated.length === 0;
+  elements["finding-coverage"].innerHTML = truncated.length
+    ? `<strong>Some findings are not displayed.</strong><span>${escapeHtml(findingCoverageText(state.activeReport))} Counts and exports identify the incomplete issue types.</span>`
+    : "";
   renderReviewLauncher(groups);
   const linkCheck = state.activeReport && state.activeReport.linkCheck;
   const linkCategories = linkCheck ? linkResultCategoryCounts(linkCheck.results) : null;
@@ -3402,26 +3583,44 @@ function renderFindings() {
     ? `${linkCheck.completed || 0} checked · ${linkCategories.problems || 0} problems · ${linkCategories.review || 0} need review · ${linkCategories.working || 0} working`
     : "Not checked · optional website access";
   if (!items.length) {
-    const openCount = openIssues(state.activeReport).length;
-    elements.findings.innerHTML = `<div class="empty-state"><strong>${openCount ? "No findings match these filters." : "No open findings were detected."}</strong><br>${openCount ? "Clear a filter to see the other findings." : "Manual review may still be useful."}</div>`;
+    const counts = reportCounts(state.activeReport);
+    const openCount = counts.fix + counts.check + counts.review;
+    const limitedOnly = omitted > 0;
+    elements.findings.innerHTML = limitedOnly
+      ? `<div class="empty-state"><strong>${omitted} matching finding${omitted === 1 ? " is" : "s are"} beyond the display limit.</strong><br>The detected total remains open and is included in summary counts. Exact locations are unavailable for findings beyond the safety limit.</div>`
+      : `<div class="empty-state"><strong>${openCount ? "No findings match these filters." : "No open findings were detected."}</strong><br>${openCount ? "Clear a filter to see the other findings." : "Manual review may still be useful."}</div>`;
     return;
   }
   elements.findings.innerHTML = groups.map(group => `
-    <button class="issue-row ${escapeHtml(group.severity)}${group.ruleId === state.selectedRuleId ? " is-selected" : ""}" type="button" data-rule-id="${escapeHtml(group.ruleId)}">
+    <button class="issue-row ${escapeHtml(group.severity)}${group.ruleId === state.selectedRuleId ? " is-selected" : ""}${state.skippedRuleIds.has(group.ruleId) ? " is-skipped" : ""}" type="button" data-rule-id="${escapeHtml(group.ruleId)}">
       <span>
         <span class="issue-row-title">${escapeHtml(group.title)}</span>
-        <span class="issue-row-meta"><span>${escapeHtml(sentenceLabel(group.severity))}</span><span aria-hidden="true">·</span><span>${escapeHtml(group.category)}</span>${group.important || group.notes ? `<span class="issue-row-icons"><span aria-label="${group.important ? "Important" : ""}">${group.important ? "★" : ""}</span><span aria-label="${group.notes ? "Has audit note" : ""}">${group.notes ? "●" : ""}</span></span>` : ""}</span>
+        <span class="issue-row-meta"><span>${escapeHtml(sentenceLabel(group.severity))}</span><span aria-hidden="true">·</span><span>${escapeHtml(group.category)}</span>${state.skippedRuleIds.has(group.ruleId) ? `<span aria-label="Some findings skipped for this review">· Some skipped for this review</span>` : ""}${group.important || group.notes ? `<span class="issue-row-icons"><span aria-label="${group.important ? "Important" : ""}">${group.important ? "★" : ""}</span><span aria-label="${group.notes ? "Has audit note" : ""}">${group.notes ? "●" : ""}</span></span>` : ""}</span>
       </span>
       <span class="issue-row-count" aria-label="${group.occurrences} findings">${group.occurrences}</span>
     </button>`).join("");
 }
 
 function renderReviewLauncher(groups) {
-  const next = orderedReviewFindings()[0] || null;
+  const ordered = orderedReviewFindings();
+  const next = ordered.find(finding => !state.skippedFingerprints.has(finding.fingerprint)) || null;
+  const skipped = ordered.filter(finding => state.skippedFingerprints.has(finding.fingerprint));
+  const skippedFindings = skipped.reduce((total, finding) => total + findingAmount(finding), 0);
+  const skippedTypes = new Set(skipped.map(finding => finding.ruleId)).size;
   elements["review-issues-button"].disabled = !next;
   elements["review-issues-button"].dataset.ruleId = next ? next.ruleId : "";
   elements["review-issues-button"].dataset.fingerprint = next ? next.fingerprint : "";
-  elements["review-issues-button"].textContent = next ? "Review issues" : "No issues to review";
+  elements["review-issues-button"].textContent = next
+    ? "Review issues"
+    : skippedFindings
+      ? "All matching issues skipped"
+      : omittedFindingsMatchingCurrentFilters(state.activeReport)
+        ? "No displayed issues to review"
+        : "No issues to review";
+  elements["review-skip-summary"].hidden = skippedFindings === 0;
+  elements["review-skip-message"].textContent = skippedFindings
+    ? `${skippedFindings} open finding${skippedFindings === 1 ? "" : "s"} in ${skippedTypes} issue type${skippedTypes === 1 ? " is" : "s are"} skipped for this review.`
+    : "";
 }
 
 function setAllFindingGroups(open) {
@@ -3457,20 +3656,18 @@ function updateIssueTypeLabel() {
 }
 
 function jumpIssueType(amount) {
-  if (elements["sort-order"].value === "page") return;
+  if (amount > 0) {
+    skipRemainingIssueType();
+    return;
+  }
   const items = guidedFindings();
   const current = items[state.guidedIndex];
   if (!current) return;
   let targetIndex = -1;
-  if (amount > 0) {
-    targetIndex = items.findIndex((finding, index) => index > state.guidedIndex && finding.ruleId !== current.ruleId);
-    if (targetIndex < 0) { closeFindingReview(); return; }
-  } else {
-    for (let index = state.guidedIndex - 1; index >= 0; index -= 1) {
-      if (items[index].ruleId !== current.ruleId) { targetIndex = index; break; }
-    }
-    if (targetIndex < 0) return;
+  for (let index = state.guidedIndex - 1; index >= 0; index -= 1) {
+    if (items[index].ruleId !== current.ruleId) { targetIndex = index; break; }
   }
+  if (targetIndex < 0) return;
   state.guidedIndex = targetIndex;
   state.guidedFingerprint = items[targetIndex].fingerprint;
   state.selectedRuleId = items[targetIndex].ruleId;
@@ -3481,8 +3678,53 @@ function jumpIssueType(amount) {
   persistReviewContext(state.activePageKey).catch(() => { });
 }
 
+function skipRemainingIssueType() {
+  const items = guidedFindings();
+  const current = items[state.guidedIndex];
+  if (!current) return;
+  const skippedItems = items
+    .slice(state.guidedIndex)
+    .filter(finding => finding.ruleId === current.ruleId && effectiveStatus(finding) === "open");
+  const skippedAmount = skippedItems.reduce((total, finding) => total + findingAmount(finding), 0);
+  const message = `${skippedAmount || "Remaining"} finding${skippedAmount === 1 ? "" : "s"} of this type skipped for this review. They remain open.`;
+  const next = items.slice(state.guidedIndex + 1).find(finding => finding.ruleId !== current.ruleId) || null;
+  skippedItems.forEach(finding => state.skippedFingerprints.add(finding.fingerprint));
+  state.skippedRuleIds.add(current.ruleId);
+  state.decisionMessage = message;
+  state.pendingDecision = null;
+  if (!next) {
+    closeFindingReview();
+    showToast(message);
+    persistReviewContext(state.activePageKey).catch(() => { });
+    return;
+  }
+  const remaining = guidedFindings();
+  const targetIndex = remaining.findIndex(finding => finding.fingerprint === next.fingerprint);
+  state.guidedIndex = targetIndex >= 0 ? targetIndex : 0;
+  state.guidedFingerprint = next.fingerprint;
+  state.selectedRuleId = next.ruleId;
+  state.locateOnNextRender = true;
+  renderReviewView();
+  persistReviewContext(state.activePageKey).catch(() => { });
+}
+
+function restoreSkippedIssueTypes() {
+  if (!state.skippedRuleIds.size && !state.skippedFingerprints.size) return;
+  state.skippedRuleIds.clear();
+  state.skippedFingerprints.clear();
+  state.decisionMessage = "";
+  state.pendingDecision = null;
+  renderReviewView();
+  persistReviewContext(state.activePageKey).catch(() => { });
+  showToast("Skipped findings are included in this review again.");
+}
+
 function openRuleGroup(ruleId, fingerprint = "", options = {}) {
   if (!state.activeReport || !ruleId) return;
+  state.skippedRuleIds.delete(ruleId);
+  (state.activeReport.issues || [])
+    .filter(finding => finding.ruleId === ruleId)
+    .forEach(finding => state.skippedFingerprints.delete(finding.fingerprint));
   const groups = groupedFindingTypes();
   const group = groups.find(item => item.ruleId === ruleId);
   if (!group || !group.findings.length) return;
@@ -3550,15 +3792,23 @@ function structuredEvidenceParts(finding) {
 }
 
 function evidenceTextForExport(finding) {
+  const contrast = finding && finding.contrast;
+  const contrastLines = contrast ? [
+    contrast.status === "confirmed"
+      ? `Measured contrast: ${Number(contrast.ratio).toFixed(2)}:1 (minimum ${Number(contrast.required).toFixed(1)}:1)`
+      : `Contrast verification: manual (${contrast.reason || "rendering cannot be measured reliably"})`,
+    `Colours: ${contrast.foreground || "unknown"} on ${contrast.background || "unknown"}`,
+    `Rendered state: ${contrast.displayState || "current rendered state"}`
+  ] : [];
   const structured = structuredEvidenceParts(finding);
-  if (!structured) return String(finding.evidence || "");
+  if (!structured) return [...contrastLines, String(finding.evidence || "")].filter(Boolean).join("\n");
   const lines = [structured.summary];
   if (structured.links.length) lines.push("");
   structured.links.forEach(link => {
     lines.push(link.label ? `${link.label}: ${link.text}` : link.text);
     if (link.url) lines.push(link.url);
   });
-  return lines.join("\n");
+  return [...contrastLines, ...lines].join("\n");
 }
 
 function renderedEvidence(finding) {
@@ -3576,6 +3826,43 @@ function renderedEvidence(finding) {
     </div>`;
   }
   return `<p class="evidence" style="overflow-wrap:anywhere; min-width:0;">${highlightedEvidence(finding)}</p>`;
+}
+
+function contrastGroupContext(finding) {
+  const contrast = finding && finding.contrast;
+  if (!contrast || !contrast.signature || !state.activeReport) return null;
+  const items = (state.activeReport.issues || [])
+    .filter(item => item.contrast && item.contrast.signature === contrast.signature)
+    .slice()
+    .sort((first, second) => (first.pageOrder || 0) - (second.pageOrder || 0));
+  const index = items.findIndex(item => item.fingerprint === finding.fingerprint);
+  return {
+    current: index >= 0 ? index + 1 : 1,
+    total: items.reduce((total, item) => total + findingOccurrences(item), 0),
+    sections: Array.from(new Set(items.map(item => item.location || "Page")))
+  };
+}
+
+function renderedContrastDetails(finding) {
+  const contrast = finding && finding.contrast;
+  if (!contrast) return "";
+  const group = contrastGroupContext(finding);
+  const measurement = contrast.status === "confirmed"
+    ? `<strong>${escapeHtml(Number(contrast.ratio).toFixed(2))}:1</strong> measured · ${escapeHtml(Number(contrast.required).toFixed(1))}:1 minimum`
+    : `<strong>Manual verification needed</strong>${contrast.reason ? ` · ${escapeHtml(contrast.reason)}` : ""}`;
+  const size = Number.isFinite(Number(contrast.fontSize))
+    ? `${escapeHtml(String(contrast.fontSize))} px, weight ${escapeHtml(String(contrast.fontWeight))}${contrast.largeText ? " · large text" : " · normal text"}`
+    : "";
+  const groupText = group
+    ? `Occurrence ${group.current} of ${group.total} in this contrast group · ${group.sections.length} ${group.sections.length === 1 ? "section" : "sections"}`
+    : "";
+  return `<div class="contrast-details">
+    <div>${measurement}</div>
+    <div>${escapeHtml(contrast.foreground || "Unknown foreground")} on ${escapeHtml(contrast.background || "unknown background")}</div>
+    ${size ? `<div>${size}</div>` : ""}
+    <div>State: ${escapeHtml(contrast.displayState || "current rendered state")}</div>
+    ${groupText ? `<div class="contrast-group-position">${escapeHtml(groupText)}</div>` : ""}
+  </div>`;
 }
 
 function editorDataAttributes(item) {
@@ -3601,6 +3888,7 @@ function renderFinding(finding) {
       </div>
       <p><strong>What to review</strong><br>${escapeHtml(finding.why)}</p>
       ${finding.location ? `<p class="finding-location"><strong>Where on the page:</strong> ${escapeHtml(finding.location)}</p>` : ""}
+      ${renderedContrastDetails(finding)}
       ${finding.matchText || finding.flaggedToken ? `<p class="match-callout"><strong>Flagged wording:</strong> <mark>${escapeHtml(finding.matchText || finding.flaggedToken)}</mark>${finding.replacement ? ` → ${escapeHtml(finding.replacement)}` : ""}</p>` : ""}
       ${finding.exceptionEligible && finding.proposedPhrase && finding.proposedPhrase !== finding.flaggedToken ? `<p class="term-context"><strong>Exact-term option:</strong> “${escapeHtml(finding.proposedPhrase)}”</p>` : ""}
       ${finding.evidence ? `<div><strong>Evidence</strong>${renderedEvidence(finding)}</div>` : ""}
@@ -3722,6 +4010,7 @@ function guidedFindings() {
   const byFingerprint = new Map(state.activeReport.issues.filter(finding => {
     const automaticallyIgnored = finding.automaticStatus === "ignored" && !state.decisions[finding.fingerprint];
     return !automaticallyIgnored
+      && !state.skippedFingerprints.has(finding.fingerprint)
       && (severity === "all" || severity === finding.severity)
       && (category === "all" || category === finding.category)
       && (!importantOnly || importantFinding(finding));
@@ -3746,7 +4035,10 @@ function renderGuidedReview(locate) {
   state.selectedRuleId = finding.ruleId;
   const reviewed = items.reduce((total, item) => total + (effectiveStatus(item) === "open" ? 0 : findingAmount(item)), 0);
   const remaining = items.reduce((total, item) => total + (effectiveStatus(item) === "open" ? findingAmount(item) : 0), 0);
-  elements["guided-progress"].textContent = `${reviewed} reviewed · ${remaining} remaining`;
+  const skippedOpen = (state.activeReport.issues || [])
+    .filter(item => state.skippedFingerprints.has(item.fingerprint) && effectiveStatus(item) === "open")
+    .reduce((total, item) => total + findingAmount(item), 0);
+  elements["guided-progress"].textContent = `${reviewed} reviewed · ${remaining} in review${skippedOpen ? ` · ${skippedOpen} skipped` : ""}`;
   const confirmation = state.decisionMessage
     ? `<div class="action-confirmation" role="status"><span>${escapeHtml(state.decisionMessage)}</span>${state.pendingDecision ? `<button class="undo-decision" type="button" data-fingerprint="${escapeHtml(state.pendingDecision.fingerprint)}">Undo</button>` : ""}</div>`
     : "";
@@ -3756,15 +4048,13 @@ function renderGuidedReview(locate) {
   const atLastFinding = state.guidedIndex === items.length - 1;
   const nextFinding = items[state.guidedIndex + 1] || null;
   const atLastInType = !nextFinding || nextFinding.ruleId !== finding.ruleId;
-  const hasNextType = Boolean(nextFinding && nextFinding.ruleId !== finding.ruleId);
   const pageOrder = elements["sort-order"].value === "page";
   elements["guided-next"].textContent = atLastFinding ? "Return to findings" : (!pageOrder && atLastInType) ? "Next issue type" : "Next";
-  const hideIssueTypeShortcut = pageOrder || atLastInType;
-  elements["next-issue-type"].classList.toggle("is-placeholder", hideIssueTypeShortcut);
-  elements["next-issue-type"].disabled = hideIssueTypeShortcut;
-  elements["next-issue-type"].setAttribute("aria-hidden", String(hideIssueTypeShortcut));
-  elements["next-issue-type"].tabIndex = hideIssueTypeShortcut ? -1 : 0;
-  elements["next-issue-type"].textContent = hasNextType && !pageOrder ? "Skip to next issue type" : "Return to findings";
+  elements["next-issue-type"].classList.remove("is-placeholder");
+  elements["next-issue-type"].disabled = false;
+  elements["next-issue-type"].setAttribute("aria-hidden", "false");
+  elements["next-issue-type"].tabIndex = 0;
+  elements["next-issue-type"].textContent = "Skip remaining findings of this type";
   if (locate && !workspaceSurface && elements["follow-page"].checked && finding.selector) {
     highlightSelector(
       findingSelectors(finding),
@@ -5386,7 +5676,7 @@ const ACCESSIBILITY_REVIEW_FIRST = new Set([
   "document-language", "main-landmark", "skip-link-target", "disclosure-state", "image-alt-missing",
   "linked-image-alt", "form-label", "table-headers", "table-accordion"
 ]);
-const ACCESSIBILITY_NEEDS = new Set(["contrast", "broken-image", "image-alt-meaningless"]);
+const ACCESSIBILITY_NEEDS = new Set(["contrast", "contrast-unverified", "broken-image", "image-alt-meaningless"]);
 const ACCESSIBILITY_CONTEXTUAL_ALT = new Set(["image-alt-empty", "image-alt-length", "image-alt-prefix"]);
 
 const LINKS_REVIEW_FIRST = new Set(["broken-http-link", "broken-anchor", "staging-url", "empty-link"]);
@@ -5424,7 +5714,8 @@ function groupedFindingsForExport(report, includeReviewed) {
   const groups = new Map();
   findingsForExport(report, includeReviewed).forEach(finding => {
     const status = effectiveStatus(finding);
-    const key = `${status}|${finding.ruleId}`;
+    const contrastSignature = finding.contrast && finding.contrast.signature ? `|${finding.contrast.signature}` : "";
+    const key = `${status}|${finding.ruleId}${contrastSignature}`;
     if (!groups.has(key)) groups.set(key, { finding, status, items: [], occurrenceCount: 0, important: false, notes: [] });
     const group = groups.get(key);
     const note = auditNote(finding);
@@ -5432,6 +5723,27 @@ function groupedFindingsForExport(report, includeReviewed) {
     group.occurrenceCount += findingOccurrences(finding);
     group.important = group.important || Boolean(note.important);
     if (note.text && !group.notes.includes(note.text)) group.notes.push(note.text);
+  });
+  truncatedFindingRules(report).forEach(item => {
+    const example = (report.issues || []).find(finding => finding.ruleId === item.ruleId);
+    if (!example) return;
+    const omittedByStatus = [
+      ["open", omittedOpenCount(item)],
+      ["ignored", includeReviewed ? Math.max(0, (Number(item.omitted) || 0) - omittedOpenCount(item)) : 0]
+    ];
+    omittedByStatus.forEach(([status, omitted]) => {
+      if (!omitted) return;
+      const key = `${status}|${item.ruleId}`;
+      if (groups.has(key)) groups.get(key).occurrenceCount += omitted;
+      else groups.set(key, {
+        finding: example,
+        status,
+        items: [example],
+        occurrenceCount: omitted,
+        important: false,
+        notes: []
+      });
+    });
   });
   return Array.from(groups.values());
 }
@@ -5636,7 +5948,8 @@ function issueSummaryText(report, includeReviewed) {
     report.page.title,
     report.page.url,
     `Checked: ${formatDate(report.scannedAt)}`,
-    `Automated findings: ${findings.reduce((total, finding) => total + findingOccurrences(finding), 0)} · Issue types: ${new Set(findings.map(finding => finding.ruleId)).size}`,
+    `Automated findings detected: ${findings.reduce((total, finding) => total + findingOccurrences(finding), 0) + omittedFindingCountForExport(report, includeReviewed)} · Issue types: ${new Set([...findings.map(finding => finding.ruleId), ...truncatedFindingRules(report).filter(item => includeReviewed || omittedOpenCount(item)).map(item => item.ruleId)]).size}`,
+    `Finding coverage: ${findingCoverageText(report)}`,
     "",
     "Automated findings identify items to review. They are not confirmed compliance failures.",
     ""
@@ -5664,6 +5977,7 @@ function detailedFindingsText(report, includeReviewed) {
     report.page.url,
     `Checked: ${formatDate(report.scannedAt)}`,
     `Finding rows: ${findings.length} · Occurrences: ${findings.reduce((total, finding) => total + findingOccurrences(finding), 0)}`,
+    `Finding coverage: ${findingCoverageText(report)}`,
     ""
   ];
   findings.forEach((finding, index) => {
@@ -5731,9 +6045,10 @@ function sheetRow(values, kind = "body") {
 function summarySheetRows(report) {
   const profile = pageReviewProfile(report);
   const open = openFindings(report);
-  const fix = open.filter(finding => finding.severity === "fix").reduce((total, finding) => total + findingOccurrences(finding), 0);
-  const check = open.filter(finding => finding.severity === "check").reduce((total, finding) => total + findingOccurrences(finding), 0);
-  const review = open.filter(finding => finding.severity === "review").reduce((total, finding) => total + findingOccurrences(finding), 0);
+  const counts = reportCounts(report);
+  const fix = counts.fix;
+  const check = counts.check;
+  const review = counts.review;
   const longSentences = countRule(open, "sentence-long");
   const longParagraphs = countRule(open, "paragraph-long");
   const difficultSections = countRule(open, "section-reading-level");
@@ -5745,6 +6060,7 @@ function summarySheetRows(report) {
     sheetRow(["URL", report.page.url]),
     sheetRow(["Checked", formatDate(report.scannedAt)]),
     sheetRow(["Scope", `${report.settings.scope === "whole" ? "Whole page" : "Page content"} · ${report.settings.profileLabel}`]),
+    sheetRow(["Finding coverage", findingCoverageText(report)]),
     sheetRow(["Link check", linkCheckCoverage(report)]),
     sheetRow(["Link check results", linkCheckResultSummary(report)]),
     sheetRow(["Automated review profile"], "section"),
@@ -6287,9 +6603,10 @@ function pageExportMetrics(record) {
   const difficultSections = countRule(open, "section-reading-level");
   const longestWithoutHeading = open.filter(finding => finding.ruleId === "section-heading-density")
     .reduce((max, finding) => Math.max(max, Number.isFinite(finding.analysisWords) ? finding.analysisWords : numericEvidenceValue(finding, /^(\d+) words/i) || 0), 0);
-  const fixes = open.filter(finding => finding.severity === "fix").reduce((total, finding) => total + findingOccurrences(finding), 0);
-  const checks = open.filter(finding => finding.severity === "check").reduce((total, finding) => total + findingOccurrences(finding), 0);
-  const reviews = open.filter(finding => finding.severity === "review").reduce((total, finding) => total + findingOccurrences(finding), 0);
+  const reportFindingCounts = reportCounts(report);
+  const fixes = reportFindingCounts.fix;
+  const checks = reportFindingCounts.check;
+  const reviews = reportFindingCounts.review;
   const linkFindings = open.filter(finding => findingArea(finding) === "Links and documents");
   const imageFindings = open.filter(finding => ["image-alt-missing", "image-alt-empty", "image-alt-length", "image-alt-prefix", "image-alt-meaningless", "linked-image-alt", "broken-image"].includes(finding.ruleId));
   return {
@@ -6308,7 +6625,8 @@ function pageExportMetrics(record) {
     checks,
     reviews,
     total: fixes + checks + reviews,
-    issueTypes: new Set(open.map(finding => finding.ruleId)).size,
+    issueTypes: new Set([...open.map(finding => finding.ruleId), ...truncatedFindingRules(report).filter(item => omittedOpenCount(item)).map(item => item.ruleId)]).size,
+    findingCoverage: truncatedFindingRules(report).length ? "Finding safety limit reached" : "Complete",
     linkCheck: linkCheckCoverage(report),
     linkResults: linkCheckResultSummary(report),
     links: counts.links || 0,
@@ -6333,7 +6651,7 @@ function batchPagesRows(records) {
       profileValue(m.profile, "Style and proofreading"), m.readingGrade, m.difficultSections, m.longestWithoutHeading, m.longSentences, m.sentences,
       m.longSentencePct, m.words, m.fixes, m.checks, m.reviews, m.total, m.issueTypes, m.linkCheck, m.linkResults, m.links, m.linksFlagged,
       m.images, m.imagesFlagged, m.headings, m.lists, report.settings.scope === "whole" ? "Whole page" : "Page content", report.settings.profileLabel,
-      "Complete", formatDate(report.scannedAt), report.ruleVersion || ""
+      m.findingCoverage, formatDate(report.scannedAt), report.ruleVersion || ""
     ];
   });
   const failedRows = records.filter(record => record.status !== "complete").map(record => {
@@ -6390,11 +6708,21 @@ function batchSummaryRows(records, includeReviewed) {
   const profiles = complete.map(record => record.profile || pageReviewProfile(record.report));
   const areaNames = ["Page information", "Plain language", "Structure and navigation", "Accessibility", "Links and documents", "Style and proofreading"];
   const exportedFindings = complete.flatMap(record => findingsForExport(record.report, includeReviewed));
-  const totalFindings = exportedFindings.reduce((total, finding) => total + findingOccurrences(finding), 0);
-  const fixFindings = exportedFindings.filter(finding => finding.severity === "fix").reduce((total, finding) => total + findingOccurrences(finding), 0);
-  const checkFindings = exportedFindings.filter(finding => finding.severity === "check").reduce((total, finding) => total + findingOccurrences(finding), 0);
-  const reviewFindings = exportedFindings.filter(finding => finding.severity === "review").reduce((total, finding) => total + findingOccurrences(finding), 0);
-  const allIssueTypes = new Set(exportedFindings.map(finding => finding.ruleId));
+  const omittedBySeverity = { fix: 0, check: 0, review: 0 };
+  complete.forEach(record => truncatedFindingRules(record.report).forEach(item => {
+    const severity = ["fix", "check", "review"].includes(item.severity) ? item.severity : "review";
+    omittedBySeverity[severity] += includeReviewed ? (Number(item.omitted) || 0) : omittedOpenCount(item);
+  }));
+  const totalOmitted = omittedBySeverity.fix + omittedBySeverity.check + omittedBySeverity.review;
+  const totalFindings = exportedFindings.reduce((total, finding) => total + findingOccurrences(finding), 0) + totalOmitted;
+  const fixFindings = exportedFindings.filter(finding => finding.severity === "fix").reduce((total, finding) => total + findingOccurrences(finding), 0) + omittedBySeverity.fix;
+  const checkFindings = exportedFindings.filter(finding => finding.severity === "check").reduce((total, finding) => total + findingOccurrences(finding), 0) + omittedBySeverity.check;
+  const reviewFindings = exportedFindings.filter(finding => finding.severity === "review").reduce((total, finding) => total + findingOccurrences(finding), 0) + omittedBySeverity.review;
+  const allIssueTypes = new Set([
+    ...exportedFindings.map(finding => finding.ruleId),
+    ...complete.flatMap(record => truncatedFindingRules(record.report).filter(item => includeReviewed || omittedOpenCount(item)).map(item => item.ruleId))
+  ]);
+  const incompletePages = complete.filter(record => truncatedFindingRules(record.report).length);
   const linkCoverageCounts = complete.reduce((map, record) => { const label = linkCheckCoverage(record.report); map[label] = (map[label] || 0) + 1; return map; }, {});
   const linkCoverageText = ["Complete", "Partially checked", "Website access declined", "Not checked"]
     .filter(label => linkCoverageCounts[label])
@@ -6415,6 +6743,7 @@ function batchSummaryRows(records, includeReviewed) {
     sheetRow(["Check", checkFindings, "", "", "", "Likely concerns where context affects the action"]),
     sheetRow(["Review", reviewFindings, "", "", "", "Editorial judgement may be needed"]),
     sheetRow(["Issue types", allIssueTypes.size, "", "", "", "Distinct checker rules with findings"]),
+    sheetRow(["Finding coverage", incompletePages.length ? `${incompletePages.length} page${incompletePages.length === 1 ? "" : "s"} reached a safety limit` : "Complete", "", "", "", incompletePages.length ? "See each page's findings and detected totals" : "All detected findings are available for review"]),
     sheetRow(["Link check coverage", linkCoverageText, "", "", "", ""]),
     sheetRow(["Link check results", aggregateLinkCheckResultSummary(complete.map(record => record.report)), "", "", "", ""]),
     sheetRow([totalFindings
@@ -7288,6 +7617,7 @@ function bindEvents() {
     const fingerprint = elements["review-issues-button"].dataset.fingerprint || "";
     if (ruleId) openRuleGroup(ruleId, fingerprint);
   });
+  elements["restore-skipped-rules"].addEventListener("click", restoreSkippedIssueTypes);
   elements["link-check-shortcut"].addEventListener("click", () => {
     state.reviewView = "details";
     state.pageDetailSection = "links";

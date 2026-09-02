@@ -33,6 +33,9 @@ const idSet = new Set(ids);
   "permission-revoke",
   "important-filter",
   "review-issues-button",
+  "review-skip-summary",
+  "restore-skipped-rules",
+  "finding-coverage",
   "review-back-button",
   "next-issue-type",
   "more-dialog",
@@ -152,6 +155,7 @@ assert.match(script, /Promise\.all\(Array\.from\(\{ length: Math\.min\(4, links\
 assert.match(script, /function downloadWorkbook\(/, "Workbook export must be available");
 assert.match(script, /function pageReviewProfile\(/, "Exports must derive a page review profile from the findings");
 assert.match(script, /function findingDetailRows\(/, "Exports must retain individual finding rows");
+assert.match(script, /finding\.contrast\.signature/, "Contrast exports must group by their measured signature");
 assert.match(script, /function issueSummaryRows\(/, "Exports must provide a grouped issue summary");
 assert.match(script, /function batchWorkbookSheets\(/, "Batch exports must use the structured audit workbook model");
 assert.match(script, /function batchLinkPlan\(/, "Batch link checks must deduplicate destinations across scanned pages");
@@ -186,7 +190,12 @@ assert.doesNotMatch(html, /id="batch-export-findings"|id="current-export-finding
 assert.match(script, /function groupedFindingTypes\(/, "Findings must be grouped into a flat issue-type overview");
 assert.match(script, /function openRuleGroup\(/, "Issue types must open in the focused review view");
 assert.match(script, /function jumpIssueType\(/, "Issue-type navigation must be available");
-assert.match(script, /items\.findIndex\(\(finding, index\) => index > state\.guidedIndex && finding\.ruleId !== current\.ruleId\)/, "Skipping must continue with the next issue type in the review sequence");
+assert.match(script, /function skipRemainingIssueType\(\)/, "Guided review must support skipping the remaining findings of one issue type");
+assert.match(script, /state\.skippedRuleIds\.add\(current\.ruleId\)/, "Skipping an issue type must use review-session state instead of changing finding decisions");
+assert.match(script, /state\.skippedFingerprints\.add\(finding\.fingerprint\)/, "Only the current and later findings of the selected type must be skipped");
+assert.match(script, /!state\.skippedFingerprints\.has\(finding\.fingerprint\)/, "Skipped findings must be removed only from the guided review queue");
+assert.match(script, /function restoreSkippedIssueTypes\(\)/, "Skipped issue types must be easy to include in the review again");
+assert.doesNotMatch(script, /function jumpIssueType\(amount\) \{\s*if \(elements\["sort-order"\]\.value === "page"\) return;/, "Issue-type skipping must also work in page-order review");
 assert.match(script, /function handleTablistKeys\(/, "Tab lists must support keyboard navigation");
 assert.match(script, /auditNotesV1/, "Audit notes must use local extension storage");
 assert.match(script, /feedbackNotesV1/, "Feedback notes must use local extension storage");
@@ -214,7 +223,7 @@ assert.match(script, /state\.guidedIndex === 0/, "Previous must remain available
 assert.match(script, /chrome\.permissions\.request\(\{ origins \}\)/, "Link checking must request access to linked sites");
 assert.match(script, /state:\s*"permission-denied"/, "Declined link access must be reported clearly");
 assert.match(script, /savedExceptions\.filter/, "Unsafe saved exceptions must be removed during migration");
-assert.match(script, /classList\.toggle\("is-placeholder", hideIssueTypeShortcut\)/, "Finding navigation must retain its layout when the issue-type shortcut is unavailable");
+assert.match(script, /elements\["next-issue-type"\]\.textContent = "Skip remaining findings of this type"/, "Guided review must keep the skip-type action available in either review order");
 assert.doesNotMatch(script, /<summary>More actions<\/summary>/, "Exact-term actions must remain visible");
 assert.match(script, /"Finding ID", "Page", "Page URL", "Where on the page"/, "Detailed finding exports must retain individual evidence and location");
 assert.match(script, /"Issue", "Area", "Category", "Review level", "Status", "Findings"/, "Issue summaries must use plain-language grouped columns");
@@ -245,7 +254,17 @@ const findingDetailHeader = (script.match(/const FINDING_DETAIL_HEADER = \[([\s\
 assert.doesNotMatch(findingDetailHeader, /Who can fix it|Page order/, "Findings detail must not expose internal page order or low-value ownership columns");
 
 const core = read("checker-core.js");
+assert.match(core, /contrastTextRegions\(doc, root, inScanArea\)/, "Contrast must inspect rendered text regions without a candidate cutoff");
+assert.doesNotMatch(core, /contrastSeen/, "Contrast must not discard repeated colours on different elements");
+assert.match(core, /channel <= 0\.04045/, "Contrast must use the current WCAG relative-luminance breakpoint");
+assert.match(core, /if \(ratio < required\)/, "Contrast thresholds must not use a rounding tolerance");
+assert.match(core, /"contrast-unverified"/, "Unmeasurable rendered backgrounds need a separate review finding");
+assert.match(core, /Colour contrast in other states/, "Non-text and alternate-state contrast must remain a distinct manual check");
 assert.match(core, /const RULE_VERSION = "1\.3\.0"/);
+assert.match(core, /const PER_RULE_FINDING_LIMIT = 500;/, "One issue type must retain up to 500 findings before a safety limit applies");
+assert.doesNotMatch(core, /perRuleLimit = 25|PER_RULE_FINDING_LIMIT = 25/, "The former silent 25-finding cap must not return");
+assert.match(core, /findingLimits:[\s\S]*truncatedRules/, "Reports must identify every issue type affected by the safety limit");
+assert.match(script, /findingCoverageText\(report\)/, "The interface and exports must explain finding completeness");
 assert.match(core, /‘BC’ by itself cannot be allowed/, "Bare BC must be rejected as an allowed term");
 assert.match(core, /function isCmsLiteTemplateImage\(/, "CMS Lite template images must be identifiable");
 assert.match(core, /pageOrder:/, "Findings must retain document order");

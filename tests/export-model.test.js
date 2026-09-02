@@ -8,11 +8,25 @@ const vm = require("node:vm");
 const source = fs.readFileSync(path.join(__dirname, "..", "sidepanel.js"), "utf8");
 const start = source.indexOf("const ATTENTION_RANK");
 const end = source.indexOf("function parseBatchUrls");
+const evidenceStart = source.indexOf("function structuredEvidenceParts");
+const evidenceEnd = source.indexOf("function renderedEvidence");
 assert.ok(start >= 0 && end > start, "Export model helpers must be present");
+assert.ok(evidenceStart >= 0 && evidenceEnd > evidenceStart, "Export evidence helpers must be present");
 
 const context = {
   effectiveStatus: finding => finding.status || finding.automaticStatus || "open",
   auditNote: finding => finding.note || { important: false, text: "" },
+  truncatedFindingRules: () => [],
+  omittedOpenCount: () => 0,
+  reportCounts: report => (report.issues || []).reduce((counts, item) => {
+    const status = item.status || item.automaticStatus || "open";
+    const amount = item.occurrenceCount || 1;
+    if (status === "open") counts[item.severity] += amount;
+    else counts[status] += amount;
+    return counts;
+  }, { fix: 0, check: 0, review: 0, ignored: 0, resolved: 0 }),
+  findingCoverageText: () => "All detected findings are available for review.",
+  editorSourceKey: finding => String(finding && finding.editorRegion || ""),
   sentenceLabel: value => {
     const text = String(value || "");
     return text ? text.charAt(0).toUpperCase() + text.slice(1).replace(/-/g, " ") : "";
@@ -21,7 +35,7 @@ const context = {
 };
 context.globalThis = context;
 vm.createContext(context);
-vm.runInContext(`${source.slice(start, end)}\n;globalThis.exportModel = { pageReviewProfile, findingDetailRows, issueSummaryRows, siteWideRows, batchPageRecords, batchPagesRows, batchSummaryRows, batchWorkbookSheets, summarySheetRows, linkCheckCoverage, workbookSheetsNeedLinkCheck };`, context);
+vm.runInContext(`${source.slice(evidenceStart, evidenceEnd)}\n${source.slice(start, end)}\n;globalThis.exportModel = { pageReviewProfile, findingDetailRows, issueSummaryRows, siteWideRows, batchPageRecords, batchPagesRows, batchSummaryRows, batchWorkbookSheets, summarySheetRows, linkCheckCoverage, workbookSheetsNeedLinkCheck };`, context);
 
 function finding(ruleId, category, severity, title, extra = {}) {
   return {
@@ -114,6 +128,16 @@ largeSingle.issues = Array.from({ length: 212 }, (_, index) => finding(`syntheti
 }));
 assert.equal(context.exportModel.findingDetailRows(largeSingle, false).length, 212, "A 212-finding page must export 212 stored finding rows");
 assert.equal(context.exportModel.issueSummaryRows(largeSingle, false).length, 83, "The same page should retain a separate 83-type grouped summary");
+
+const contrastReport = report("Contrast groups");
+contrastReport.issues = [
+  finding("contrast", "Accessibility", "check", "Increase the text contrast", { selector: "#one", contrast: { signature: "text/confirmed/119,119,119/255,255,255/4.5/current/Content", status: "confirmed", foreground: "rgb(119, 119, 119)", background: "rgb(255, 255, 255)", ratio: 4.48, required: 4.5, displayState: "current rendered state" } }),
+  finding("contrast", "Accessibility", "check", "Increase the text contrast", { selector: "#two", contrast: { signature: "text/confirmed/119,119,119/255,255,255/4.5/current/Content", status: "confirmed", foreground: "rgb(119, 119, 119)", background: "rgb(255, 255, 255)", ratio: 4.48, required: 4.5, displayState: "current rendered state" } }),
+  finding("contrast", "Accessibility", "check", "Increase the text contrast", { selector: "#three", contrast: { signature: "text/confirmed/170,170,170/255,255,255/4.5/current/Content", status: "confirmed", foreground: "rgb(170, 170, 170)", background: "rgb(255, 255, 255)", ratio: 2.32, required: 4.5, displayState: "current rendered state" } })
+];
+assert.equal(context.exportModel.findingDetailRows(contrastReport, false).length, 3, "Contrast export detail must retain every affected location");
+assert.equal(context.exportModel.issueSummaryRows(contrastReport, false).length, 2, "Contrast summary must group by measured signature, not only by rule ID");
+assert.match(context.exportModel.findingDetailRows(contrastReport, false)[0][9], /Colours: rgb\(119, 119, 119\) on rgb\(255, 255, 255\)/);
 
 // Batch workbooks must remain structurally predictable from small reviews through ~100 pages.
 [5, 20, 45, 100].forEach(size => {

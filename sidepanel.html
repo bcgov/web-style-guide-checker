@@ -140,7 +140,13 @@
                   <option value="page">In page order</option>
                 </select>
                 <button id="review-issues-button" class="button primary" type="button">Review issues</button>
+                <div id="review-skip-summary" class="review-skip-summary" hidden>
+                  <span id="review-skip-message"></span>
+                  <button id="restore-skipped-rules" class="text-button" type="button">Include skipped findings</button>
+                </div>
               </section>
+
+              <div id="finding-coverage" class="notice warning finding-coverage" role="status" hidden></div>
 
               <div class="findings-heading">
                 <div><h2>Issue types</h2><span id="showing-count"></span></div>
@@ -168,7 +174,7 @@
               <nav class="finding-navigation" aria-label="Finding navigation">
                 <button id="guided-previous" class="button secondary" type="button">Previous</button>
                 <button id="guided-next" class="button primary" type="button">Next</button>
-                <button id="next-issue-type" class="text-button next-type" type="button">Next issue type</button>
+                <button id="next-issue-type" class="text-button next-type" type="button">Skip remaining findings of this type</button>
                 <button id="previous-issue-type" class="visually-hidden" type="button" tabindex="-1">Previous issue type</button>
                 <span id="current-issue-type" class="visually-hidden"></span>
               </nav>

@@ -159,7 +159,36 @@ function has(report, ruleId) {
   }
   const repeatedSimpleTerms = Array.from({ length: 30 }, (_, index) => `<p>Approximately ${index + 1} applications were received.</p>`).join("");
   report = await scan(page, `${repeatedSimpleTerms}<p>The program was administered by another ministry.</p>`);
-  assert.equal(report.issues.some(issue => issue.ruleId === "complex-phrase" && issue.matchText && issue.matchText.toLowerCase() === "administered"), true, "A distinct guide term must not disappear behind the per-rule repetition cap");
+  assert.equal(report.issues.some(issue => issue.ruleId === "complex-phrase" && issue.matchText && issue.matchText.toLowerCase() === "administered"), true, "A distinct guide term must remain available in a repetitive rule group");
+
+  const passiveFindings = async count => {
+    const content = Array.from({ length: count }, () => "<p>The request was approved.</p>").join("");
+    const result = await scan(page, content);
+    return {
+      report: result,
+      count: result.issues.filter(issue => issue.ruleId === "passive-voice").reduce((total, issue) => total + (issue.occurrenceCount || 1), 0)
+    };
+  };
+  for (const count of [25, 26, 83, 500]) {
+    const boundary = await passiveFindings(count);
+    assert.equal(boundary.count, count, `${count} findings of one type must remain available`);
+    assert.equal(boundary.report.findingLimits.complete, true, `${count} findings must not trigger the 500-finding safety limit`);
+  }
+  const overLimit = await passiveFindings(501);
+  assert.equal(overLimit.count, 500, "The report must retain 500 actionable findings for one issue type");
+  assert.equal(overLimit.report.totals["passive-voice"], 501, "The report must preserve the detected total beyond the safety limit");
+  assert.deepEqual(overLimit.report.findingLimits.truncatedRules.find(item => item.ruleId === "passive-voice"), {
+    ruleId: "passive-voice",
+    title: "Rewrite the passive sentence",
+    severity: "review",
+    category: "Plain language",
+    detected: 501,
+    retained: 500,
+    omitted: 1,
+    detectedOpen: 501,
+    retainedOpen: 500,
+    omittedOpen: 1
+  });
 
   report = await scan(page, "<h2>1. Executive summary</h2><ul><li>Follow any of B.C.'s fire prohibitions and restrictions</li><li>Read B.C.'s campfire regulations (PDF, 1.7MB) poster</li></ul>");
   assert.equal(has(report, "heading-title-case"), false);
@@ -383,6 +412,50 @@ function has(report, ruleId) {
   assert.equal(has(report, "moved-page-notice"), true, "An old explicit moved-page notice should be surfaced for review");
   report = await scan(page, "<p>Last updated on January 1, 2020</p><p>Find the current service on another page.</p>");
   assert.equal(has(report, "moved-page-notice"), false, "Ordinary links to other pages must not trigger the moved-page heuristic");
+
+  report = await scan(page, `<style>.low-contrast { color: #777; }</style>
+    <p class="low-contrast">First affected paragraph</p><p class="low-contrast">Second affected paragraph</p>
+    <p class="low-contrast">Third affected paragraph</p><p class="low-contrast">Fourth affected paragraph</p>`, { canControlColour: true });
+  const repeatedContrast = report.issues.filter(issue => issue.ruleId === "contrast");
+  assert.equal(repeatedContrast.length, 4, "Every low-contrast element sharing a CSS class must be retained");
+  assert.equal(new Set(repeatedContrast.map(issue => issue.selector)).size, 4, "Repeated contrast findings must preserve every location");
+  assert.equal(new Set(repeatedContrast.map(issue => issue.contrast.signature)).size, 1, "Equivalent colours may share a review signature without losing occurrences");
+
+  const passingContrastCandidates = Array.from({ length: 500 }, (_, index) => `<p id="passing-${index}" style="color:#000">Passing candidate ${index}</p>`).join("");
+  report = await scan(page, `${passingContrastCandidates}<p id="after-old-cutoff" style="color:#777">Affected after the old cutoff</p>`, { canControlColour: true });
+  assert.equal(report.issues.some(issue => issue.ruleId === "contrast" && issue.selector === "#after-old-cutoff"), true, "A failing region after 500 passing candidates must still be checked");
+
+  report = await scan(page, `<p id="outer" style="color:#777">Outside text <a id="inner" href="#" style="color:#777">linked text</a></p>`, { canControlColour: true });
+  assert.equal(report.issues.filter(issue => issue.ruleId === "contrast").length, 2, "Different connected text regions must be separate occurrences");
+  assert.deepEqual(report.issues.filter(issue => issue.ruleId === "contrast").map(issue => issue.selector).sort(), ["#inner", "#outer"]);
+  report = await scan(page, `<p><a id="only-region" href="#" style="color:#777">Only linked text</a></p>`, { canControlColour: true });
+  assert.equal(report.issues.filter(issue => issue.ruleId === "contrast").length, 1, "A parent with no direct text must not duplicate its child text finding");
+
+  report = await scan(page, `<p style="color:#777;font-size:24px">Large text can use the 3:1 threshold</p><p style="color:#777">Normal text needs 4.5:1</p>`, { canControlColour: true });
+  assert.equal(report.issues.filter(issue => issue.ruleId === "contrast").length, 1, "Large and normal text thresholds must remain distinct");
+  assert.equal(report.issues.find(issue => issue.ruleId === "contrast").contrast.required, 4.5);
+
+  report = await scan(page, `<style>input::placeholder { color: #aaa; opacity: 1; }</style><input id="email" placeholder="Email address">`, { canControlColour: true });
+  const placeholderContrast = report.issues.find(issue => issue.ruleId === "contrast" && issue.selector === "#email");
+  assert.ok(placeholderContrast, "Visible placeholder text must be checked");
+  assert.equal(placeholderContrast.contrast.displayState, "::placeholder");
+
+  report = await scan(page, `<button disabled style="color:#ddd;background:#fff">Unavailable</button><div role="img" aria-label="Example logo" style="color:#ddd">Example logo</div>`, { canControlColour: true });
+  assert.equal(has(report, "contrast"), false, "Inactive controls and logotypes are WCAG contrast exceptions");
+  assert.equal(has(report, "contrast-unverified"), false);
+
+  report = await scan(page, `<div style="background:linear-gradient(#fff,#000)"><p id="gradient-text" style="color:#777">Text over a gradient</p></div>`, { canControlColour: true });
+  const gradientContrast = report.issues.find(issue => issue.ruleId === "contrast-unverified" && issue.selector === "#gradient-text");
+  assert.ok(gradientContrast, "Gradient backgrounds must produce a manual verification finding instead of being skipped");
+  assert.match(gradientContrast.contrast.reason, /gradient background/);
+  assert.equal(report.issues.some(issue => issue.ruleId === "contrast" && issue.selector === "#gradient-text"), false, "An unreliable background must not be reported as a confirmed ratio");
+
+  report = await scan(page, `<div style="background-image:url(example.jpg)"><p id="opaque-region" style="background:#fff;color:#777">Opaque text region</p></div>`, { canControlColour: true });
+  assert.equal(report.issues.some(issue => issue.ruleId === "contrast" && issue.selector === "#opaque-region"), true, "An opaque local background permits a reliable measurement over an ancestor image");
+  assert.equal(report.issues.some(issue => issue.ruleId === "contrast-unverified" && issue.selector === "#opaque-region"), false);
+
+  report = await scan(page, `<div style="opacity:.8"><p id="transparent-region" style="background:#fff;color:#777">Transparent rendered group</p></div>`, { canControlColour: true });
+  assert.equal(report.issues.some(issue => issue.ruleId === "contrast-unverified" && issue.selector === "#transparent-region"), true, "Ancestor transparency must be sent for manual verification");
 
   await browser.close();
   console.log("Style-guide rule tests passed");

@@ -148,13 +148,15 @@
     "image-alt-meaningless": ["Accessibility", "check", "Write meaningful alternative text", "Generic alternative text such as ‘image’ or a filename does not communicate the image’s purpose.", "Describe the useful information or purpose of the image, or use alt=\"\" when it is purely decorative.", "graphics"],
     "linked-image-alt": ["Accessibility", "fix", "Describe the linked image destination", "The alt text of a linked image should say where the link goes or what it does.", "Replace empty or filename-based alt text with the destination or action.", "graphics"],
     "form-label": ["Accessibility", "fix", "Label the form control", "People need a programmatic label to understand a form control.", "Associate a visible label or accessible name with the control.", "formatting"],
-    "contrast": ["Accessibility", "check", "Check the colour contrast", "Text needs sufficient contrast against its background.", "Adjust the foreground or background colour. Verify overlays and images with a dedicated contrast tool.", "contrast"],
+    "contrast": ["Accessibility", "check", "Increase the text contrast", "Text needs sufficient contrast against its background.", "Adjust the foreground or background colour so this text meets the required contrast ratio.", "contrast"],
+    "contrast-unverified": ["Accessibility", "review", "Verify the text contrast", "The rendered background or visual effect prevents a reliable automatic contrast measurement.", "Check this text in its rendered state with a dedicated contrast tool, including any image, gradient, transparency or blending effect.", "contrast"],
     "proofreading-pubic": ["Proofreading", "check", "Check ‘pubic’", "‘Pubic’ is a valid anatomical word, but it is commonly typed when ‘public’ was intended in government content.", "Check whether you meant ‘public’. Keep ‘pubic’ if the anatomical wording is intentional.", "grammar"],
     "proofreading-repeat": ["Proofreading", "check", "Check the repeated word", "Some repeated function words are common typing errors.", "Remove the duplicate word if it was not intentional.", "grammar"],
     "moved-page-notice": ["Page information", "review", "Review the old moved-page notice", "A moved-content notice is usually temporary. If it remains long after the page was updated, people may still be reaching outdated content.", "Confirm whether the old page should now redirect to the replacement page, or update the notice if it still needs to remain available.", "plain"]
   };
 
   const RULE_VERSION = "1.3.0";
+  const PER_RULE_FINDING_LIMIT = 500;
 
   const BUILT_IN_TERMS = [
     "BC Public Service Agency",
@@ -311,6 +313,7 @@
     ["Links and external sources", "Are external links necessary, trustworthy and maintained? Are news release links still current?", SOURCES.links[1]],
     ["Images and multimedia", "Do alt text, captions and transcripts communicate the same essential information as the media?", SOURCES.graphics[1]],
     ["Mobile use", "Can people scan the content, use forms and download assets comfortably on a phone or tablet?", SOURCES.formatting[1]],
+    ["Colour contrast in other states", "Do text, controls, icons and focus indicators keep sufficient contrast in hover, focus, selected, theme and responsive states? Inactive text is exempt.", SOURCES.contrast[1]],
     ["Policy and legal meaning", "Does plain-language wording preserve the policy or legal meaning, with a disclaimer and source legislation where needed?", SOURCES.grammar[1]],
     ["Site-wide uniqueness", "Is the page title and metadata description distinct from other pages on the site?", SOURCES.headings[1]],
     ["User testing", "Has the service or critical task been tested with representative users?", SOURCES.plain[1]]
@@ -1095,9 +1098,20 @@
   }
 
   function parseColour(value) {
-    const match = String(value).match(/rgba?\((\d+(?:\.\d+)?)[, ]+(\d+(?:\.\d+)?)[, ]+(\d+(?:\.\d+)?)(?:[, /]+(\d*\.?\d+))?\)/i);
+    const match = String(value).trim().match(/^rgba?\((.*)\)$/i);
     if (!match) return null;
-    return [Number(match[1]), Number(match[2]), Number(match[3]), match[4] === undefined ? 1 : Number(match[4])];
+    const parts = match[1].replace(/\s*\/\s*/, " ").split(/(?:\s*,\s*|\s+)/).filter(Boolean);
+    if (parts.length < 3 || parts.length > 4) return null;
+    const channel = part => /%$/.test(part) ? Number(part.slice(0, -1)) * 2.55 : Number(part);
+    const alpha = part => part === undefined ? 1 : /%$/.test(part) ? Number(part.slice(0, -1)) / 100 : Number(part);
+    const colour = [channel(parts[0]), channel(parts[1]), channel(parts[2]), alpha(parts[3])];
+    if (colour.some(item => !Number.isFinite(item))) return null;
+    return [
+      Math.max(0, Math.min(255, colour[0])),
+      Math.max(0, Math.min(255, colour[1])),
+      Math.max(0, Math.min(255, colour[2])),
+      Math.max(0, Math.min(1, colour[3]))
+    ];
   }
 
   function composite(foreground, background) {
@@ -1109,25 +1123,36 @@
     ];
   }
 
-  function backgroundColour(element) {
+  function backgroundDetails(element) {
     let current = element;
     let result = [255, 255, 255, 1];
     const layers = [];
+    const reasons = new Set();
+    let backgroundCovered = false;
     while (current && current.nodeType === 1) {
       const style = current.ownerDocument.defaultView.getComputedStyle(current);
-      if (style.backgroundImage && style.backgroundImage !== "none") return null;
+      if (!backgroundCovered && style.backgroundImage && style.backgroundImage !== "none") reasons.add(/gradient\(/i.test(style.backgroundImage) ? "gradient background" : "background image");
+      if (style.backgroundBlendMode && style.backgroundBlendMode !== "normal") reasons.add("background blending");
+      if (style.mixBlendMode && style.mixBlendMode !== "normal") reasons.add("colour blending");
+      if (style.filter && style.filter !== "none") reasons.add("filter effect");
+      if (style.backdropFilter && style.backdropFilter !== "none") reasons.add("backdrop filter");
+      if ((style.maskImage && style.maskImage !== "none") || (style.webkitMaskImage && style.webkitMaskImage !== "none")) reasons.add("masking effect");
+      const opacity = Number(style.opacity);
+      if (Number.isFinite(opacity) && opacity < 1) reasons.add("element transparency");
       const colour = parseColour(style.backgroundColor);
+      if (!colour && style.backgroundColor && !/^(?:transparent|none)$/i.test(style.backgroundColor)) reasons.add("unsupported background colour format");
       if (colour && colour[3] > 0) layers.unshift(colour);
+      if (colour && colour[3] >= 1) backgroundCovered = true;
       current = current.parentElement;
     }
     layers.forEach(layer => { result = composite(layer, result); });
-    return result;
+    return { colour: result, reasons: Array.from(reasons) };
   }
 
   function luminance(colour) {
     const values = colour.slice(0, 3).map(value => {
       const channel = value / 255;
-      return channel <= 0.03928 ? channel / 12.92 : Math.pow((channel + 0.055) / 1.055, 2.4);
+      return channel <= 0.04045 ? channel / 12.92 : Math.pow((channel + 0.055) / 1.055, 2.4);
     });
     return 0.2126 * values[0] + 0.7152 * values[1] + 0.0722 * values[2];
   }
@@ -1136,6 +1161,54 @@
     const one = luminance(first);
     const two = luminance(second);
     return (Math.max(one, two) + 0.05) / (Math.min(one, two) + 0.05);
+  }
+
+  function colourKey(colour) {
+    return colour.slice(0, 3).map(value => Math.round(value * 100) / 100).join(",");
+  }
+
+  function colourLabel(colour) {
+    return `rgb(${colour.slice(0, 3).map(value => Math.round(value)).join(", ")})`;
+  }
+
+  function inactiveContrastElement(element) {
+    return Boolean(element.closest("button:disabled,input:disabled,select:disabled,textarea:disabled,[aria-disabled='true']"));
+  }
+
+  function logoContrastElement(element) {
+    return Boolean(element.closest("[role='img'],svg"));
+  }
+
+  function directRenderedText(element) {
+    return normalizeSpace(Array.from(element.childNodes || [])
+      .filter(node => node.nodeType === 3)
+      .map(node => node.nodeValue || "")
+      .join(" "));
+  }
+
+  function contrastTextRegions(doc, root, inScanArea) {
+    const elements = new Map();
+    const walker = doc.createTreeWalker(root, doc.defaultView.NodeFilter.SHOW_TEXT);
+    let node;
+    while ((node = walker.nextNode())) {
+      const element = node.parentElement;
+      if (!element || !normalizeSpace(node.nodeValue) || !inScanArea(element)) continue;
+      if (/^(SCRIPT|STYLE|NOSCRIPT|TEMPLATE|OPTION)$/.test(element.tagName)) continue;
+      if (inactiveContrastElement(element) || logoContrastElement(element)) continue;
+      elements.set(element, directRenderedText(element));
+    }
+    const regions = Array.from(elements, ([element, text]) => ({ element, text, pseudo: "" })).filter(region => region.text);
+    Array.from(root.querySelectorAll("input[placeholder],textarea[placeholder]")).filter(inScanArea).forEach(element => {
+      if (inactiveContrastElement(element) || logoContrastElement(element)) return;
+      const text = normalizeSpace(element.getAttribute("placeholder"));
+      if (text) regions.push({ element, text: `Placeholder: ${text}`, pseudo: "::placeholder" });
+    });
+    Array.from(root.querySelectorAll("input[type='button'],input[type='submit'],input[type='reset']")).filter(inScanArea).forEach(element => {
+      if (inactiveContrastElement(element) || logoContrastElement(element)) return;
+      const text = normalizeSpace(element.value);
+      if (text) regions.push({ element, text, pseudo: "" });
+    });
+    return regions;
   }
 
   function accessibleName(element) {
@@ -1774,8 +1847,9 @@
     const issues = [];
     const assets = [];
     const totals = {};
-    const perRuleLimit = 25;
-    const preservedCapKeys = new Set();
+    const retainedTotals = {};
+    const detectedOpenTotals = {};
+    const retainedOpenTotals = {};
 
     function inScanArea(element) {
       const collapsedCmsLiteContent = scope === "content" && profile === "cms-lite" && isCmsLiteComponent(element);
@@ -1797,7 +1871,7 @@
       if (ruleId === "meta-description") return "CMS setting";
       if (profile === "cms-lite" && ruleId === "phone-link-format") return "CMS setting";
       if (profile === "cms-lite" && ruleId === "text-alignment") return "Template/code";
-      if (TEMPLATE_RULES.has(ruleId) || (ruleId === "contrast" && !canControlColour)) return "Template/code";
+      if (TEMPLATE_RULES.has(ruleId) || (ruleId.startsWith("contrast") && !canControlColour)) return "Template/code";
       if (rule[1] === "review") return "Editorial review";
       return "Content";
     }
@@ -1811,10 +1885,10 @@
         ? savedExceptions.find(item => exceptionMatches(item, ruleId, rawContext, hostname, pageUrl))
         : null);
       totals[ruleId] = (totals[ruleId] || 0) + 1;
-      const capKey = meta.capKey ? `${ruleId}:${normalizeSpace(meta.capKey).toLowerCase()}` : "";
-      const firstPreservedKey = Boolean(capKey) && !preservedCapKeys.has(capKey);
-      if (capKey) preservedCapKeys.add(capKey);
-      if (totals[ruleId] > perRuleLimit && !firstPreservedKey) return;
+      if (!matchedException) detectedOpenTotals[ruleId] = (detectedOpenTotals[ruleId] || 0) + 1;
+      if ((retainedTotals[ruleId] || 0) >= PER_RULE_FINDING_LIMIT) return;
+      retainedTotals[ruleId] = (retainedTotals[ruleId] || 0) + 1;
+      if (!matchedException) retainedOpenTotals[ruleId] = (retainedOpenTotals[ruleId] || 0) + 1;
       const source = SOURCES[rule[5]];
       const matchText = meta.matchText || meta.flaggedToken || "";
       const evidenceSource = meta.contextText || evidence || (element && element.textContent) || "";
@@ -1848,6 +1922,7 @@
         evidenceMatchIndex: matchedEvidence.matchIndex >= 0 ? matchedEvidence.matchIndex + evidencePrefix.length : -1,
         analysisGrade: Number.isFinite(meta.analysisGrade) ? meta.analysisGrade : null,
         analysisWords: Number.isFinite(meta.analysisWords) ? meta.analysisWords : null,
+        contrast: meta.contrast && typeof meta.contrast === "object" ? { ...meta.contrast } : null,
         exceptionEligible: EXCEPTION_ELIGIBLE_RULES.has(ruleId) && Boolean(meta.flaggedToken),
         exceptionId: matchedException ? matchedException.id : "",
         automaticStatus: matchedException ? "ignored" : "open",
@@ -2842,24 +2917,66 @@
       });
     }
 
-    const contrastSeen = new Set();
     if (scope === "whole" || canControlColour) {
-      Array.from(root.querySelectorAll("p,li,a,button,label,h1,h2,h3,h4,th,td,figcaption")).filter(inScanArea).slice(0, 500).forEach(element => {
-        if (!normalizeSpace(element.textContent)) return;
-        const style = doc.defaultView.getComputedStyle(element);
+      contrastTextRegions(doc, root, inScanArea).forEach(region => {
+        const { element, text, pseudo } = region;
+        const style = doc.defaultView.getComputedStyle(element, pseudo || null);
         const foreground = parseColour(style.color);
-        const background = backgroundColour(element);
-        if (!foreground || !background || foreground[3] === 0) return;
-        const effectiveForeground = composite(foreground, background);
-        const ratio = contrastRatio(effectiveForeground, background);
+        const backgroundResult = backgroundDetails(element);
+        const background = backgroundResult.colour;
         const size = parseFloat(style.fontSize) || 16;
         const weight = Number(style.fontWeight) || (style.fontWeight === "bold" ? 700 : 400);
-        const large = size >= 24 || (size >= 18.66 && weight >= 700);
+        const large = size >= 24 || (size >= 18.5 && weight >= 700);
         const required = large ? 3 : 4.5;
-        const key = style.color + "/" + background.slice(0, 3).map(Math.round).join(",") + "/" + required;
-        if (ratio + 0.02 < required && !contrastSeen.has(key)) {
-          contrastSeen.add(key);
-          add("contrast", element, "Estimated contrast " + ratio.toFixed(2) + ":1 (minimum " + required.toFixed(1) + ":1): " + element.textContent);
+        const displayState = pseudo || "current rendered state";
+        if (!foreground || !background) {
+          const reason = !foreground ? "unsupported foreground colour format" : "unsupported background colour format";
+          const responsibility = responsibilityFor("contrast-unverified", RULES["contrast-unverified"]);
+          const unsupportedContrast = {
+            kind: "text",
+            status: "unverified",
+            foreground: style.color || "unknown",
+            background: background ? colourLabel(background) : "unknown",
+            required,
+            fontSize: Number(size.toFixed(2)),
+            fontWeight: weight,
+            largeText: large,
+            displayState,
+            responsibility,
+            reason
+          };
+          unsupportedContrast.signature = ["text", "unverified", unsupportedContrast.foreground, unsupportedContrast.background, required, displayState, responsibility, reason].join("/");
+          add("contrast-unverified", element, `Automatic measurement is unreliable (${reason}): ${text}`, null, { contrast: unsupportedContrast });
+          return;
+        }
+        const effectiveForeground = composite(foreground, background);
+        const ratio = contrastRatio(effectiveForeground, background);
+        if (style.textShadow && style.textShadow !== "none") backgroundResult.reasons.push("text shadow");
+        const unverified = backgroundResult.reasons.length > 0;
+        const responsibility = responsibilityFor(unverified ? "contrast-unverified" : "contrast", RULES[unverified ? "contrast-unverified" : "contrast"]);
+        const baseContrast = {
+          kind: "text",
+          status: unverified ? "unverified" : "confirmed",
+          foreground: colourLabel(effectiveForeground),
+          background: colourLabel(background),
+          ratio: Number(ratio.toFixed(3)),
+          required,
+          fontSize: Number(size.toFixed(2)),
+          fontWeight: weight,
+          largeText: large,
+          displayState,
+          responsibility
+        };
+        if (backgroundResult.reasons.length) {
+          const reasons = Array.from(new Set(backgroundResult.reasons));
+          baseContrast.reason = reasons.join(", ");
+          baseContrast.signature = ["text", "unverified", colourKey(effectiveForeground), colourKey(background), required, displayState, responsibility, reasons.join("|")].join("/");
+          add("contrast-unverified", element, `Automatic measurement is unreliable (${reasons.join(", ")}): ${text}`, null, { contrast: baseContrast });
+          return;
+        }
+        baseContrast.signature = ["text", "confirmed", colourKey(effectiveForeground), colourKey(background), required, displayState, responsibility].join("/");
+        if (ratio < required) {
+          add("contrast", element, `Measured contrast ${ratio.toFixed(2)}:1 (minimum ${required.toFixed(1)}:1): ${text}`, null, { contrast: baseContrast });
         }
       });
     }
@@ -2871,6 +2988,20 @@
       severityCounts[issue.severity] += issue.occurrenceCount || 1;
     });
     const pageDetails = buildPageDetails(doc, root, profile, documentOrder);
+    const truncatedRules = Object.entries(totals)
+      .filter(([ruleId, detected]) => detected > (retainedTotals[ruleId] || 0))
+      .map(([ruleId, detected]) => ({
+        ruleId,
+        title: RULES[ruleId] ? RULES[ruleId][2] : ruleId,
+        severity: RULES[ruleId] ? RULES[ruleId][1] : "review",
+        category: RULES[ruleId] ? RULES[ruleId][0] : "Other",
+        detected,
+        retained: retainedTotals[ruleId] || 0,
+        omitted: detected - (retainedTotals[ruleId] || 0),
+        detectedOpen: detectedOpenTotals[ruleId] || 0,
+        retainedOpen: retainedOpenTotals[ruleId] || 0,
+        omittedOpen: (detectedOpenTotals[ruleId] || 0) - (retainedOpenTotals[ruleId] || 0)
+      }));
 
     return {
       ruleVersion: RULE_VERSION,
@@ -2906,8 +3037,15 @@
       assets,
       pageDetails,
       totals,
+      findingLimits: {
+        perRule: PER_RULE_FINDING_LIMIT,
+        complete: truncatedRules.length === 0,
+        truncatedRules
+      },
       manualChecks: MANUAL_CHECKS.map((item, index) => ({ id: "manual-" + index, title: item[0], question: item[1], sourceUrl: item[2] })),
-      notes: Object.values(totals).some(value => value > perRuleLimit) ? "Very repetitive findings are capped; distinct plain-language terms are preserved." : ""
+      notes: truncatedRules.length
+        ? `Some issue types reached the ${PER_RULE_FINDING_LIMIT}-finding safety limit. Detected totals are preserved in the report.`
+        : ""
     };
   }
 
@@ -2955,6 +3093,7 @@
       doubleSpaceOccurrences,
       anchorTextScore,
       contrastRatio,
+      luminance,
       isLikelyTitleCase,
       isValidTelHref,
       isMeaninglessAlt,

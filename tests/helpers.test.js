@@ -23,6 +23,8 @@ const simple = "Use short words. Help people find what they need. Put the key fa
 const complex = "The institutionalization of multifaceted administrative methodologies necessitates comprehensive consideration of approximately innumerable organizational eventualities. Interdepartmental implementation responsibilities are subsequently communicated through extraordinarily complicated procedural documentation and administrative correspondence. Organizational representatives facilitate additional interdisciplinary consultation.";
 assert.ok(helpers.readingGrade(simple) < helpers.readingGrade(complex));
 assert.equal(Number(helpers.contrastRatio([0, 0, 0, 1], [255, 255, 255, 1]).toFixed(1)), 21);
+assert.ok(helpers.contrastRatio([118.66, 118.66, 118.66, 1], [255, 255, 255, 1]) < 4.5, "Contrast thresholds must not be rounded up");
+assert.ok(Math.abs(helpers.luminance([10.2, 10.2, 10.2, 1]) - 0.0030959752) < 0.0000001, "Relative luminance must use the WCAG 2.2 sRGB breakpoint");
 
 const formalNameText = "Employees in the BC Public Service work across B.C.";
 const formalRanges = helpers.approvedTermRanges(formalNameText);
