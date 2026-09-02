@@ -691,6 +691,11 @@ function permissionOriginsForRemoteUrl(value) {
       url.protocol = "https:";
       origins.add(originPattern(url.href));
     }
+    if (url.hostname.toLowerCase().startsWith("www.")) {
+      url.hostname = url.hostname.slice(4);
+      url.protocol = "https:";
+      origins.add(originPattern(url.href));
+    }
     return Array.from(origins);
   } catch (_) { return []; }
 }
@@ -3860,6 +3865,7 @@ function renderFinding(finding) {
   const note = auditNote(finding);
   const feedbackCount = feedbackNotesForFinding(finding).length;
   const showResponsibility = !state.activeReport || state.activeReport.settings.profile !== "cms-lite" || state.activeReport.settings.scope === "whole";
+  const markerOnlyMatch = new Set(["double-space", "non-breaking-space", "link-trailing-space", "semicolon"]).has(finding.ruleId);
   return `
     <article class="finding ${escapeHtml(finding.severity)} ${escapeHtml(status)}${note.important ? " is-important" : ""}" data-fingerprint="${escapeHtml(finding.fingerprint)}" tabindex="-1">
       <div class="finding-top">
@@ -3873,7 +3879,7 @@ function renderFinding(finding) {
       <p><strong>What to review</strong><br>${escapeHtml(finding.why)}</p>
       ${finding.location ? `<p class="finding-location"><strong>Where on the page:</strong> ${escapeHtml(finding.location)}</p>` : ""}
       ${renderedContrastDetails(finding)}
-      ${finding.matchText || finding.flaggedToken ? `<p class="match-callout"><strong>Flagged wording:</strong> <mark>${escapeHtml(finding.matchText || finding.flaggedToken)}</mark>${finding.replacement ? ` → ${escapeHtml(finding.replacement)}` : ""}</p>` : ""}
+      ${(finding.matchText || finding.flaggedToken) && !markerOnlyMatch ? `<p class="match-callout"><strong>Flagged wording:</strong> <mark>${escapeHtml(finding.matchText || finding.flaggedToken)}</mark>${finding.replacement ? ` → ${escapeHtml(finding.replacement)}` : ""}</p>` : ""}
       ${finding.exceptionEligible && finding.proposedPhrase && finding.proposedPhrase !== finding.flaggedToken ? `<p class="term-context"><strong>Exact-term option:</strong> “${escapeHtml(finding.proposedPhrase)}”</p>` : ""}
       ${finding.evidence ? `<div><strong>Evidence</strong>${renderedEvidence(finding)}</div>` : ""}
       ${finding.suggestedTarget ? `<p class="target-suggestion"><strong>Suggested target:</strong> <code>${escapeHtml(finding.suggestedTarget)}</code></p>` : ""}
@@ -4003,10 +4009,11 @@ function guidedFindings() {
 }
 
 function resetGuidedFindingPosition() {
-  const reviewHeading = elements["guided-review-panel"].querySelector(".finding-review-heading");
-  if (reviewHeading) reviewHeading.scrollIntoView({ block: "start" });
+  const confirmation = elements["guided-finding"].querySelector(".action-confirmation");
   const finding = elements["guided-finding"].querySelector(".finding");
-  if (finding) finding.focus({ preventScroll: true });
+  if (!finding) return;
+  (confirmation || finding).scrollIntoView({ block: "start" });
+  finding.focus({ preventScroll: true });
 }
 
 function renderGuidedReview(locate) {

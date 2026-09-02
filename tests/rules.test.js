@@ -105,6 +105,8 @@ function has(report, ruleId) {
   assert.equal(has(report, "number-comma"), false, "A 4-digit year must not be treated as an ordinary number");
   report = await scan(page, "<p>Reference ID 15000</p>");
   assert.equal(has(report, "number-comma"), false, "A labelled identifier must not receive thousands separators");
+  report = await scan(page, "<p>Call #7277 on the Telus Mobility Network.</p>");
+  assert.equal(has(report, "number-comma"), false, "A hash-prefixed mobile shortcode must not receive thousands separators");
 
   report = await scan(page, "<p>The route is 100kms long.</p>");
   assert.equal(has(report, "metric-plural"), true);
@@ -204,6 +206,7 @@ function has(report, ruleId) {
   for (const wording of ["given consideration to", "utilized", "individuals", "disbursed", "established", "administered", "assistance"]) {
     assert.equal(report.issues.some(issue => issue.ruleId === "complex-phrase" && issue.matchText && issue.matchText.toLowerCase() === wording), true, `Expected complex-phrase for: ${wording}`);
   }
+  assert.equal(report.issues.find(issue => issue.ruleId === "complex-phrase" && issue.matchText.toLowerCase() === "administered").replacement, "managed", "The controlled replacement must preserve the matched verb tense");
   const repeatedSimpleTerms = Array.from({ length: 30 }, (_, index) => `<p>Approximately ${index + 1} applications were received.</p>`).join("");
   report = await scan(page, `${repeatedSimpleTerms}<p>The program was administered by another ministry.</p>`);
   assert.equal(report.issues.some(issue => issue.ruleId === "complex-phrase" && issue.matchText && issue.matchText.toLowerCase() === "administered"), true, "A distinct guide term must remain available in a repetitive rule group");
@@ -245,6 +248,11 @@ function has(report, ruleId) {
   ["NOTE", "EMCR", "PM", "US", "THIS"].forEach(token => {
     assert.equal(report.issues.some(issue => ["undefined-acronym", "acronym-in-heading"].includes(issue.ruleId) && issue.flaggedToken === token), false);
   });
+  assert.equal(report.issues.some(issue => issue.ruleId === "all-caps" && issue.matchText === "NOTE"), true, "NOTE must be treated as all-caps emphasis rather than an acronym");
+
+  report = await scan(page, '<h2>MULTI-USE LIST REQUEST FOR QUALIFICATIONS - GOODS</h2><p>Details.</p>');
+  assert.equal(report.issues.some(issue => issue.ruleId === "all-caps" && /MULTI-USE LIST REQUEST/.test(issue.matchText)), true, "A multiword all-caps heading must be reported independently of its dash");
+  assert.equal(has(report, "heading-dash"), true, "The heading dash finding must remain available alongside all caps");
 
   report = await scan(page, '<p><a href="tel:+18442275422">1-844-227-5422</a> <a href="tel:911">9-1-1</a> <a href="tel:18442275422">1-844-227-5422</a></p>');
   assert.equal(report.issues.filter(issue => issue.ruleId === "phone-link-format").length, 1);
@@ -254,6 +262,8 @@ function has(report, ruleId) {
   assert.equal(report.issues.filter(issue => issue.ruleId === "link-trailing-space").length, 0, "Collapsed source spaces must not be reported when they do not enlarge the visible link");
   report = await scan(page, '<p><a href="#destination"><span>Regular text link&nbsp;</span></a></p><h2 id="destination">Destination</h2>');
   assert.equal(report.issues.filter(issue => issue.ruleId === "link-trailing-space").length, 1, "A nested trailing non-breaking space that enlarges the link must be reported");
+  report = await scan(page, '<p><a class="link-with-arrow" href="/safety"><span>BC Forest Safety Council</span><span class="space">&nbsp;</span><svg id="Arrow_right"></svg></a></p>');
+  assert.equal(has(report, "link-trailing-space"), false, "A template spacer before the related-link arrow must not be attributed to the author");
 
   report = await scan(page, '<p>Contact <a>service.help@gov.bc.ca</a> for support.</p>');
   assert.equal(report.issues.filter(issue => issue.ruleId === "email-link-missing").length, 1, "Email text inside an anchor without a destination must be reported");
@@ -267,9 +277,31 @@ function has(report, ruleId) {
 
   report = await scan(page, '<p>Apply&nbsp;online today.</p><p>Travel 30&nbsp;km before 4&nbsp;pm.</p>');
   assert.equal(report.issues.filter(issue => issue.ruleId === "non-breaking-space").length, 1, "Only the contextually suspicious non-breaking space should be reviewed");
+  assert.deepEqual(report.issues.find(issue => issue.ruleId === "non-breaking-space").diagnostics, [], "The evidence marker already explains the non-breaking-space location");
+
+  report = await scan(page, '<p>The road configuration is documented here.Consult with the ministry professional engineer before implementation.</p>');
+  const missingSentenceSpace = report.issues.find(issue => issue.ruleId === "missing-space-after-punctuation");
+  assert.ok(missingSentenceSpace, "A missing space between adjacent sentences must be detected");
+  assert.equal(missingSentenceSpace.matchText, ".C");
+  assert.equal(has(report, "complex-phrase"), false);
+
+  report = await scan(page, '<p>Contact FLNREng.Branch@gov.bc.ca for information.</p>');
+  assert.equal(has(report, "missing-space-after-punctuation"), false, "Periods inside an email address must not be treated as sentence boundaries");
+
+  report = await scan(page, '<p>Visit Services.Gov.BC.CA or download Report.Final.Docx.</p><p>Use <code>Config.ComponentName</code> in the example.</p><p><a href="https://example.museum">Example.Museum</a></p>');
+  assert.equal(has(report, "missing-space-after-punctuation"), false, "Domains, filenames, linked technical tokens and marked-up technical identifiers must remain outside sentence-spacing checks");
+
+  report = await scan(page, '<p><a href="/instructions">Read this.Open it before continuing</a></p>');
+  assert.equal(has(report, "missing-space-after-punctuation"), true, "A linked sentence must still be checked when its text is not a single technical token");
+
+  report = await scan(page, `<p>${"Introductory material ".repeat(14)}The approach improves efficiency; however, each impact still needs review.</p>`);
+  const semicolonFinding = report.issues.find(issue => issue.ruleId === "semicolon");
+  assert.ok(semicolonFinding);
+  assert.equal(semicolonFinding.evidence.slice(semicolonFinding.evidenceMatchIndex, semicolonFinding.evidenceMatchIndex + 1), ";", "The evidence excerpt must contain and highlight the semicolon");
 
   report = await scan(page, '<p>• Plan ahead and prepare • Take only photos • Control your pets</p><p>- first you get the form<br>- then you fill it out<br>- then you send it in</p>');
   assert.equal(report.issues.filter(issue => issue.ruleId === "fake-list").length, 2);
+  assert.equal(report.issues.filter(issue => issue.ruleId === "fake-list").every(issue => issue.diagnostics.length === 0), true, "The finding explanation and action already describe the semantic-list mismatch");
   report = await scan(page, '<p>a. the monthly strata fees payable by the owner<br>b. any amount the owner owes the strata corporation<br>c. any approved special levy due in the future</p>');
   assert.equal(report.issues.filter(issue => issue.ruleId === "fake-list").length, 1, "Sequential lettered plain-text items must be recognized");
   report = await scan(page, '<p>1. Submit the application<br>2. Pay the required fee<br>3. Keep the confirmation</p>');
@@ -287,6 +319,12 @@ function has(report, ruleId) {
   assert.equal(report.issues.some(issue => issue.ruleId === "government-generic-term" && issue.flaggedToken === "Ministry departments"), false, "A generic government term may be capitalized at the start of a list item");
   report = await scan(page, '<p>Contact the Ministry departments before applying.</p>');
   assert.equal(report.issues.some(issue => issue.ruleId === "government-generic-term" && issue.flaggedToken === "Ministry departments"), true, "A mid-sentence generic government term must still be checked");
+
+  report = await scan(page, '<ul><li>First item;</li><li>Second item</li></ul>');
+  assert.deepEqual(report.issues.find(issue => issue.ruleId === "list-punctuation").diagnostics, [], "List punctuation does not need a duplicate semicolon explanation");
+
+  report = await scan(page, '<p>First sentence.  Second sentence.</p>');
+  assert.deepEqual(report.issues.find(issue => issue.ruleId === "double-space").diagnostics, [], "The double-space evidence marker is sufficient");
 
   report = await scan(page, '<img src="one.png" alt="image"><a href="/apply"><img src="two.png" alt="photo"></a>');
   assert.equal(report.issues.filter(issue => issue.ruleId === "image-alt-meaningless").length, 1);

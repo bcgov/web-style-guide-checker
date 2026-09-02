@@ -8,8 +8,13 @@ const root = path.resolve(__dirname, "..");
 const read = name => fs.readFileSync(path.join(root, name), "utf8");
 
 const manifest = JSON.parse(read("manifest.json"));
+const packageManifest = JSON.parse(read("package.json"));
+const packageLock = JSON.parse(read("package-lock.json"));
 assert.equal(manifest.manifest_version, 3);
 assert.equal(manifest.version, "1.3.1");
+assert.equal(packageManifest.version, manifest.version, "Package and extension versions must match");
+assert.equal(packageLock.version, packageManifest.version, "Package-lock version must match package.json");
+assert.equal(packageLock.packages[""].version, packageManifest.version, "Root lockfile package version must match package.json");
 assert.ok(manifest.optional_host_permissions.includes("http://*/*"));
 assert.ok(manifest.optional_host_permissions.includes("https://*/*"));
 
@@ -218,7 +223,8 @@ assert.match(decisionFunction[0], /nextInGroup/, "Review decisions must advance 
 assert.doesNotMatch(html, /Follow findings on page|id="follow-page"/, "Page following must be standard guided-review behaviour instead of an optional checkbox");
 assert.match(script, /if \(locate && !workspaceSurface && finding\.selector\)/, "Side-panel guided review must always follow a locatable finding");
 assert.match(html, /<\/div>\s*<div class="review-summary">\s*<div id="list-controls"/, "The findings summary must sit outside the sticky tab row");
-assert.match(script, /function resetGuidedFindingPosition\(\)[\s\S]*querySelector\("\.finding-review-heading"\)[\s\S]*scrollIntoView\(\{ block: "start" \}\)/, "Finding navigation must place the review heading beneath the sticky tabs");
+assert.match(script, /function resetGuidedFindingPosition\(\)[\s\S]*querySelector\("\.finding"\)[\s\S]*scrollIntoView\(\{ block: "start" \}\)/, "Finding navigation must place the finding card beneath the sticky tabs");
+assert.match(script, /function resetGuidedFindingPosition\(\)[\s\S]*querySelector\("\.action-confirmation"\)[\s\S]*\(confirmation \|\| finding\)\.scrollIntoView/, "Review confirmations must take scroll priority over the next finding");
 assert.match(script, /highlightSelector\(\s*findingSelectors\(finding\),\s*true,\s*false,\s*finding\.editorSource \|\| null,\s*Number\(finding\.editorRegion\) \|\| null\s*\)/, "Automatic page following must preserve the CMS Lite editor source and region without activating another tab");
 const editorExcludedRules = (script.match(/const editorExcludedRules = new Set\(\[([\s\S]*?)\]\);/) || [])[1] || "";
 assert.doesNotMatch(editorExcludedRules, /undefined-acronym/, "CMS Lite editor aggregation must retain undefined-acronym findings");
@@ -271,7 +277,7 @@ assert.match(core, /channel <= 0\.04045/, "Contrast must use the current WCAG re
 assert.match(core, /if \(ratio < required\)/, "Contrast thresholds must not use a rounding tolerance");
 assert.match(core, /"contrast-unverified"/, "Unmeasurable rendered backgrounds need a separate review finding");
 assert.match(core, /Colour contrast in other states/, "Non-text and alternate-state contrast must remain a distinct manual check");
-assert.match(core, /const RULE_VERSION = "1\.3\.0"/);
+assert.match(core, /const RULE_VERSION = "1\.3\.1"/);
 assert.match(core, /const PER_RULE_FINDING_LIMIT = 500;/, "One issue type must retain up to 500 findings before a safety limit applies");
 assert.doesNotMatch(core, /perRuleLimit = 25|PER_RULE_FINDING_LIMIT = 25/, "The former silent 25-finding cap must not return");
 assert.match(core, /findingLimits:[\s\S]*truncatedRules/, "Reports must identify every issue type affected by the safety limit");
@@ -300,6 +306,7 @@ assert.doesNotMatch(script, /[\u00C2\u00E2\u00C3]/, "Side panel source must not 
   "file-link-label-format",
   "link-trailing-space",
   "missing-space-after-ampersand",
+  "missing-space-after-punctuation",
   "bold-link",
   "all-caps",
   "at-symbol",
@@ -323,15 +330,29 @@ assert.match(core, /instanceId:/, "Saved reports must retain the source document
 assert.doesNotMatch(core, /\["accommodation",|\["individual",|\["request",/, "Context-sensitive words must not use unconditional simple-word replacements");
 assert.match(core, /SIMPLE_PHRASE_VARIANTS/, "Inflected guide terms must use controlled variants instead of a generic stemmer");
 assert.match(core, /\["assistance",\s*"help"\]/, "The guide's assistance → help entry must be included");
-assert.match(core, /\["administer",\s*"do"\]/, "The guide's administer → do entry must be included");
+assert.match(core, /\["administer",\s*"manage"\]/, "Administer must use a context-preserving alternative");
+assert.match(core, /SIMPLE_PHRASE_REPLACEMENTS[\s\S]*\["administered", "managed"\]/, "Controlled complex-phrase replacements must preserve verb tense");
+assert.match(core, /"#cmf-ui-page-navigation"/, "CMS Lite template page navigation must be excluded from authored-content checks");
+assert.doesNotMatch(core, /The final semicolon is also unnecessary sentence punctuation|The content looks like a list on screen but is not marked up as a semantic list|Browsers normally collapse consecutive spaces on screen|This marker represents a single non-breaking space in the published source/, "Finding cards must not repeat explanations already supplied by the rule and evidence");
+assert.match(script, /const markerOnlyMatch = new Set\(\["double-space", "non-breaking-space", "link-trailing-space", "semicolon"\]\)/, "Evidence markers must not be repeated in a separate flagged-wording callout");
 ["main-landmark", "skip-link-target", "disclosure-state", "broken-image", "staging-url"].forEach(rule => assert.match(core, new RegExp(`"${rule}"`), `Missing structural rule: ${rule}`));
 
 const css = read("sidepanel.css");
+assert.match(css, /@media \(max-width: 520px\) \{[\s\S]*body\[data-surface="panel"\] \{[\s\S]*--app-header-height: 38px/, "Narrow panels must use the compact header height");
+assert.match(css, /body\[data-surface="panel"\] \.app-identity strong,[\s\S]*body\[data-surface="panel"\] #scope-heading \{[\s\S]*clip: rect\(0, 0, 0, 0\)/, "Duplicated narrow-panel headings must remain available to assistive technology");
+assert.match(css, /body\[data-surface="panel"\] \.finding,[\s\S]*body\[data-surface="panel"\] \.action-confirmation \{[^}]*scroll-margin-top: calc\(var\(--app-header-height\) \+ 39px\)/, "Narrow-panel findings and confirmations must clear the compact tabs and their border");
+assert.match(css, /body\[data-surface="panel"\] \.finding-top \{[^}]*display: flex/, "Narrow-panel review labels must remain beside the finding title");
+assert.match(css, /body\[data-surface="panel"\] \.badges \{[^}]*margin-top: 0/, "Narrow-panel review labels must not consume a separate row");
+const narrowSectionControl = (css.match(/body\[data-surface="panel"\] \.section-scan-control \{([^}]*)\}/) || [])[1] || "";
+assert.doesNotMatch(narrowSectionControl, /flex-direction:\s*row/, "The narrow-panel compact layout must preserve the stacked section control below 391px");
 assert.match(css, /\.review-sticky \{[^}]*position: sticky/, "The Findings and Page details tabs must remain sticky");
+assert.match(css, /\.review-sticky \{[^}]*background: var\(--white\)/, "Sticky review tabs must fully cover content that scrolls underneath");
 assert.match(css, /\.review-summary \{[^}]*background:[^}]*border-bottom:/, "The findings summary must remain a normal scrolling row");
 assert.doesNotMatch(css, /\.review-summary \{[^}]*(?:position:\s*sticky|position:\s*fixed)/, "The findings summary must not be sticky");
-assert.match(css, /\.finding-review-heading \{[^}]*scroll-margin-top: calc\(var\(--app-header-height\) \+ 44px\)/, "The side-panel review heading must clear the app header and sticky tabs");
-assert.match(css, /body\[data-surface="workspace"\] \.finding-review-heading \{[^}]*scroll-margin-top: calc\(var\(--app-header-height\) \+ 92px\)/, "Workspace review navigation must also clear its mode tabs");
+assert.match(css, /\.finding-review-heading \{[^}]*position: static/, "The All findings and review-progress row must scroll with ordinary content");
+assert.doesNotMatch(css, /\.finding-review-heading \{[^}]*(?:position:\s*sticky|position:\s*fixed)/, "The review-progress row must not remain pinned");
+assert.match(css, /\.finding, \.action-confirmation \{[^}]*scroll-margin-top: calc\(var\(--app-header-height\) \+ 44px\)/, "Side-panel findings and confirmations must clear the app header and sticky tabs");
+assert.match(css, /body\[data-surface="workspace"\] \.finding,[\s\S]*body\[data-surface="workspace"\] \.action-confirmation \{[^}]*scroll-margin-top: calc\(var\(--app-header-height\) \+ 92px\)/, "Workspace review navigation must also clear its mode tabs");
 assert.match(css, /@font-face\s*\{[\s\S]*BC Sans/);
 assert.match(css, /--navy:\s*#013366/i);
 assert.match(css, /--gold:\s*#fcba19/i);

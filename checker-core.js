@@ -129,6 +129,7 @@
     "currency-range": ["Numbers and dates", "fix", "Use ‘to’ for the monetary range", "Monetary ranges use the word ‘to’ rather than a hyphen or dash.", "Write the range using ‘to’, such as ‘$200 to $400’.", "numbers"],
     "ampersand": ["Punctuation", "review", "Check the ampersand", "The guide says to write ‘and’ except in business names and citations.", "Replace & with ‘and’ unless it is part of a formal name or citation.", "punctuation"],
     "missing-space-after-ampersand": ["Punctuation", "fix", "Add the missing space", "A word that follows an ampersand needs a separating space.", "Add a space after the ampersand, then replace the ampersand with ‘and’ unless it is part of a formal name or citation.", "punctuation"],
+    "missing-space-after-punctuation": ["Punctuation", "fix", "Add the missing space", "A new sentence needs a space after the preceding punctuation mark.", "Add a space between the punctuation mark and the next sentence.", "punctuation"],
     "semicolon": ["Punctuation", "fix", "Replace the semicolon", "The guide recommends 2 sentences instead of a semicolon.", "Split the sentence at the semicolon.", "punctuation"],
     "exclamation": ["Punctuation", "fix", "Remove the exclamation mark", "Government web content should use a calm, direct tone.", "Use a period or rewrite the sentence.", "punctuation"],
     "em-dash": ["Punctuation", "fix", "Replace the em dash", "The guide recommends shorter sentences instead of em dashes.", "Split the sentence or use commas when appropriate.", "punctuation"],
@@ -161,7 +162,7 @@
     "moved-page-notice": ["Page information", "review", "Review the old moved-page notice", "A moved-content notice is usually temporary. If it remains long after the page was updated, people may still be reaching outdated content.", "Confirm whether the old page should now redirect to the replacement page, or update the notice if it still needs to remain available.", "plain"]
   };
 
-  const RULE_VERSION = "1.3.0";
+  const RULE_VERSION = "1.3.1";
   const PER_RULE_FINDING_LIMIT = 500;
 
   const BUILT_IN_TERMS = [
@@ -196,7 +197,12 @@
   // commonly capitalized for emphasis and should not be treated as acronyms.
   const COMMON_ALL_CAPS_WORDS = new Set([
     "MUST", "NOT", "DO", "NEVER", "ONLY", "REQUIRED", "IMPORTANT", "ALWAYS",
-    "WARNING", "CAUTION", "CANNOT", "BEFORE", "AFTER", "DEADLINE", "APPLY"
+    "WARNING", "CAUTION", "NOTE", "CANNOT", "BEFORE", "AFTER", "DEADLINE", "APPLY"
+  ]);
+
+  const MISSING_SPACE_DOMAIN_ENDINGS = new Set([
+    "app", "biz", "ca", "cloud", "co", "com", "dev", "edu", "gov", "info",
+    "int", "io", "mil", "net", "online", "org", "site", "uk", "us"
   ]);
 
   const EXCEPTION_ELIGIBLE_RULES = new Set([
@@ -224,6 +230,7 @@
 
   const CMS_LITE_EXCLUDED_SELECTORS = [
     ".last_Updated_Text",
+    "#cmf-ui-page-navigation",
     "[data-elastic-exclude]",
     "[class*='feedback' i]",
     "nav",
@@ -342,7 +349,7 @@
     ["in relation to", "about"], ["is able to", "can"],
     ["it should be noted", "remember"], ["submit an application", "apply"], ["method", "way"],
     ["obtain", "get"], ["prior to", "before"], ["subsequently", "after"], ["utilize", "use"],
-    ["establish", "create, set up or form"], ["administer", "do"], ["identify", "decide on or know"],
+    ["establish", "create, set up or form"], ["administer", "manage"], ["identify", "decide on or know"],
     ["require", "need or must"], ["result in", "cause, make or lead to"], ["upon", "on"]
   ];
 
@@ -357,6 +364,15 @@
     ["utilize", ["utilize", "utilizes", "utilized", "utilizing"]],
     ["establish", ["establish", "establishes", "established", "establishing"]],
     ["administer", ["administer", "administers", "administered", "administering"]]
+  ]);
+
+  const SIMPLE_PHRASE_REPLACEMENTS = new Map([
+    ["administer", new Map([
+      ["administer", "manage"],
+      ["administers", "manages"],
+      ["administered", "managed"],
+      ["administering", "managing"]
+    ])]
   ]);
 
   const FILLER_PHRASES = [
@@ -689,8 +705,70 @@
       if (/\b(?:version|build|release)\s*$/i.test(before)) continue;
       if (/\b(?:account|application|asset|case|confirmation|customer|employee|file|invoice|licen[cs]e|model|order|permit|personal|policy|record|reference|registration|serial|ticket|transaction|user)?\s*(?:ID|identifier|number|no\.?|PIN|ISBN)\s*[:#-]?\s*$/i.test(before)) continue;
       if (/\b(?:call|fax|phone|telephone|tel|TTY)\s*[:#-]?\s*$/i.test(before)) continue;
+      if (/#\s*$/.test(before)) continue;
       if (/\b(?:PO|P\.O\.)\s+Box\s+$/i.test(before)) continue;
       results.push({ text: match[0], index: match.index, replacement: formattedCurrency(match[0]) });
+    }
+    return results;
+  }
+
+  function missingSpaceProtectedRanges(value) {
+    const text = String(value || "");
+    const ranges = [];
+    const collect = expression => {
+      let match;
+      while ((match = expression.exec(text))) ranges.push({ start: match.index, end: match.index + match[0].length });
+    };
+    const emailExpression = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi;
+    let email;
+    while ((email = emailExpression.exec(text))) {
+      const atIndex = email[0].indexOf("@");
+      const domainLabels = email[0].slice(atIndex + 1).split(".");
+      let protectedLength = email[0].length;
+      const finalLabel = domainLabels[domainLabels.length - 1].toLowerCase();
+      const finalLabelIsKnown = finalLabel.length === 2 || MISSING_SPACE_DOMAIN_ENDINGS.has(finalLabel);
+      if (!finalLabelIsKnown) {
+        for (let labelIndex = domainLabels.length - 2; labelIndex >= 1; labelIndex -= 1) {
+          const label = domainLabels[labelIndex].toLowerCase();
+          if (label.length !== 2 && !MISSING_SPACE_DOMAIN_ENDINGS.has(label)) continue;
+          protectedLength = atIndex + 1 + domainLabels.slice(0, labelIndex + 1).join(".").length;
+          break;
+        }
+      }
+      ranges.push({ start: email.index, end: email.index + protectedLength });
+    }
+    const handleExpression = /(?:^|[\s(])(@[A-Z0-9_][A-Z0-9_.-]*\b)/gi;
+    let handle;
+    while ((handle = handleExpression.exec(text))) {
+      const start = handle.index + handle[0].lastIndexOf(handle[1]);
+      ranges.push({ start, end: start + handle[1].length });
+    }
+    collect(/\b[A-Z0-9][A-Z0-9_.-]*\.(?:7z|csv|docx?|gif|html?|jpe?g|js|json|ods|odt|odp|pdf|png|pptx?|rar|rtf|svg|txt|webp|xlsx?|xml|zip)\b/gi);
+    collect(/\b(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:app|biz|ca|cloud|co|com|dev|edu|gov|info|int|io|mil|net|online|org|site|uk|us)\b(?:\/[^\s]*)?/gi);
+    return ranges;
+  }
+
+  function missingSpaceAfterSentencePunctuationOccurrences(value, element) {
+    const text = String(value || "");
+    if (element && element.closest && element.closest("abbr,code,kbd,pre,samp,var")) return [];
+    const linkedTechnicalToken = element && element.closest && element.closest("a[href]")
+      && !/\s/.test(normalizeSpace(text)) && /[.@]/.test(text);
+    if (linkedTechnicalToken) return [];
+    const results = [];
+    const protectedRanges = missingSpaceProtectedRanges(text);
+    const expression = /[.!?](?=[A-ZÀ-ÖØ-Þ])/g;
+    let match;
+    while ((match = expression.exec(text))) {
+      const index = match.index;
+      if (indexInsideUrl(text, index) || protectedRanges.some(range => index >= range.start && index < range.end)) continue;
+      const next = text.slice(index + 1);
+      if (match[0] === "." && /^[A-ZÀ-ÖØ-Þ](?:\.|$)/.test(next) && /[A-ZÀ-ÖØ-Þ]$/.test(text.slice(0, index))) continue;
+      if (match[0] === "." && /^[A-Z0-9]{2,5}\b/.test(next)) continue;
+      results.push({
+        text: `${match[0]}${next[0]}`,
+        index,
+        replacement: `${match[0]} ${next[0]}`
+      });
     }
     return results;
   }
@@ -1527,12 +1605,16 @@
 
   function findOnThisPagePattern(root, include) {
     const candidates = Array.from(root.querySelectorAll("h1,h2,h3,h4,h5,h6,p,div,strong,b,span,nav,[aria-label]")).filter(include);
-    for (const label of candidates) {
+    const labelledCandidates = candidates.map(label => {
       const ownLabel = ownText(label) || normalizeSpace(label.getAttribute && label.getAttribute("aria-label"));
       const fullText = normalizeSpace(label.textContent);
       const exactLabel = /^on this page:?$/i.test(ownLabel);
       const combinedLabel = /^on this page:?(?:\s|$)/i.test(fullText) && label.querySelectorAll && label.querySelectorAll("a[href^='#']").length >= 2;
-      if (!exactLabel && !combinedLabel) continue;
+      return { label, ownLabel, fullText, exactLabel, combinedLabel };
+    }).filter(candidate => candidate.exactLabel || candidate.combinedLabel)
+      .sort((first, second) => Number(second.exactLabel) - Number(first.exactLabel));
+    for (const candidate of labelledCandidates) {
+      const { label, ownLabel, fullText } = candidate;
       let links = Array.from(label.querySelectorAll ? label.querySelectorAll("a[href^='#']") : []).filter(include);
       let container = label.nextElementSibling;
       while (links.length < 2 && container && !/^(UL|OL|NAV|DIV|P)$/.test(container.tagName)) container = container.nextElementSibling;
@@ -1756,9 +1838,21 @@
     return ranges;
   }
 
+  function allCapsHeadingDetails(value) {
+    const text = normalizeSpace(value);
+    if (!text || /[a-zà-öø-ÿ]/.test(text)) return null;
+    const alphaWords = words(text).filter(word => /[A-Za-zÀ-ÖØ-öø-ÿ]/.test(word));
+    if (alphaWords.length < 3) return null;
+    const substantialWords = alphaWords.filter(word => word.replace(/[^A-Za-zÀ-ÖØ-öø-ÿ]/g, "").length >= 4);
+    if (substantialWords.length < 2) return null;
+    const exactFormalName = BUILT_IN_TERMS.some(term => comparisonText(term).toUpperCase() === comparisonText(text).toUpperCase());
+    return exactFormalName ? null : { text, index: String(value || "").indexOf(text) };
+  }
+
   function acronymContextExcluded(value, index, token) {
     const text = String(value || "");
     const upper = String(token || "").toUpperCase();
+    if (isCommonAllCapsWord(upper)) return true;
     const emailExpression = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi;
     let email;
     while ((email = emailExpression.exec(text))) if (index >= email.index && index < email.index + email[0].length) return true;
@@ -2171,6 +2265,11 @@
         diagnostics: [`Formatting found inside this heading: ${formattingTypes.join(", ")}.`]
       });
       if (englishLanguage && isLikelyTitleCase(text) && !(titleIsAuthoredH1 && heading === titleTarget)) add("heading-title-case", heading, text);
+      const allCapsHeading = englishLanguage ? allCapsHeadingDetails(text) : null;
+      if (allCapsHeading) add("all-caps", heading, text, null, {
+        matchText: allCapsHeading.text,
+        matchIndex: allCapsHeading.index
+      });
       inspectHeadingText(heading, text);
       previousLevel = level;
     });
@@ -2330,13 +2429,17 @@
         const expression = new RegExp("\\b(?:" + source + ")\\b", "i");
         nodes.forEach(node => {
           const match = expression.exec(node.nodeValue);
-          if (match) add(ruleId, node.parentElement, node.nodeValue, "Consider ‘" + pair[1] + "’ when it preserves the intended meaning.", {
-            matchText: match[0],
-            replacement: pair[1],
-            contextText: node.nodeValue,
-            matchIndex: match.index,
-            capKey: pair[0]
-          });
+          if (match) {
+            const controlledReplacement = SIMPLE_PHRASE_REPLACEMENTS.get(pair[0]);
+            const replacement = controlledReplacement && controlledReplacement.get(match[0].toLowerCase()) || pair[1];
+            add(ruleId, node.parentElement, node.nodeValue, "Consider ‘" + replacement + "’ when it preserves the intended meaning.", {
+              matchText: match[0],
+              replacement,
+              contextText: node.nodeValue,
+              matchIndex: match.index,
+              capKey: pair[0]
+            });
+          }
         });
       });
     };
@@ -2544,9 +2647,22 @@
         if (value.includes(";")) {
           const semanticContainer = parent.closest("li,h1,h2,h3,h4,h5,h6");
           const terminalSemicolonHandledElsewhere = semanticContainer && /;\s*$/.test(normalizeSpace(semanticContainer.textContent));
-          if (!terminalSemicolonHandledElsewhere) add("semicolon", parent, value);
+          if (!terminalSemicolonHandledElsewhere) {
+            const semicolonIndex = value.indexOf(";");
+            add("semicolon", parent, value, null, {
+              matchText: ";",
+              matchIndex: semicolonIndex,
+              contextText: value
+            });
+          }
         }
       }
+      missingSpaceAfterSentencePunctuationOccurrences(value, parent).forEach(occurrence => add("missing-space-after-punctuation", parent, value, null, {
+        matchText: occurrence.text,
+        replacement: occurrence.replacement,
+        matchIndex: occurrence.index,
+        contextText: value
+      }));
       const rangeOccurrences = rangeDashOccurrences(value);
       rangeOccurrences.forEach(range => add("range-dash", parent, value, null, {
         matchText: range.text,
@@ -2574,13 +2690,11 @@
       }
       doubleSpaceOccurrences(value).forEach(doubleSpace => add("double-space", parent, doubleSpace.evidence, null, {
         matchText: `⟦${doubleSpace.count} spaces⟧`,
-        matchIndex: doubleSpace.index,
-        diagnostics: ["Browsers normally collapse consecutive spaces on screen; this marker reports the spacing in the published source."]
+        matchIndex: doubleSpace.index
       }));
       if (!parent.closest("code,pre")) nonBreakingSpaceOccurrences(value).forEach(space => add("non-breaking-space", parent, space.evidence, null, {
         matchText: "⟦non-breaking space⟧",
-        matchIndex: space.evidence.indexOf("⟦non-breaking space⟧"),
-        diagnostics: ["This marker represents a single non-breaking space in the published source."]
+        matchIndex: space.evidence.indexOf("⟦non-breaking space⟧")
       }));
       const slashExpression = /\b(?:and\s*\/\s*or|he\s*\/\s*she|she\s*\/\s*he|his\s*\/\s*her|her\s*\/\s*his|he\s*\/\s*him|she\s*\/\s*her|s\s*\/\s*he)\b/gi;
       let slashMatch;
@@ -2897,12 +3011,20 @@
       const href = link.getAttribute("href") || "";
       const absoluteHref = link.href || href;
       const finalTextNode = lastDescendantTextNode(link);
+      const finalTextContainer = finalTextNode && finalTextNode.parentElement;
+      const templateArrowSpacer = Boolean(
+        finalTextContainer
+        && finalTextContainer.matches("span.space")
+        && finalTextContainer.nextElementSibling
+        && finalTextContainer.nextElementSibling.matches("svg#Arrow_right,svg[data-name='Arrow right']")
+      );
       const standaloneEmptyLink = !splitLinkMembers.has(link) && !linkText && !link.querySelector("img");
       if (
         !standaloneEmptyLink
         && !splitLinkMembers.has(link)
         && !adjacentLinkMembers.has(link)
         && !isButtonStyleLink(link)
+        && !templateArrowSpacer
         && finalTextNode
         && /[\u00a0\u2007\u202f]+$/.test(finalTextNode.nodeValue || "")
       ) {
@@ -3039,11 +3161,8 @@
         const ownText = normalizeSpace(Array.from(item.childNodes).filter(node => node.nodeType === 3 || !/^(UL|OL)$/.test(node.tagName || "")).map(node => node.textContent).join(" "));
         if (!englishLanguage || navigationalList) return;
         const fakeSublist = fakeListDetails(item, { allowInsideListItem: true });
-        if (fakeSublist) add("fake-list", item, `${fakeSublist.count} sub-items made with ${fakeSublist.marker}: ${fakeSublist.evidence}`, null, {
-          diagnostics: ["The content looks like a nested list on screen but is not marked up as a semantic sublist."]
-        });
-        if (listEndingNeedsRemoval(ownText)) add("list-punctuation", item, ownText, null,
-          /;$/.test(ownText) ? { diagnostics: ["The final semicolon is also unnecessary sentence punctuation."] } : null);
+        if (fakeSublist) add("fake-list", item, `${fakeSublist.count} sub-items made with ${fakeSublist.marker}: ${fakeSublist.evidence}`);
+        if (listEndingNeedsRemoval(ownText)) add("list-punctuation", item, ownText);
         if (/^[a-zà-öø-ÿ]/.test(ownText)) add("list-lowercase", item, ownText);
         const itemSentences = sentences(ownText);
         if (itemSentences.length > 1) add("list-multiple-sentences", item, `${itemSentences.length} sentences: ${ownText}`);
@@ -3073,9 +3192,7 @@
     Array.from(root.querySelectorAll("p")).filter(inScanArea).forEach(paragraph => {
       if (!englishLanguage || paragraph.closest("ul,ol,pre,code")) return;
       const fakeList = fakeListDetails(paragraph);
-      if (fakeList) add("fake-list", paragraph, `${fakeList.count} items made with ${fakeList.marker}: ${fakeList.evidence}`, null, {
-        diagnostics: ["The content looks like a list on screen but is not marked up as a semantic list."]
-      });
+      if (fakeList) add("fake-list", paragraph, `${fakeList.count} items made with ${fakeList.marker}: ${fakeList.evidence}`);
     });
 
     Array.from(root.querySelectorAll("table")).filter(inScanArea).forEach(table => {
@@ -3331,6 +3448,7 @@
       isPostalAcronymContext,
       isBcPostalAddressContext,
       numberSeparatorOccurrences,
+      missingSpaceAfterSentencePunctuationOccurrences,
       doubleSpaceDetails,
       doubleSpaceOccurrences,
       nonBreakingSpaceOccurrences,
@@ -3344,6 +3462,7 @@
       fakeListDetails,
       readabilityBlockText,
       acronymContextExcluded,
+      allCapsHeadingDetails,
       approvedTermRanges,
       proposeExactPhrase,
       validateExceptionPhrase,

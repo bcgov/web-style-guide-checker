@@ -180,8 +180,30 @@ assert.equal(helpers.numberSeparatorOccurrences("Reference ID 15000").length, 0)
 assert.equal(helpers.numberSeparatorOccurrences("The grant is $15000.").length, 0);
 assert.equal(helpers.numberSeparatorOccurrences("The date is 2019/06/30.").length, 0);
 assert.equal(helpers.numberSeparatorOccurrences("Read https://example.gov/item/15000").length, 0);
+assert.equal(helpers.numberSeparatorOccurrences("Call #7277 on the Telus Mobility Network.").length, 0, "A hash-prefixed mobile shortcode is not a quantity");
+assert.equal(helpers.numberSeparatorOccurrences("The service received 7277 calls.").length, 1, "An ordinary unformatted number must still be checked");
 assert.equal(helpers.acronymContextExcluded("The meeting starts at 4:00 pm PT.", "The meeting starts at 4:00 pm PT.".indexOf("PT"), "PT"), true);
 assert.equal(helpers.acronymContextExcluded("The PT program is changing.", "The PT program is changing.".indexOf("PT"), "PT"), false);
+assert.equal(helpers.acronymContextExcluded("NOTE: apply before Friday.", 0, "NOTE"), true, "NOTE is emphasized wording rather than an acronym");
+
+assert.deepEqual(helpers.missingSpaceAfterSentencePunctuationOccurrences("The road is closed.Consult the engineer."), [{ text: ".C", index: 18, replacement: ". C" }]);
+assert.equal(helpers.missingSpaceAfterSentencePunctuationOccurrences("Services are available in B.C. Apply online.").length, 0);
+assert.equal(helpers.missingSpaceAfterSentencePunctuationOccurrences("Read https://Example.Gov/Apply before continuing.").length, 0);
+assert.equal(helpers.missingSpaceAfterSentencePunctuationOccurrences("Download the file.PDF version.").length, 0);
+assert.equal(helpers.missingSpaceAfterSentencePunctuationOccurrences("Email FLNREng.Branch@gov.bc.ca for assistance.").length, 0);
+assert.equal(helpers.missingSpaceAfterSentencePunctuationOccurrences("Email First.Last+Alerts@Gov.BC.CA for assistance.").length, 0);
+assert.equal(helpers.missingSpaceAfterSentencePunctuationOccurrences("Visit Services.Gov.BC.CA for information.").length, 0);
+assert.equal(helpers.missingSpaceAfterSentencePunctuationOccurrences("Download Report.Final.Docx before continuing.").length, 0);
+assert.equal(helpers.missingSpaceAfterSentencePunctuationOccurrences("Follow @BCGov.News for updates.").length, 0);
+assert.deepEqual(helpers.missingSpaceAfterSentencePunctuationOccurrences("Email FLNREng.Branch@gov.bc.ca for details.Consult the engineer."), [{ text: ".C", index: 42, replacement: ". C" }]);
+assert.deepEqual(helpers.missingSpaceAfterSentencePunctuationOccurrences("Email FLNREng.Branch@gov.bc.ca.Consult the engineer."), [{ text: ".C", index: 30, replacement: ". C" }]);
+assert.deepEqual(helpers.missingSpaceAfterSentencePunctuationOccurrences("Visit Services.Gov.BC.CA.Consult the guide."), [{ text: ".C", index: 24, replacement: ". C" }]);
+assert.deepEqual(helpers.missingSpaceAfterSentencePunctuationOccurrences("Download Report.Final.Docx.Open the file."), [{ text: ".O", index: 26, replacement: ". O" }]);
+assert.deepEqual(helpers.missingSpaceAfterSentencePunctuationOccurrences("The file is ready.Open it now."), [{ text: ".O", index: 17, replacement: ". O" }]);
+
+assert.equal(helpers.allCapsHeadingDetails("MULTI-USE LIST REQUEST FOR QUALIFICATIONS - GOODS").text, "MULTI-USE LIST REQUEST FOR QUALIFICATIONS - GOODS");
+assert.equal(helpers.allCapsHeadingDetails("BC SPCA"), null, "A short formal acronym heading must remain allowed");
+assert.equal(helpers.allCapsHeadingDetails("Contracting opportunities"), null);
 
 assert.equal(helpers.nonBreakingSpaceOccurrences("Apply\u00a0online today.").length, 1);
 assert.equal(helpers.nonBreakingSpaceOccurrences("Travel 30\u00a0km today.").length, 0, "A number and measurement unit may intentionally stay together");

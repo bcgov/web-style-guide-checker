@@ -33,18 +33,22 @@ const context = {
   closeCount: 0,
   persisted: 0,
   toast: "",
-  reviewHeadingScrollBlock: "",
+  findingScrollBlock: "",
+  confirmationScrollBlock: "",
+  hasConfirmation: false,
   findingFocusedWithoutScroll: false,
   elements: {
-    "guided-review-panel": {
-      querySelector: selector => selector === ".finding-review-heading" ? {
-        scrollIntoView: options => { context.reviewHeadingScrollBlock = options.block; }
-      } : null
-    },
     "guided-finding": {
-      querySelector: selector => selector === ".finding" ? {
-        focus: options => { context.findingFocusedWithoutScroll = options.preventScroll; }
-      } : null
+      querySelector: selector => {
+        if (selector === ".action-confirmation" && context.hasConfirmation) return {
+          scrollIntoView: options => { context.confirmationScrollBlock = options.block; }
+        };
+        if (selector === ".finding") return {
+          scrollIntoView: options => { context.findingScrollBlock = options.block; },
+          focus: options => { context.findingFocusedWithoutScroll = options.preventScroll; }
+        };
+        return null;
+      }
     }
   },
   guidedFindings: () => context.queue.filter(finding => !context.state.skippedFingerprints.has(finding.fingerprint)),
@@ -103,7 +107,12 @@ assert.match(context.toast, /They remain open/);
 assert.deepEqual(context.state.decisions, {}, "The final skipped issue type must also remain open");
 
 context.resetGuidedFindingPosition();
-assert.equal(context.reviewHeadingScrollBlock, "start", "Each newly displayed finding must place the review heading beneath the sticky tabs");
-assert.equal(context.findingFocusedWithoutScroll, true, "Keyboard focus must move to the newly displayed finding without undoing the heading alignment");
+assert.equal(context.findingScrollBlock, "start", "Each newly displayed finding must place its card beneath the sticky tabs");
+assert.equal(context.findingFocusedWithoutScroll, true, "Keyboard focus must move to the newly displayed finding without undoing the card alignment");
+
+context.hasConfirmation = true;
+context.resetGuidedFindingPosition();
+assert.equal(context.confirmationScrollBlock, "start", "A review confirmation must remain visible beneath the sticky tabs");
+assert.equal(context.findingFocusedWithoutScroll, true, "Showing a confirmation must retain keyboard focus on the finding");
 
 console.log("Review navigation tests passed");
