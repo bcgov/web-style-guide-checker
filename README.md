@@ -2,7 +2,7 @@
 
 The B.C. Web Style Guide Checker is a Chrome and Microsoft Edge extension that reviews webpages against selected requirements and recommendations in the B.C. Web Style Guide.
 
-Version 1.3.0 combines reliability fixes with conservative structural, readability and proofreading checks. It is designed to improve useful coverage without turning contextual editorial judgement into automatic fixes.
+Version 1.3.1 combines reliability fixes with conservative structural, readability and proofreading checks. It is designed to improve useful coverage without turning contextual editorial judgement into automatic fixes.
 
 The checker supports content review. It does not replace editorial, accessibility, legal, policy, service-design or user-research judgement.
 
@@ -44,7 +44,7 @@ Select the extension icon to open the checker in the browser side panel.
 4. Select **Review issues** or choose an issue type.
 5. Review each finding and record decisions as needed.
 
-The extension follows the current finding on the webpage during side-panel review and keeps that highlight visible until you move to another finding or leave the review. Turn off **Follow findings on page** when you want the page to remain still.
+The extension follows the current finding on the webpage during side-panel review and keeps that highlight visible until you move to another finding or leave the review.
 
 Use **Open full-page review** for a wider workspace. The larger workspace also contains batch scans and settings.
 

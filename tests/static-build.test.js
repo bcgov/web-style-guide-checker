@@ -8,8 +8,13 @@ const root = path.resolve(__dirname, "..");
 const read = name => fs.readFileSync(path.join(root, name), "utf8");
 
 const manifest = JSON.parse(read("manifest.json"));
+const packageManifest = JSON.parse(read("package.json"));
+const packageLock = JSON.parse(read("package-lock.json"));
 assert.equal(manifest.manifest_version, 3);
 assert.equal(manifest.version, "1.3.1");
+assert.equal(packageManifest.version, manifest.version, "Package and extension versions must match");
+assert.equal(packageLock.version, packageManifest.version, "Package-lock version must match package.json");
+assert.equal(packageLock.packages[""].version, packageManifest.version, "Root lockfile package version must match package.json");
 assert.ok(manifest.optional_host_permissions.includes("http://*/*"));
 assert.ok(manifest.optional_host_permissions.includes("https://*/*"));
 
@@ -33,6 +38,9 @@ const idSet = new Set(ids);
   "permission-revoke",
   "important-filter",
   "review-issues-button",
+  "review-skip-summary",
+  "restore-skipped-rules",
+  "finding-coverage",
   "review-back-button",
   "next-issue-type",
   "more-dialog",
@@ -44,11 +52,11 @@ const idSet = new Set(ids);
   "current-export-custom",
   "check-links-and-download-current",
   "copy-detailed-findings",
+  "current-export-confirmation",
   "batch-check-links",
   "batch-export-preset",
   "batch-export-custom",
   "sort-order",
-  "follow-page",
   "manual-review",
   "feedback-header-button",
   "feedback-view",
@@ -152,6 +160,10 @@ assert.match(script, /Promise\.all\(Array\.from\(\{ length: Math\.min\(4, links\
 assert.match(script, /function downloadWorkbook\(/, "Workbook export must be available");
 assert.match(script, /function pageReviewProfile\(/, "Exports must derive a page review profile from the findings");
 assert.match(script, /function findingDetailRows\(/, "Exports must retain individual finding rows");
+assert.match(script, /finding\.contrast\.signature/, "Contrast exports must group by their measured signature");
+const contrastDetails = (script.match(/function renderedContrastDetails\(finding\) \{([\s\S]*?)\n\}/) || [])[1] || "";
+assert.match(contrastDetails, /measured ·.*minimum/, "Contrast cards must retain the measured ratio and required minimum");
+assert.doesNotMatch(contrastDetails, /foreground|background|fontSize|fontWeight|displayState|Occurrence|section/, "Contrast cards must omit internal measurement and grouping details");
 assert.match(script, /function issueSummaryRows\(/, "Exports must provide a grouped issue summary");
 assert.match(script, /function batchWorkbookSheets\(/, "Batch exports must use the structured audit workbook model");
 assert.match(script, /function batchLinkPlan\(/, "Batch link checks must deduplicate destinations across scanned pages");
@@ -180,13 +192,20 @@ assert.doesNotMatch(currentPresetHtml, /value="standard"|value="summary"/, "Lega
 assert.doesNotMatch(html, /id="copy-button"|Copy issue summary/, "Single-page exports must not offer the low-value Copy issue summary action");
 assert.match(html, /id="download-current-action-csv" class="button tertiary"/, "Download findings CSV must be presented as a button");
 assert.match(script, /async function copyCurrentDetailedFindings\(/, "Detailed findings copy action must remain available");
+assert.match(html, /id="current-export-confirmation"[\s\S]*role="status"[\s\S]*aria-live="polite"/, "Copy confirmation must appear inside the export dialog's top layer");
+assert.match(script, /confirmation\.textContent = "Detailed findings copied\."[\s\S]*confirmation\.hidden = false/, "Detailed-findings copy must expose its confirmation inside the export dialog");
 assert.match(script, /const CURRENT_LINK_SENSITIVE_SHEETS = new Set\(\["Summary", "Issue summary", "Findings detail", "Page details", "Links"\]\)/, "Single-page exports must declare which sheets depend on link checking");
 assert.match(script, /status\.hidden = !needsLinkCheck/, "Link-check status must be hidden when selected workbook sheets do not use it");
 assert.doesNotMatch(html, /id="batch-export-findings"|id="current-export-findings"/, "Legacy checkbox-wall export controls must be removed");
 assert.match(script, /function groupedFindingTypes\(/, "Findings must be grouped into a flat issue-type overview");
 assert.match(script, /function openRuleGroup\(/, "Issue types must open in the focused review view");
 assert.match(script, /function jumpIssueType\(/, "Issue-type navigation must be available");
-assert.match(script, /items\.findIndex\(\(finding, index\) => index > state\.guidedIndex && finding\.ruleId !== current\.ruleId\)/, "Skipping must continue with the next issue type in the review sequence");
+assert.match(script, /function skipRemainingIssueType\(\)/, "Guided review must support skipping the remaining findings of one issue type");
+assert.match(script, /state\.skippedRuleIds\.add\(current\.ruleId\)/, "Skipping an issue type must use review-session state instead of changing finding decisions");
+assert.match(script, /state\.skippedFingerprints\.add\(finding\.fingerprint\)/, "Only the current and later findings of the selected type must be skipped");
+assert.match(script, /!state\.skippedFingerprints\.has\(finding\.fingerprint\)/, "Skipped findings must be removed only from the guided review queue");
+assert.match(script, /function restoreSkippedIssueTypes\(\)/, "Skipped issue types must be easy to include in the review again");
+assert.doesNotMatch(script, /function jumpIssueType\(amount\) \{\s*if \(elements\["sort-order"\]\.value === "page"\) return;/, "Issue-type skipping must also work in page-order review");
 assert.match(script, /function handleTablistKeys\(/, "Tab lists must support keyboard navigation");
 assert.match(script, /auditNotesV1/, "Audit notes must use local extension storage");
 assert.match(script, /feedbackNotesV1/, "Feedback notes must use local extension storage");
@@ -201,8 +220,15 @@ assert.match(script, /document\.body\.dataset\.surface = workspaceSurface/, "Pan
 const decisionFunction = script.match(/async function setDecision\([\s\S]*?\n\}/);
 assert.ok(decisionFunction, "Review decision handler must exist");
 assert.match(decisionFunction[0], /nextInGroup/, "Review decisions must advance to the next finding");
-assert.match(script, /Follow findings on page|follow-page/, "Guided review must expose automatic page following");
+assert.doesNotMatch(html, /Follow findings on page|id="follow-page"/, "Page following must be standard guided-review behaviour instead of an optional checkbox");
+assert.match(script, /if \(locate && !workspaceSurface && finding\.selector\)/, "Side-panel guided review must always follow a locatable finding");
+assert.match(html, /<\/div>\s*<div class="review-summary">\s*<div id="list-controls"/, "The findings summary must sit outside the sticky tab row");
+assert.match(script, /function resetGuidedFindingPosition\(\)[\s\S]*querySelector\("\.finding"\)[\s\S]*scrollIntoView\(\{ block: "start" \}\)/, "Finding navigation must place the finding card beneath the sticky tabs");
+assert.match(script, /function resetGuidedFindingPosition\(\)[\s\S]*querySelector\("\.action-confirmation"\)[\s\S]*\(confirmation \|\| finding\)\.scrollIntoView/, "Review confirmations must take scroll priority over the next finding");
 assert.match(script, /highlightSelector\(\s*findingSelectors\(finding\),\s*true,\s*false,\s*finding\.editorSource \|\| null,\s*Number\(finding\.editorRegion\) \|\| null\s*\)/, "Automatic page following must preserve the CMS Lite editor source and region without activating another tab");
+const editorExcludedRules = (script.match(/const editorExcludedRules = new Set\(\[([\s\S]*?)\]\);/) || [])[1] || "";
+assert.doesNotMatch(editorExcludedRules, /undefined-acronym/, "CMS Lite editor aggregation must retain undefined-acronym findings");
+assert.match(script, /editorAcronymFindingIncluded\([\s\S]*earlierEditorTexts[\s\S]*seenEditorAcronyms/, "CMS Lite editor aggregation must reconcile definitions and first use across fields");
 assert.match(script, /elements\["manual-review"\]\.hidden = section !== "overview"/, "The manual checklist must appear only on the Page details overview");
 assert.match(script, /elements\["sort-order"\]\.value === "page"/, "Findings must support page-order sorting");
 assert.match(script, /continueAfterAllowedTerm/, "Allowed terms must rebase the active review queue");
@@ -214,7 +240,7 @@ assert.match(script, /state\.guidedIndex === 0/, "Previous must remain available
 assert.match(script, /chrome\.permissions\.request\(\{ origins \}\)/, "Link checking must request access to linked sites");
 assert.match(script, /state:\s*"permission-denied"/, "Declined link access must be reported clearly");
 assert.match(script, /savedExceptions\.filter/, "Unsafe saved exceptions must be removed during migration");
-assert.match(script, /classList\.toggle\("is-placeholder", hideIssueTypeShortcut\)/, "Finding navigation must retain its layout when the issue-type shortcut is unavailable");
+assert.match(script, /elements\["next-issue-type"\]\.textContent = "Skip remaining findings of this type"/, "Guided review must keep the skip-type action available in either review order");
 assert.doesNotMatch(script, /<summary>More actions<\/summary>/, "Exact-term actions must remain visible");
 assert.match(script, /"Finding ID", "Page", "Page URL", "Where on the page"/, "Detailed finding exports must retain individual evidence and location");
 assert.match(script, /"Issue", "Area", "Category", "Review level", "Status", "Findings"/, "Issue summaries must use plain-language grouped columns");
@@ -245,7 +271,17 @@ const findingDetailHeader = (script.match(/const FINDING_DETAIL_HEADER = \[([\s\
 assert.doesNotMatch(findingDetailHeader, /Who can fix it|Page order/, "Findings detail must not expose internal page order or low-value ownership columns");
 
 const core = read("checker-core.js");
-assert.match(core, /const RULE_VERSION = "1\.3\.0"/);
+assert.match(core, /contrastTextRegions\(doc, root, inScanArea\)/, "Contrast must inspect rendered text regions without a candidate cutoff");
+assert.doesNotMatch(core, /contrastSeen/, "Contrast must not discard repeated colours on different elements");
+assert.match(core, /channel <= 0\.04045/, "Contrast must use the current WCAG relative-luminance breakpoint");
+assert.match(core, /if \(ratio < required\)/, "Contrast thresholds must not use a rounding tolerance");
+assert.match(core, /"contrast-unverified"/, "Unmeasurable rendered backgrounds need a separate review finding");
+assert.match(core, /Colour contrast in other states/, "Non-text and alternate-state contrast must remain a distinct manual check");
+assert.match(core, /const RULE_VERSION = "1\.3\.1"/);
+assert.match(core, /const PER_RULE_FINDING_LIMIT = 500;/, "One issue type must retain up to 500 findings before a safety limit applies");
+assert.doesNotMatch(core, /perRuleLimit = 25|PER_RULE_FINDING_LIMIT = 25/, "The former silent 25-finding cap must not return");
+assert.match(core, /findingLimits:[\s\S]*truncatedRules/, "Reports must identify every issue type affected by the safety limit");
+assert.match(script, /findingCoverageText\(report\)/, "The interface and exports must explain finding completeness");
 assert.match(core, /‘BC’ by itself cannot be allowed/, "Bare BC must be rejected as an allowed term");
 assert.match(core, /function isCmsLiteTemplateImage\(/, "CMS Lite template images must be identifiable");
 assert.match(core, /pageOrder:/, "Findings must retain document order");
@@ -270,6 +306,7 @@ assert.doesNotMatch(script, /[\u00C2\u00E2\u00C3]/, "Side panel source must not 
   "file-link-label-format",
   "link-trailing-space",
   "missing-space-after-ampersand",
+  "missing-space-after-punctuation",
   "bold-link",
   "all-caps",
   "at-symbol",
@@ -293,10 +330,29 @@ assert.match(core, /instanceId:/, "Saved reports must retain the source document
 assert.doesNotMatch(core, /\["accommodation",|\["individual",|\["request",/, "Context-sensitive words must not use unconditional simple-word replacements");
 assert.match(core, /SIMPLE_PHRASE_VARIANTS/, "Inflected guide terms must use controlled variants instead of a generic stemmer");
 assert.match(core, /\["assistance",\s*"help"\]/, "The guide's assistance → help entry must be included");
-assert.match(core, /\["administer",\s*"do"\]/, "The guide's administer → do entry must be included");
+assert.match(core, /\["administer",\s*"manage"\]/, "Administer must use a context-preserving alternative");
+assert.match(core, /SIMPLE_PHRASE_REPLACEMENTS[\s\S]*\["administered", "managed"\]/, "Controlled complex-phrase replacements must preserve verb tense");
+assert.match(core, /"#cmf-ui-page-navigation"/, "CMS Lite template page navigation must be excluded from authored-content checks");
+assert.doesNotMatch(core, /The final semicolon is also unnecessary sentence punctuation|The content looks like a list on screen but is not marked up as a semantic list|Browsers normally collapse consecutive spaces on screen|This marker represents a single non-breaking space in the published source/, "Finding cards must not repeat explanations already supplied by the rule and evidence");
+assert.match(script, /const markerOnlyMatch = new Set\(\["double-space", "non-breaking-space", "link-trailing-space", "semicolon"\]\)/, "Evidence markers must not be repeated in a separate flagged-wording callout");
 ["main-landmark", "skip-link-target", "disclosure-state", "broken-image", "staging-url"].forEach(rule => assert.match(core, new RegExp(`"${rule}"`), `Missing structural rule: ${rule}`));
 
 const css = read("sidepanel.css");
+assert.match(css, /@media \(max-width: 520px\) \{[\s\S]*body\[data-surface="panel"\] \{[\s\S]*--app-header-height: 38px/, "Narrow panels must use the compact header height");
+assert.match(css, /body\[data-surface="panel"\] \.app-identity strong,[\s\S]*body\[data-surface="panel"\] #scope-heading \{[\s\S]*clip: rect\(0, 0, 0, 0\)/, "Duplicated narrow-panel headings must remain available to assistive technology");
+assert.match(css, /body\[data-surface="panel"\] \.finding,[\s\S]*body\[data-surface="panel"\] \.action-confirmation \{[^}]*scroll-margin-top: calc\(var\(--app-header-height\) \+ 39px\)/, "Narrow-panel findings and confirmations must clear the compact tabs and their border");
+assert.match(css, /body\[data-surface="panel"\] \.finding-top \{[^}]*display: flex/, "Narrow-panel review labels must remain beside the finding title");
+assert.match(css, /body\[data-surface="panel"\] \.badges \{[^}]*margin-top: 0/, "Narrow-panel review labels must not consume a separate row");
+const narrowSectionControl = (css.match(/body\[data-surface="panel"\] \.section-scan-control \{([^}]*)\}/) || [])[1] || "";
+assert.doesNotMatch(narrowSectionControl, /flex-direction:\s*row/, "The narrow-panel compact layout must preserve the stacked section control below 391px");
+assert.match(css, /\.review-sticky \{[^}]*position: sticky/, "The Findings and Page details tabs must remain sticky");
+assert.match(css, /\.review-sticky \{[^}]*background: var\(--white\)/, "Sticky review tabs must fully cover content that scrolls underneath");
+assert.match(css, /\.review-summary \{[^}]*background:[^}]*border-bottom:/, "The findings summary must remain a normal scrolling row");
+assert.doesNotMatch(css, /\.review-summary \{[^}]*(?:position:\s*sticky|position:\s*fixed)/, "The findings summary must not be sticky");
+assert.match(css, /\.finding-review-heading \{[^}]*position: static/, "The All findings and review-progress row must scroll with ordinary content");
+assert.doesNotMatch(css, /\.finding-review-heading \{[^}]*(?:position:\s*sticky|position:\s*fixed)/, "The review-progress row must not remain pinned");
+assert.match(css, /\.finding, \.action-confirmation \{[^}]*scroll-margin-top: calc\(var\(--app-header-height\) \+ 44px\)/, "Side-panel findings and confirmations must clear the app header and sticky tabs");
+assert.match(css, /body\[data-surface="workspace"\] \.finding,[\s\S]*body\[data-surface="workspace"\] \.action-confirmation \{[^}]*scroll-margin-top: calc\(var\(--app-header-height\) \+ 92px\)/, "Workspace review navigation must also clear its mode tabs");
 assert.match(css, /@font-face\s*\{[\s\S]*BC Sans/);
 assert.match(css, /--navy:\s*#013366/i);
 assert.match(css, /--gold:\s*#fcba19/i);

@@ -63,7 +63,8 @@ const cmsLink = helpers.prepareRemoteLink(
 assert.equal(cmsLink.cmsLiteEditorLink, true);
 assert.equal(cmsLink.sessionAware, true);
 assert.equal(cmsLink.signInRequired, false);
-assert.deepEqual(Array.from(helpers.permissionOriginsForRemoteUrl("http://www.clicklaw.bc.ca/page")), ["http://www.clicklaw.bc.ca/*", "https://www.clicklaw.bc.ca/*"]);
+assert.deepEqual(Array.from(helpers.permissionOriginsForRemoteUrl("http://www.clicklaw.bc.ca/page")), ["http://www.clicklaw.bc.ca/*", "https://www.clicklaw.bc.ca/*", "https://clicklaw.bc.ca/*"]);
+assert.deepEqual(Array.from(helpers.permissionOriginsForRemoteUrl("https://www.choa.bc.ca/")), ["https://www.choa.bc.ca/*", "https://choa.bc.ca/*"], "The initial permission prompt must include a common www-to-apex HTTPS redirect");
 
 const deduped = helpers.remoteLinksForReport({
   page: { url: "https://www2.qa.gov.bc.ca/source" },

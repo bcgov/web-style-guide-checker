@@ -68,17 +68,45 @@ function has(report, ruleId) {
   assert.equal(has(report, "time-zone"), true);
   report = await scan(page, "<p>The meeting starts at 9 am NT.</p>");
   assert.equal(has(report, "province-abbreviation"), false);
+  report = await scan(page, "<p>The meeting starts at 4:00 pm PT.</p>");
+  assert.equal(has(report, "time-format"), true, "A whole-hour time must still be corrected when it is followed by PT");
+  assert.equal(report.issues.some(issue => issue.ruleId === "undefined-acronym" && issue.flaggedToken === "PT"), false, "PT after a clock time is a time zone, not an undefined acronym");
+  report = await scan(page, "<p>The meeting starts at 4 pm PT.</p>");
+  assert.equal(has(report, "time-format"), false, "A correctly formatted whole-hour time with PT must remain valid");
+  assert.equal(report.issues.some(issue => issue.ruleId === "undefined-acronym" && issue.flaggedToken === "PT"), false);
+  report = await scan(page, "<p>The PT program is changing.</p>");
+  assert.equal(report.issues.some(issue => issue.ruleId === "undefined-acronym" && issue.flaggedToken === "PT"), true, "PT outside a clock-time context must still be checked");
   report = await scan(page, "<p>People in NB can apply.</p>");
   assert.equal(has(report, "province-abbreviation"), true);
+  report = await scan(page, "<p>Mail the form to Victoria, BC V8W 9M8.</p>");
+  assert.equal(has(report, "bc-abbreviation"), false, "BC in a Canadian postal address must not be rewritten");
+  report = await scan(page, "<p>People in BC can apply.</p>");
+  assert.equal(has(report, "bc-abbreviation"), true, "BC outside a postal or approved-name context must still be checked");
 
   report = await scan(page, "<p>The fee is $0.75.</p>");
   assert.equal(has(report, "currency-cents"), true);
   report = await scan(page, "<p>The fee is $75.00.</p>");
   assert.equal(has(report, "currency-trailing-zeros"), true);
+  report = await scan(page, "<p>The fee is $1,000.00.</p>");
+  assert.equal(has(report, "currency-trailing-zeros"), true, "Comma-formatted monetary amounts must still be checked for unnecessary .00");
+  assert.equal(has(report, "currency-comma"), false);
+  report = await scan(page, "<p>The fee is $1,000.50.</p>");
+  assert.equal(has(report, "currency-trailing-zeros"), false, "A non-zero decimal amount must retain its precision");
   report = await scan(page, "<p>The grant is $15000.</p>");
   assert.equal(has(report, "currency-comma"), true);
+  assert.equal(has(report, "number-comma"), false, "A monetary amount must not also receive the ordinary-number finding");
   report = await scan(page, "<p>Funding ranges from $200-$400.</p>");
   assert.equal(has(report, "currency-range"), true);
+
+  report = await scan(page, "<p>The program received 15000 applications.</p>");
+  assert.equal(has(report, "number-comma"), true);
+  assert.equal(report.issues.find(issue => issue.ruleId === "number-comma").replacement, "15,000");
+  report = await scan(page, "<p>The year is 2026.</p>");
+  assert.equal(has(report, "number-comma"), false, "A 4-digit year must not be treated as an ordinary number");
+  report = await scan(page, "<p>Reference ID 15000</p>");
+  assert.equal(has(report, "number-comma"), false, "A labelled identifier must not receive thousands separators");
+  report = await scan(page, "<p>Call #7277 on the Telus Mobility Network.</p>");
+  assert.equal(has(report, "number-comma"), false, "A hash-prefixed mobile shortcode must not receive thousands separators");
 
   report = await scan(page, "<p>The route is 100kms long.</p>");
   assert.equal(has(report, "metric-plural"), true);
@@ -116,8 +144,21 @@ function has(report, ruleId) {
 
   report = await scan(page, "<p>The event is on 2026-08-24.</p>");
   assert.equal(has(report, "numeric-date"), true);
+  report = await scan(page, "<p>The event was held on 2019/06/30.</p>");
+  assert.equal(has(report, "numeric-date"), true, "A year/month/day date with slashes must be written out in body content");
+  assert.equal(has(report, "number-comma"), false, "A numeric date must not also receive a thousands-separator finding");
   report = await scan(page, "<table><tr><th>Date</th></tr><tr><td>2026-08-24</td></tr></table>");
   assert.equal(has(report, "numeric-date"), false);
+  report = await scan(page, "<p>The event is on June 15, 201.</p>");
+  assert.equal(has(report, "incomplete-year"), true);
+  report = await scan(page, "<p>The event is on June 15, 2019.</p>");
+  assert.equal(has(report, "incomplete-year"), false, "A complete 4-digit year must remain valid");
+  report = await scan(page, "<p>The event is on January 18<sup>th</sup>, 2003.</p>");
+  assert.equal(has(report, "ordinal-date"), true, "A superscript date ordinal must still receive the date correction");
+  report = await scan(page, "<p>This is the 1<sup>st</sup> step.</p>");
+  assert.equal(has(report, "ordinal-word"), true, "A superscript ordinal under 10 must still be written as a word");
+  report = await scan(page, "<p>This is the 21<sup>st</sup> application.</p>");
+  assert.equal(has(report, "ordinal-superscript"), true, "Larger ordinal endings must not be superscripted");
   report = await scan(page, "<p>The meeting begins at 9am.</p>");
   assert.equal(has(report, "time-format"), true);
 
@@ -125,6 +166,8 @@ function has(report, ruleId) {
   assert.equal(has(report, "list-introduction"), true);
   report = await scan(page, "<p>Choose a service:</p><ul><li>Apply online</li><li>Call the office</li></ul>");
   assert.equal(has(report, "list-introduction"), false);
+  report = await scan(page, "<p>Learn about construction services</p><ul><li><a href='/construction'>Construction and rehabilitation contracting</a></li></ul>");
+  assert.equal(has(report, "list-introduction"), false, "A one-item list must not create a colon finding");
   report = await scan(page, `<p>Write content that is easy to understand by focusing on grammar, spelling and tone.</p>
     <div class="on-this-page-wrapper"><div data-component="heading"><h2>On this page</h2></div><div data-component="links"><ul>
       <li><a href="#grammar">Grammar</a></li><li><a href="#spelling">Spelling and word choice</a></li><li><a href="#tone">Tone</a></li>
@@ -141,6 +184,12 @@ function has(report, ruleId) {
   assert.equal(has(report, "list-multiple-sentences"), true, "An uppercase sentence after a corporate suffix must still be recognized when the item continues as prose");
   report = await scan(page, "<ul><li>Acme Inc. provides local services.</li></ul>");
   assert.equal(has(report, "list-multiple-sentences"), false, "A corporate suffix inside an ordinary sentence must not create a false boundary");
+  report = await scan(page, "<ul><li>1.3.1 Info and relationships – level A</li></ul>");
+  assert.equal(has(report, "list-multiple-sentences"), false, "A dotted version number must not create extra sentences");
+  report = await scan(page, "<ul><li>314 Cedar St.</li></ul>");
+  assert.equal(has(report, "list-punctuation"), false, "A street abbreviation must not be treated as removable list punctuation");
+  report = await scan(page, "<ul><li>Apply before Friday.</li></ul>");
+  assert.equal(has(report, "list-punctuation"), true, "Ordinary terminal sentence punctuation must still be reported");
 
   report = await scan(page, "<p>Therefore, applicants must provide documentation.</p>");
   assert.equal(has(report, "formal-sentence-starter"), true);
@@ -157,9 +206,39 @@ function has(report, ruleId) {
   for (const wording of ["given consideration to", "utilized", "individuals", "disbursed", "established", "administered", "assistance"]) {
     assert.equal(report.issues.some(issue => issue.ruleId === "complex-phrase" && issue.matchText && issue.matchText.toLowerCase() === wording), true, `Expected complex-phrase for: ${wording}`);
   }
+  assert.equal(report.issues.find(issue => issue.ruleId === "complex-phrase" && issue.matchText.toLowerCase() === "administered").replacement, "managed", "The controlled replacement must preserve the matched verb tense");
   const repeatedSimpleTerms = Array.from({ length: 30 }, (_, index) => `<p>Approximately ${index + 1} applications were received.</p>`).join("");
   report = await scan(page, `${repeatedSimpleTerms}<p>The program was administered by another ministry.</p>`);
-  assert.equal(report.issues.some(issue => issue.ruleId === "complex-phrase" && issue.matchText && issue.matchText.toLowerCase() === "administered"), true, "A distinct guide term must not disappear behind the per-rule repetition cap");
+  assert.equal(report.issues.some(issue => issue.ruleId === "complex-phrase" && issue.matchText && issue.matchText.toLowerCase() === "administered"), true, "A distinct guide term must remain available in a repetitive rule group");
+
+  const passiveFindings = async count => {
+    const content = Array.from({ length: count }, () => "<p>The request was approved.</p>").join("");
+    const result = await scan(page, content);
+    return {
+      report: result,
+      count: result.issues.filter(issue => issue.ruleId === "passive-voice").reduce((total, issue) => total + (issue.occurrenceCount || 1), 0)
+    };
+  };
+  for (const count of [25, 26, 83, 500]) {
+    const boundary = await passiveFindings(count);
+    assert.equal(boundary.count, count, `${count} findings of one type must remain available`);
+    assert.equal(boundary.report.findingLimits.complete, true, `${count} findings must not trigger the 500-finding safety limit`);
+  }
+  const overLimit = await passiveFindings(501);
+  assert.equal(overLimit.count, 500, "The report must retain 500 actionable findings for one issue type");
+  assert.equal(overLimit.report.totals["passive-voice"], 501, "The report must preserve the detected total beyond the safety limit");
+  assert.deepEqual(overLimit.report.findingLimits.truncatedRules.find(item => item.ruleId === "passive-voice"), {
+    ruleId: "passive-voice",
+    title: "Check for passive voice",
+    severity: "review",
+    category: "Plain language",
+    detected: 501,
+    retained: 500,
+    omitted: 1,
+    detectedOpen: 501,
+    retainedOpen: 500,
+    omittedOpen: 1
+  });
 
   report = await scan(page, "<h2>1. Executive summary</h2><ul><li>Follow any of B.C.'s fire prohibitions and restrictions</li><li>Read B.C.'s campfire regulations (PDF, 1.7MB) poster</li></ul>");
   assert.equal(has(report, "heading-title-case"), false);
@@ -169,16 +248,83 @@ function has(report, ruleId) {
   ["NOTE", "EMCR", "PM", "US", "THIS"].forEach(token => {
     assert.equal(report.issues.some(issue => ["undefined-acronym", "acronym-in-heading"].includes(issue.ruleId) && issue.flaggedToken === token), false);
   });
+  assert.equal(report.issues.some(issue => issue.ruleId === "all-caps" && issue.matchText === "NOTE"), true, "NOTE must be treated as all-caps emphasis rather than an acronym");
+
+  report = await scan(page, '<h2>MULTI-USE LIST REQUEST FOR QUALIFICATIONS - GOODS</h2><p>Details.</p>');
+  assert.equal(report.issues.some(issue => issue.ruleId === "all-caps" && /MULTI-USE LIST REQUEST/.test(issue.matchText)), true, "A multiword all-caps heading must be reported independently of its dash");
+  assert.equal(has(report, "heading-dash"), true, "The heading dash finding must remain available alongside all caps");
 
   report = await scan(page, '<p><a href="tel:+18442275422">1-844-227-5422</a> <a href="tel:911">9-1-1</a> <a href="tel:18442275422">1-844-227-5422</a></p>');
   assert.equal(report.issues.filter(issue => issue.ruleId === "phone-link-format").length, 1);
   assert.match(report.issues.find(issue => issue.ruleId === "phone-link-format").evidence, /tel:18442275422/);
 
   report = await scan(page, '<p><a class="btn btn-primary" href="#destination">Search interactive map </a> <a href="#destination">Regular text link </a></p><h2 id="destination">Destination</h2>');
-  assert.equal(report.issues.filter(issue => issue.ruleId === "link-trailing-space").length, 1);
+  assert.equal(report.issues.filter(issue => issue.ruleId === "link-trailing-space").length, 0, "Collapsed source spaces must not be reported when they do not enlarge the visible link");
+  report = await scan(page, '<p><a href="#destination"><span>Regular text link&nbsp;</span></a></p><h2 id="destination">Destination</h2>');
+  assert.equal(report.issues.filter(issue => issue.ruleId === "link-trailing-space").length, 1, "A nested trailing non-breaking space that enlarges the link must be reported");
+  report = await scan(page, '<p><a class="link-with-arrow" href="/safety"><span>BC Forest Safety Council</span><span class="space">&nbsp;</span><svg id="Arrow_right"></svg></a></p>');
+  assert.equal(has(report, "link-trailing-space"), false, "A template spacer before the related-link arrow must not be attributed to the author");
+
+  report = await scan(page, '<p>Contact <a>service.help@gov.bc.ca</a> for support.</p>');
+  assert.equal(report.issues.filter(issue => issue.ruleId === "email-link-missing").length, 1, "Email text inside an anchor without a destination must be reported");
+  report = await scan(page, '<p>Contact <a href="mailto:service.help@gov.bc.ca">service.help@gov.bc.ca</a> for support.</p>');
+  assert.equal(has(report, "email-link-missing"), false);
+
+  report = await scan(page, '<p style="text-align:justify">This paragraph is justified across the available line width.</p>');
+  assert.equal(has(report, "text-alignment"), true, "Justified body text must receive the left-alignment finding");
+  report = await scan(page, '<p style="text-align:justify">This CMS Lite paragraph is justified.</p>', { profile: "cms-lite" });
+  assert.equal(has(report, "text-alignment"), true, "Authored alignment must also be checked in CMS Lite content");
+
+  report = await scan(page, '<p>Apply&nbsp;online today.</p><p>Travel 30&nbsp;km before 4&nbsp;pm.</p>');
+  assert.equal(report.issues.filter(issue => issue.ruleId === "non-breaking-space").length, 1, "Only the contextually suspicious non-breaking space should be reviewed");
+  assert.deepEqual(report.issues.find(issue => issue.ruleId === "non-breaking-space").diagnostics, [], "The evidence marker already explains the non-breaking-space location");
+
+  report = await scan(page, '<p>The road configuration is documented here.Consult with the ministry professional engineer before implementation.</p>');
+  const missingSentenceSpace = report.issues.find(issue => issue.ruleId === "missing-space-after-punctuation");
+  assert.ok(missingSentenceSpace, "A missing space between adjacent sentences must be detected");
+  assert.equal(missingSentenceSpace.matchText, ".C");
+  assert.equal(has(report, "complex-phrase"), false);
+
+  report = await scan(page, '<p>Contact FLNREng.Branch@gov.bc.ca for information.</p>');
+  assert.equal(has(report, "missing-space-after-punctuation"), false, "Periods inside an email address must not be treated as sentence boundaries");
+
+  report = await scan(page, '<p>Visit Services.Gov.BC.CA or download Report.Final.Docx.</p><p>Use <code>Config.ComponentName</code> in the example.</p><p><a href="https://example.museum">Example.Museum</a></p>');
+  assert.equal(has(report, "missing-space-after-punctuation"), false, "Domains, filenames, linked technical tokens and marked-up technical identifiers must remain outside sentence-spacing checks");
+
+  report = await scan(page, '<p><a href="/instructions">Read this.Open it before continuing</a></p>');
+  assert.equal(has(report, "missing-space-after-punctuation"), true, "A linked sentence must still be checked when its text is not a single technical token");
+
+  report = await scan(page, `<p>${"Introductory material ".repeat(14)}The approach improves efficiency; however, each impact still needs review.</p>`);
+  const semicolonFinding = report.issues.find(issue => issue.ruleId === "semicolon");
+  assert.ok(semicolonFinding);
+  assert.equal(semicolonFinding.evidence.slice(semicolonFinding.evidenceMatchIndex, semicolonFinding.evidenceMatchIndex + 1), ";", "The evidence excerpt must contain and highlight the semicolon");
 
   report = await scan(page, '<p>• Plan ahead and prepare • Take only photos • Control your pets</p><p>- first you get the form<br>- then you fill it out<br>- then you send it in</p>');
   assert.equal(report.issues.filter(issue => issue.ruleId === "fake-list").length, 2);
+  assert.equal(report.issues.filter(issue => issue.ruleId === "fake-list").every(issue => issue.diagnostics.length === 0), true, "The finding explanation and action already describe the semantic-list mismatch");
+  report = await scan(page, '<p>a. the monthly strata fees payable by the owner<br>b. any amount the owner owes the strata corporation<br>c. any approved special levy due in the future</p>');
+  assert.equal(report.issues.filter(issue => issue.ruleId === "fake-list").length, 1, "Sequential lettered plain-text items must be recognized");
+  report = await scan(page, '<p>1. Submit the application<br>2. Pay the required fee<br>3. Keep the confirmation</p>');
+  assert.equal(report.issues.filter(issue => issue.ruleId === "fake-list").length, 1, "Sequential numbered plain-text items must be recognized");
+  report = await scan(page, '<p>1. Submit the application<br>3. Pay the required fee<br>5. Keep the confirmation</p>');
+  assert.equal(has(report, "fake-list"), false, "Non-sequential references must not be treated as a plain-text list");
+  report = await scan(page, '<p>Version 1.3.1 includes three corrections.</p>');
+  assert.equal(has(report, "fake-list"), false, "A dotted version number must not be treated as a numbered list");
+  report = await scan(page, '<ul><li>Documents may include:<br>- alteration agreements<br>- approved resolutions<br>- outstanding work orders</li></ul>');
+  assert.equal(report.issues.filter(issue => issue.ruleId === "fake-list").length, 1, "A typed sublist inside a semantic list item must be recognized");
+  report = await scan(page, '<ul><li>Documents may include:<ul><li>Alteration agreements</li><li>Approved resolutions</li><li>Outstanding work orders</li></ul></li></ul>');
+  assert.equal(has(report, "fake-list"), false, "A real semantic sublist must not be treated as a fake list");
+
+  report = await scan(page, '<ul><li>Ministry departments</li><li>Other public bodies</li></ul>');
+  assert.equal(report.issues.some(issue => issue.ruleId === "government-generic-term" && issue.flaggedToken === "Ministry departments"), false, "A generic government term may be capitalized at the start of a list item");
+  report = await scan(page, '<p>Contact the Ministry departments before applying.</p>');
+  assert.equal(report.issues.some(issue => issue.ruleId === "government-generic-term" && issue.flaggedToken === "Ministry departments"), true, "A mid-sentence generic government term must still be checked");
+
+  report = await scan(page, '<ul><li>First item;</li><li>Second item</li></ul>');
+  assert.deepEqual(report.issues.find(issue => issue.ruleId === "list-punctuation").diagnostics, [], "List punctuation does not need a duplicate semicolon explanation");
+
+  report = await scan(page, '<p>First sentence.  Second sentence.</p>');
+  assert.deepEqual(report.issues.find(issue => issue.ruleId === "double-space").diagnostics, [], "The double-space evidence marker is sufficient");
 
   report = await scan(page, '<img src="one.png" alt="image"><a href="/apply"><img src="two.png" alt="photo"></a>');
   assert.equal(report.issues.filter(issue => issue.ruleId === "image-alt-meaningless").length, 1);
@@ -338,8 +484,11 @@ function has(report, ruleId) {
   report = await scan(page, "<ul><li><a href='/old-handout.pdf' target='_blank'></a><a href='/current-form.pdf'>Notice of Complaint Form (PDF, 142KB)</a></li></ul>");
   assert.equal(report.issues.filter(issue => issue.ruleId === "empty-link").length, 1, "A different-destination invisible anchor is a real empty link");
   assert.match(report.issues.find(issue => issue.ruleId === "empty-link").evidence, /Invisible link points to:/);
-  assert.equal(report.issues.some(issue => ["file-link-label", "file-link-type", "file-link-size", "file-link-label-format", "file-link-size-spacing", "new-tab"].includes(issue.ruleId) && /old-handout/.test(issue.evidence)), false, "Empty links must suppress secondary link-text and file-label findings");
+  assert.equal(report.issues.some(issue => ["file-link-label", "file-link-type", "file-link-size", "file-link-label-format", "file-link-size-format", "file-link-size-spacing", "new-tab"].includes(issue.ruleId) && /old-handout/.test(issue.evidence)), false, "Empty links must suppress secondary link-text and file-label findings");
   assert.equal(report.assets.some(asset => /old-handout\.pdf/.test(asset.href)), true, "An empty document link should remain in the asset inventory");
+  report = await scan(page, "<p><a href='/guide.pdf'>Application guide (PDF, 1.MB)</a></p>");
+  assert.equal(has(report, "file-link-size-format"), true, "An incomplete decimal file size must receive the specific size-format finding");
+  assert.equal(has(report, "file-link-size"), false, "A malformed size must not be reported as missing");
   report = await scan(page, "<p><a href='#one'>One</a><a href='#two'>Two</a></p><h2 id='one'>One</h2><p>Text.</p><h2 id='two'>Two</h2><p>Text.</p>");
   assert.equal(has(report, "split-link"), false);
   report = await scan(page, "<p><a class='btn btn-primary' href='/apply'>Apply</a><a class='btn btn-primary' href='/apply'>Apply now</a></p>");
@@ -383,6 +532,50 @@ function has(report, ruleId) {
   assert.equal(has(report, "moved-page-notice"), true, "An old explicit moved-page notice should be surfaced for review");
   report = await scan(page, "<p>Last updated on January 1, 2020</p><p>Find the current service on another page.</p>");
   assert.equal(has(report, "moved-page-notice"), false, "Ordinary links to other pages must not trigger the moved-page heuristic");
+
+  report = await scan(page, `<style>.low-contrast { color: #777; }</style>
+    <p class="low-contrast">First affected paragraph</p><p class="low-contrast">Second affected paragraph</p>
+    <p class="low-contrast">Third affected paragraph</p><p class="low-contrast">Fourth affected paragraph</p>`, { canControlColour: true });
+  const repeatedContrast = report.issues.filter(issue => issue.ruleId === "contrast");
+  assert.equal(repeatedContrast.length, 4, "Every low-contrast element sharing a CSS class must be retained");
+  assert.equal(new Set(repeatedContrast.map(issue => issue.selector)).size, 4, "Repeated contrast findings must preserve every location");
+  assert.equal(new Set(repeatedContrast.map(issue => issue.contrast.signature)).size, 1, "Equivalent colours may share a review signature without losing occurrences");
+
+  const passingContrastCandidates = Array.from({ length: 500 }, (_, index) => `<p id="passing-${index}" style="color:#000">Passing candidate ${index}</p>`).join("");
+  report = await scan(page, `${passingContrastCandidates}<p id="after-old-cutoff" style="color:#777">Affected after the old cutoff</p>`, { canControlColour: true });
+  assert.equal(report.issues.some(issue => issue.ruleId === "contrast" && issue.selector === "#after-old-cutoff"), true, "A failing region after 500 passing candidates must still be checked");
+
+  report = await scan(page, `<p id="outer" style="color:#777">Outside text <a id="inner" href="#" style="color:#777">linked text</a></p>`, { canControlColour: true });
+  assert.equal(report.issues.filter(issue => issue.ruleId === "contrast").length, 2, "Different connected text regions must be separate occurrences");
+  assert.deepEqual(report.issues.filter(issue => issue.ruleId === "contrast").map(issue => issue.selector).sort(), ["#inner", "#outer"]);
+  report = await scan(page, `<p><a id="only-region" href="#" style="color:#777">Only linked text</a></p>`, { canControlColour: true });
+  assert.equal(report.issues.filter(issue => issue.ruleId === "contrast").length, 1, "A parent with no direct text must not duplicate its child text finding");
+
+  report = await scan(page, `<p style="color:#777;font-size:24px">Large text can use the 3:1 threshold</p><p style="color:#777">Normal text needs 4.5:1</p>`, { canControlColour: true });
+  assert.equal(report.issues.filter(issue => issue.ruleId === "contrast").length, 1, "Large and normal text thresholds must remain distinct");
+  assert.equal(report.issues.find(issue => issue.ruleId === "contrast").contrast.required, 4.5);
+
+  report = await scan(page, `<style>input::placeholder { color: #aaa; opacity: 1; }</style><input id="email" placeholder="Email address">`, { canControlColour: true });
+  const placeholderContrast = report.issues.find(issue => issue.ruleId === "contrast" && issue.selector === "#email");
+  assert.ok(placeholderContrast, "Visible placeholder text must be checked");
+  assert.equal(placeholderContrast.contrast.displayState, "::placeholder");
+
+  report = await scan(page, `<button disabled style="color:#ddd;background:#fff">Unavailable</button><div role="img" aria-label="Example logo" style="color:#ddd">Example logo</div>`, { canControlColour: true });
+  assert.equal(has(report, "contrast"), false, "Inactive controls and logotypes are WCAG contrast exceptions");
+  assert.equal(has(report, "contrast-unverified"), false);
+
+  report = await scan(page, `<div style="background:linear-gradient(#fff,#000)"><p id="gradient-text" style="color:#777">Text over a gradient</p></div>`, { canControlColour: true });
+  const gradientContrast = report.issues.find(issue => issue.ruleId === "contrast-unverified" && issue.selector === "#gradient-text");
+  assert.ok(gradientContrast, "Gradient backgrounds must produce a manual verification finding instead of being skipped");
+  assert.match(gradientContrast.contrast.reason, /gradient background/);
+  assert.equal(report.issues.some(issue => issue.ruleId === "contrast" && issue.selector === "#gradient-text"), false, "An unreliable background must not be reported as a confirmed ratio");
+
+  report = await scan(page, `<div style="background-image:url(example.jpg)"><p id="opaque-region" style="background:#fff;color:#777">Opaque text region</p></div>`, { canControlColour: true });
+  assert.equal(report.issues.some(issue => issue.ruleId === "contrast" && issue.selector === "#opaque-region"), true, "An opaque local background permits a reliable measurement over an ancestor image");
+  assert.equal(report.issues.some(issue => issue.ruleId === "contrast-unverified" && issue.selector === "#opaque-region"), false);
+
+  report = await scan(page, `<div style="opacity:.8"><p id="transparent-region" style="background:#fff;color:#777">Transparent rendered group</p></div>`, { canControlColour: true });
+  assert.equal(report.issues.some(issue => issue.ruleId === "contrast-unverified" && issue.selector === "#transparent-region"), true, "Ancestor transparency must be sent for manual verification");
 
   await browser.close();
   console.log("Style-guide rule tests passed");

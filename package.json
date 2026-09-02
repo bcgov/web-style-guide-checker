@@ -1,10 +1,10 @@
 {
   "name": "web-style-guide-checker",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "private": true,
   "description": "Chrome and Microsoft Edge extension that reviews webpages against selected requirements and recommendations in the B.C. Web Style Guide.",
   "scripts": {
-    "test": "node tests/helpers.test.js && node tests/network-helpers.test.js && node tests/static-build.test.js && node tests/workbook.test.js && node tests/feedback.test.js && node tests/rules.test.js && node tests/browser-regression.test.js",
+    "test": "node tests/preview-lifecycle.test.js && node tests/helpers.test.js && node tests/network-helpers.test.js && node tests/static-build.test.js && node tests/review-navigation.test.js && node tests/export-model.test.js && node tests/workbook.test.js && node tests/feedback.test.js && node tests/rules.test.js && node tests/browser-regression.test.js",
     "test:rules": "node tests/rules.test.js",
     "test:browser": "node tests/browser-regression.test.js"
   },

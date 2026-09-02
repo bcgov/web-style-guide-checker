@@ -66,6 +66,19 @@ async function scan(page, html, options = {}) {
       <h2 id="tone">Tone</h2><p>Tone content.</p>
     </main>`, { profile: "cms-lite" });
   assert.equal(wrappedCmsToc.issues.some(issue => issue.ruleId === "list-introduction"), false);
+  assert.equal(wrappedCmsToc.issues.some(issue => issue.ruleId === "on-this-page-missing"), false);
+  assert.equal(wrappedCmsToc.issues.some(issue => issue.ruleId === "on-this-page-format"), false);
+  assert.equal(wrappedCmsToc.issues.some(issue => issue.ruleId === "on-this-page-links"), false);
+
+  const cmsTocWithLaterAnchor = await scan(page, `
+    <main class="topicMain__container"><h1>Sign standards</h1><div id="body">
+      <h2>On this page</h2><ul>
+        <li><a href="#coating">Anti-graffiti coating</a></li><li><a href="#orders">Standard sign order forms</a></li><li><a href="#radio">Radio signage</a></li>
+      </ul><h2 id="coating">Anti-graffiti coating</h2><p>Details.</p>
+      <h2 id="orders">Standard sign order forms</h2><p>See the <a href="#radio">radio signage forms</a>.</p>
+      <h2 id="radio">Radio signage</h2><p>Details.</p>
+    </div></main>`, { profile: "cms-lite" });
+  assert.equal(cmsTocWithLaterAnchor.issues.some(issue => issue.ruleId === "on-this-page-links"), false, "A later in-page link outside the On this page list must not inflate its link count");
 
   const authoredTocLabel = await scan(page, `
     <main><h1>Service information</h1><p>On this page:</p><ul>
@@ -114,9 +127,10 @@ async function scan(page, html, options = {}) {
   const whitespaceChecks = await scan(page, `
     <main><h1>Trail information</h1>
       <p><a href="/manual">Chapter 10 of the Recreation Manual </a></p>
+      <p><a href="/map"><span>Download the trail map&nbsp;</span></a></p>
       <p>Recreation Sites &amp;Trails BC manages this service.</p>
     </main>`);
-  assert.equal(whitespaceChecks.issues.some(issue => issue.ruleId === "link-trailing-space"), true);
+  assert.equal(whitespaceChecks.issues.filter(issue => issue.ruleId === "link-trailing-space").length, 1, "Only the visibly enlarged non-breaking-space link should be reported");
   assert.equal(whitespaceChecks.issues.some(issue => issue.ruleId === "missing-space-after-ampersand"), true);
   assert.equal(whitespaceChecks.issues.some(issue => issue.ruleId === "ampersand"), true);
 
@@ -168,6 +182,14 @@ async function scan(page, html, options = {}) {
     </main>`, { profile: "cms-lite" });
   assert.equal(cmsComponents.issues.some(issue => issue.ruleId === "ampersand" && /Help & Support/.test(issue.evidence)), true);
   assert.equal(cmsComponents.issues.some(issue => issue.ruleId === "missing-space-after-ampersand" && /Apply &Pay/.test(issue.evidence)), true);
+
+  const cmsTemplateNavigation = await scan(page, `
+    <main class="topicMain__container"><h1>Planning your visit</h1>
+      <div id="cmf-ui-page-navigation"><button><h2 style="text-align:center">More topics</h2></button></div>
+      <p style="text-align:center">Authored centred content.</p>
+    </main>`, { profile: "cms-lite" });
+  assert.equal(cmsTemplateNavigation.issues.some(issue => issue.ruleId === "text-alignment" && /More topics/.test(issue.evidence)), false, "CMS Lite template navigation is not author-controlled content");
+  assert.equal(cmsTemplateNavigation.issues.some(issue => issue.ruleId === "text-alignment" && /Authored centred content/.test(issue.evidence)), true, "Authored centred content must remain checkable");
 
   const malformedToc = await scan(page, `
     <main><h1>Service information</h1><h5>ON THIS PAGE:</h5><ol>
