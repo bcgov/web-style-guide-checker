@@ -4,9 +4,46 @@ All notable public changes to the B.C. Web Style Guide Checker will be recorded 
 
 ## Unreleased
 
+## 1.3.1 — 2026-09-02
+
 - Replaced unstable CMS Lite editor-region numbers with semantic locations such as **Topic → Body** and **Alerts → Alert 1 → Message**
 - Made **Show on page** activate the correct CMS Lite tab, expand the matching component when needed and locate the CKEditor field by its source textarea rather than its position in the page
 - Kept numeric editor regions only as a fallback for older saved reports
+- Made the B.C. Web Style Guide reference guidance visible by default on each finding instead of hiding it in a collapsed control
+- Replaced the former silent 25-findings-per-rule cap with a 500-finding safety limit, preserved detected and omitted totals, and disclosed incomplete coverage in summaries, exports and batch reports
+- Added a reversible way to skip the remaining findings of an issue type during guided review while keeping every skipped finding open and available to include again
+- Retained every affected text region for colour-contrast findings, kept repeated locations navigable and grouped equivalent measured conditions in summaries and exports
+- Updated contrast measurement to use the current WCAG breakpoint and unrounded threshold comparison, and separated reliable measurements from gradients, images, opacity and other states that require manual review
+- Simplified editor-facing contrast details to emphasize the measured ratio and required minimum while retaining technical measurement data in exports
+- Expanded plain-text list detection to sequential lettered and numbered lists and typed sublists, requiring at least 3 sequential markers and grouping each affected block into one finding
+- Avoided list false positives for one-item lists, dotted versions, address abbreviations and sentence-initial **Ministry**, while preserving ordinary punctuation and generic-government-term findings
+- Preserved first-use acronym detection across separate CMS Lite editor fields and strengthened CMS Lite **On this page** recognition and source mapping
+- Added conservative checks for unseparated ordinary numbers, comma-containing currency with unnecessary trailing zeros, year/month/day dates and incomplete years
+- Distinguished **PT** used after a time from an undefined acronym, preserved the related time-format finding and recognized **BC** in Canadian postal addresses
+- Added specific handling for malformed document labels such as `(PDF, 1.MB)` and email addresses inside anchor elements without destinations
+- Added context-sensitive non-breaking-space review and limited trailing-link-space findings to spaces that visibly enlarge the linked area
+- Added checks for justified text and superscript ordinal formatting, including authored CMS Lite content
+- Made page following standard during guided review, reset each selected finding to a visible position and kept export-copy confirmation inside the export window
+- Kept the **Findings** and **Page details** tabs available while allowing the findings summary, **All findings** row and review progress to scroll away with the content
+- Kept skip confirmations visible, preserved keyboard focus on the finding and placed narrow-panel review labels beside finding titles
+- Compacted the narrow side-panel header, scan settings, filters and review controls while retaining visually hidden headings for assistive technology
+- Removed repeated **Flagged wording** callouts and duplicate diagnostics when the rule explanation and evidence already identify a semicolon, list marker, double space or non-breaking space
+- Expanded link verification across CMS Lite, QA, live, intranet and SharePoint destinations while keeping ordinary public requests anonymous and treating authentication or permission limits conservatively
+- Organized checked links into **Problems**, **Needs review** and **Working** groups, improved result evidence and exports, and distinguished confirmed failures from destinations that could not be fully verified
+- Expanded remote-link permissions for common HTTP-to-HTTPS and `www`-to-apex redirects, including Clicklaw and CHOA destinations
+- Excluded CMS Lite mobile navigation and template-provided related-link arrow spacing from authored-content findings
+- Excluded hash-prefixed mobile shortcodes such as `#7277` from the thousands-separator rule
+- Changed the suggested alternative for **administer** from **do** to **manage** and preserved the matched verb tense for administered, administers and administering
+- Treated `NOTE` and `NOTE:` as all-caps emphasis rather than undefined acronyms and added coverage for multiword all-caps headings alongside other heading findings
+- Added conservative missing-space detection for adjacent sentences while protecting email addresses, URLs, bare domains, filenames, social handles, initialisms, linked technical tokens and marked-up technical content
+- Kept a real sentence boundary detectable immediately after a protected email address, domain or filename
+- Centred semicolon evidence on the actual punctuation and avoided duplicate semicolon findings for list endings
+- Reduced passive-voice false positives for common adjectival participles and avoided duplicate page-title and H1 sentence-case findings when they refer to the same authored element
+- Gave specific government-name patterns precedence over generic capitalization checks and preserved formal-name exceptions
+- Refined split-link and adjacent-link evidence, CMS Lite reveal behaviour and navigation to affected content inside supported collapsed components
+- Added preview-release lifecycle controls that can announce updates, require a newer version, block a specific build, end the preview or expire an abandoned preview before scanning
+- Restricted lifecycle policy to a small remote status file with no page content, credentials or executable code; cached the last valid policy and kept network failures from disabling an otherwise supported build
+- Aligned the extension, package, lockfile, README and rules versions at 1.3.1 and added build checks to keep them synchronized
 
 ## 1.3.0 — 2026-08-27
 
