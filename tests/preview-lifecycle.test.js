@@ -47,7 +47,13 @@ assert.equal(lifecycle.validatePolicy(policy({ downloadUrl: "https://example.com
 assert.equal(lifecycle.validatePolicy(policy({ latestVersion: "1.3.4", minimumSupportedVersion: "99.0.0" })), null);
 assert.equal(lifecycle.validatePolicy(policy({ blockedVersions: ["1.3.2", "not-a-version"] })), null);
 
-assert.equal(manifest.version, "1.3.1");
+assert.equal(manifest.version, "1.3.2");
+
+const publishedPolicy = JSON.parse(fs.readFileSync(path.join(root, "preview-status.json"), "utf8"));
+const formerBuild = lifecycle.evaluatePolicy(publishedPolicy, "1.3.1", "2026-09-03");
+assert.equal(formerBuild.kind, "update-required");
+assert.equal(formerBuild.blocksUse, true, "Versions before the current security baseline must be blocked");
+assert.equal(lifecycle.evaluatePolicy(publishedPolicy, "1.3.2", "2026-09-03").kind, "current");
 assert.ok(
   (manifest.host_permissions || []).includes(
     "https://raw.githubusercontent.com/bcgov/web-style-guide-checker/*"

@@ -309,6 +309,15 @@
           <div id="personal-terms" class="term-list"></div>
         </section>
 
+        <section class="workspace-card" aria-labelledby="optional-checks-heading">
+          <h2 id="optional-checks-heading">Optional review checks</h2>
+          <p>These contextual checks are included by default. Turn one off only when it is not useful for the content you review.</p>
+          <label class="check-row"><input id="optional-non-breaking-space" type="checkbox" checked><span><strong>Non-breaking spaces</strong><small>Review spaces that may intentionally keep words or values together.</small></span></label>
+          <label class="check-row"><input id="optional-passive-voice" type="checkbox" checked><span><strong>Passive voice</strong><small>Review wording that may make responsibility unclear.</small></span></label>
+          <p class="hint">Reading-level checks are always included.</p>
+          <p id="optional-checks-status" class="hint" aria-live="polite"></p>
+        </section>
+
         <details class="workspace-card built-in-terms">
           <summary>Built-in approved names</summary>
           <p>These names are already allowed for the “Use B.C.” check.</p>
@@ -340,7 +349,7 @@
               <button id="clear-allowed-terms" class="button danger compact" type="button">Delete</button>
             </div>
             <div class="data-management-row">
-              <div><strong>Page preferences</strong><span id="page-preferences-data-count"></span><small>Saved review scope and colour-control choices remain until reset.</small></div>
+              <div><strong>Page preferences</strong><span id="page-preferences-data-count"></span><small>Saved review scope, colour-control and optional-review choices remain until reset.</small></div>
               <button id="clear-page-preferences" class="button danger compact" type="button">Reset</button>
             </div>
           </div>

@@ -4,6 +4,8 @@ All notable public changes to the B.C. Web Style Guide Checker will be recorded 
 
 ## Unreleased
 
+## 1.3.2 — 2026-09-03
+
 - Added a 168-hour retention limit for single-page reports and made each successful rescan replace the earlier saved report for the same canonical page while preserving decisions and notes for findings that remain
 - Kept public link checks anonymous and existing authenticated CMS Lite, QA, SharePoint and intranet checks available, while refusing embedded credentials, explicit local/private/reserved destinations and action-like authenticated URLs
 - Removed optional access to local `file:` pages and restricted extension storage to trusted extension contexts
@@ -13,6 +15,13 @@ All notable public changes to the B.C. Web Style Guide Checker will be recorded 
 - Added a specific security explanation when someone opens the checker on a local `file:` page
 - Added separate controls for deleting page reviews, batch state, unsent feedback, sent feedback, allowed terms and saved page preferences
 - Added 7-day retention for incomplete batches, 30-day retention for completed batches and 30-day retention for sent feedback; unsent feedback remains until sent or deleted
+- Added optional, default-on review settings for non-breaking spaces and passive voice, disclosed excluded checks in saved reviews and exports, and kept reading-level checks always active
+- Prevented whole all-caps headings from producing a second acronym finding for a word after a dash
+- Added contextual Canadian postal-code formatting and kept postal-code-shaped values out of acronym findings
+- Added conservative review of short bold blocks that introduce following content, combined all-caps visual-heading corrections into one finding, and excluded sentences, lead-ins, alerts, linked actions and blocks without related content
+- Recognized CMS Lite `On this page` lists placed in an adjacent wrapper after the heading
+- Removed redundant missing-file-type and missing-file-size diagnostics from finding cards
+- Updated the extension, rules, package and validator to 1.3.2 and required this security and privacy baseline before scans can continue
 
 ## 1.3.1 — 2026-09-02
 

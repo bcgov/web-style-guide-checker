@@ -123,6 +123,7 @@
     "percent-symbol": ["Numbers and dates", "check", "Spell out ‘percent’ in body text", "The % symbol is intended for financial charts, tables, equations and calculations.", "Use ‘percent’ in a sentence unless the content is a calculation or financial data.", "numbers"],
     "fraction-symbol": ["Numbers and dates", "check", "Write out the fraction", "Fractions without a whole number should usually be written in words.", "Use wording such as ‘half’, ‘a quarter’ or ‘two-thirds’.", "numbers"],
     "number-comma": ["Numbers and dates", "fix", "Add commas to the number", "Use commas in numbers over 999.", "Add thousands separators, such as ‘15,000’.", "numbers"],
+    "postal-code-format": ["Numbers and dates", "fix", "Format the postal code", "Canadian postal codes use a space between the third and fourth characters.", "Use the format ‘V8W 9V1’ with upper-case letters and one regular or non-breaking space.", "numbers"],
     "currency-cents": ["Numbers and dates", "fix", "Write the amount in cents", "Amounts under one dollar are written as cents rather than as a decimal dollar amount.", "Write the amount as cents, such as ‘75 cents’.", "numbers"],
     "currency-trailing-zeros": ["Numbers and dates", "check", "Remove unnecessary decimal zeros", "Only include decimals in a monetary amount when precision is required.", "Remove ‘.00’ unless the content needs that precision.", "numbers"],
     "currency-comma": ["Numbers and dates", "fix", "Add a comma to the monetary amount", "Use commas in monetary amounts over $999.", "Add the thousands separator, such as ‘$15,000’.", "numbers"],
@@ -142,6 +143,8 @@
     "non-breaking-space": ["Formatting", "review", "Check the non-breaking space", "A non-breaking space prevents text from wrapping at this point and may have been inserted accidentally.", "Keep it only when the words or values need to stay together; otherwise replace it with a regular space.", "formatting"],
     "text-alignment": ["Formatting", "check", "Left-align the text", "Centred, right-aligned and justified text is harder to read except in special cases such as table captions.", "Use left alignment for body content.", "formatting"],
     "bold-block": ["Formatting", "fix", "Remove unnecessary bold formatting", "Do not bold headings, links or large blocks of text.", "Use the correct heading style or reserve bold for short, selective emphasis.", "formatting"],
+    "formatted-all-caps-heading": ["Headings", "fix", "Use a sentence-case heading style", "This all-caps bold block appears to be a heading, but bold text does not create heading structure for browsers or assistive technology.", "Apply the appropriate heading level and rewrite the heading in sentence case.", "headings"],
+    "formatted-heading": ["Headings", "review", "Check whether the bold text should be a heading", "A short bold block followed by related content may be acting as a visual heading without providing heading structure.", "If it introduces the content that follows, apply the appropriate heading level. Keep it as bold text only when it is intentional short emphasis.", "headings"],
     "bold-link": ["Formatting", "fix", "Remove bold from the link", "The guide says hyperlinks should not be bolded.", "Remove bold formatting and let the link styling provide emphasis.", "formatting"],
     "all-caps": ["Formatting", "fix", "Use lowercase instead of all caps", "The Web Style Guide says not to use all caps unless the word is an abbreviation or acronym.", "Use lower case or sentence case while preserving established abbreviations, acronyms and official names.", "formatting"],
     "at-symbol": ["Punctuation", "review", "Check the @ symbol", "Use @ for email addresses and established social-media handles.", "Write the relationship in words unless this is an email address or social-media handle.", "punctuation"],
@@ -162,7 +165,7 @@
     "moved-page-notice": ["Page information", "review", "Review the old moved-page notice", "A moved-content notice is usually temporary. If it remains long after the page was updated, people may still be reaching outdated content.", "Confirm whether the old page should now redirect to the replacement page, or update the notice if it still needs to remain available.", "plain"]
   };
 
-  const RULE_VERSION = "1.3.1";
+  const RULE_VERSION = "1.3.2";
   const PER_RULE_FINDING_LIMIT = 500;
 
   const BUILT_IN_TERMS = [
@@ -1617,6 +1620,9 @@
       const { label, ownLabel, fullText } = candidate;
       let links = Array.from(label.querySelectorAll ? label.querySelectorAll("a[href^='#']") : []).filter(include);
       let container = label.nextElementSibling;
+      if (!container && label.parentElement && normalizeSpace(label.parentElement.textContent) === fullText) {
+        container = label.parentElement.nextElementSibling;
+      }
       while (links.length < 2 && container && !/^(UL|OL|NAV|DIV|P)$/.test(container.tagName)) container = container.nextElementSibling;
       if (links.length < 2 && container) links = Array.from(container.querySelectorAll("a[href^='#']")).filter(include);
       if (links.length < 2 && label.parentElement) links = Array.from(label.parentElement.querySelectorAll("a[href^='#']")).filter(include);
@@ -1847,6 +1853,52 @@
     if (substantialWords.length < 2) return null;
     const exactFormalName = BUILT_IN_TERMS.some(term => comparisonText(term).toUpperCase() === comparisonText(text).toUpperCase());
     return exactFormalName ? null : { text, index: String(value || "").indexOf(text) };
+  }
+
+  function postalCodeDetails(value, element) {
+    const text = String(value || "");
+    const addressContext = Boolean(element && element.closest && element.closest("address,[class*='address' i],[class*='contact' i]"))
+      || /\b(?:P\.?\s*O\.?\s+Box|Box\s+\d+|Stn\b|Prov\s+Govt|British Columbia|BC\b|B\.C\.|mail(?:ing)?\s+address|postal\s+code)\b/i.test(text);
+    if (!addressContext) return null;
+    const match = /\b([ABCEGHJKLMNPRSTVXY]\d[ABCEGHJKLMNPRSTVWXYZ])[-\s\u00a0\u202f]?(\d[ABCEGHJKLMNPRSTVWXYZ]\d)\b/i.exec(text);
+    if (!match) return null;
+    const expected = `${match[1].toUpperCase()} ${match[2].toUpperCase()}`;
+    if (match[0] === expected || match[0] === expected.replace(" ", "\u00a0")) return null;
+    return { text: match[0], index: match.index, replacement: expected };
+  }
+
+  function formattedHeadingDetails(element, include) {
+    if (!element || !element.closest) return null;
+    const block = element.closest("p,div");
+    if (!block || !include(block)) return null;
+    if (block.closest("nav,aside,header,footer,table,form,ul,ol,dl,summary,[role='alert'],[role='status'],[role='navigation'],[class*='alert' i],[class*='callout' i],[class*='notification' i],[class*='banner' i],[class*='breadcrumb' i],[class*='navigation' i]")) return null;
+    if (block.querySelector("a,button,input,select,textarea,label")) return null;
+    if (normalizeSpace(block.textContent) !== normalizeSpace(element.textContent)) return null;
+    const blockChildren = Array.from(block.children || []);
+    if (blockChildren.some(child => child !== element && child.tagName !== "BR" && !child.contains(element))) return null;
+
+    const text = normalizeSpace(element.textContent);
+    const wordCount = words(text).length;
+    if (wordCount < 2 || wordCount > 12) return null;
+    const withoutClosingMarks = text.replace(/[”’"')\]}]+$/g, "").trim();
+    const terminal = (withoutClosingMarks.match(/[.!?,:;…—–-]$/u) || [""])[0];
+    if (terminal && terminal !== "?") return null;
+
+    let following = block.nextElementSibling;
+    while (following && /^(BR)$/.test(following.tagName)) following = following.nextElementSibling;
+    while (following && /^(P|DIV)$/.test(following.tagName) && !normalizeSpace(following.textContent) && !following.querySelector("img,ul,ol,table,figure")) following = following.nextElementSibling;
+    if (!following || /^H[1-6]$/.test(following.tagName) || !include(following)) return null;
+    if (!/^(P|DIV|SECTION|ARTICLE|UL|OL|DL|TABLE|BLOCKQUOTE|FIGURE)$/.test(following.tagName)) return null;
+    if (!normalizeSpace(following.textContent) && !following.querySelector("img,ul,ol,table,figure")) return null;
+    const firstFollowingElement = following.matches("div,section,article") ? following.firstElementChild : null;
+    if (firstFollowingElement && /^H[1-6]$/.test(firstFollowingElement.tagName)) return null;
+
+    const allCaps = Boolean(allCapsHeadingDetails(text));
+    const questionLike = terminal === "?" || /^(?:who|what|when|where|why|how|which)\b/i.test(text);
+    const sentenceLike = !allCaps && !questionLike && /\b(?:am|is|are|was|were|be|been|being|has|have|had|do|does|did|can|could|may|might|must|shall|should|will|would)\b/i.test(text);
+    const statusLike = !allCaps && !questionLike && /\b(?:now\s+)?(?:open|closed|available|unavailable|paused|cancelled|canceled|delayed|complete|completed|extended|coming soon)$/i.test(text);
+    if (sentenceLike || statusLike) return null;
+    return { block, text, allCaps };
   }
 
   function acronymContextExcluded(value, index, token) {
@@ -2087,6 +2139,10 @@
     const canControlColour = typeof options.canControlColour === "boolean"
       ? options.canControlColour
       : profile !== "cms-lite";
+    const optionalChecks = {
+      nonBreakingSpace: !options.optionalChecks || options.optionalChecks.nonBreakingSpace !== false,
+      passiveVoice: !options.optionalChecks || options.optionalChecks.passiveVoice !== false
+    };
     const savedExceptions = Array.isArray(options.exceptions) ? options.exceptions : [];
     const issues = [];
     const assets = [];
@@ -2179,7 +2235,7 @@
       else issues.push(finding);
     }
 
-    function inspectHeadingText(element, text) {
+    function inspectHeadingText(element, text, wholeHeadingAllCaps = false) {
       if (!englishLanguage || !text) return;
       const structure = headingStructureDetails(text);
       if (structure.dash) add("heading-dash", element, text, null, {
@@ -2196,7 +2252,7 @@
         matchIndex: structure.colon.index
       });
 
-      const headingAcronyms = [...text.matchAll(/\b[A-Z][A-Z0-9]{1,5}\b/g)]
+      const headingAcronyms = wholeHeadingAllCaps ? [] : [...text.matchAll(/\b[A-Z][A-Z0-9]{1,5}\b/g)]
         .filter(match => !isWifiVariant(match[0]))
         .filter(match => !isWellKnownAcronym(match[0]))
         .filter(match => !(intranetProfile && INTRANET_HEADING_ACRONYMS.has(match[0])))
@@ -2224,7 +2280,7 @@
       if (title.length >= 70) add("page-title-long", titleTarget, title + " (" + title.length + " characters)");
       if (englishLanguage && title && endsStylePunctuation(title)) add("page-title-punctuation", titleTarget, title);
       if (englishLanguage && title && isLikelyTitleCase(title)) add("heading-title-case", titleTarget, title);
-      inspectHeadingText(titleTarget, title);
+      inspectHeadingText(titleTarget, title, Boolean(allCapsHeadingDetails(title)));
       if (profile !== "cms-lite" && !doc.querySelector("meta[name='description'][content]:not([content=''])")) add("meta-description", doc.documentElement, "No metadata description found");
       if (scope === "whole" && !normalizeSpace(doc.documentElement.getAttribute("lang"))) add("document-language", doc.documentElement, "The html element has no lang attribute");
       const movedNotice = movedNoticeMatch(root);
@@ -2270,7 +2326,7 @@
         matchText: allCapsHeading.text,
         matchIndex: allCapsHeading.index
       });
-      inspectHeadingText(heading, text);
+      inspectHeadingText(heading, text, Boolean(allCapsHeading));
       previousLevel = level;
     });
 
@@ -2371,7 +2427,7 @@
       sentenceList.forEach(sentence => {
         const count = words(sentence).length;
         if (count > 20) add("sentence-long", paragraph, count + " words: " + sentence);
-        const passive = passiveVoiceParticiple(sentence);
+        const passive = optionalChecks.passiveVoice ? passiveVoiceParticiple(sentence) : null;
         if (passive) add("passive-voice", paragraph, sentence, null, {
           matchText: passive.text,
           matchIndex: passive.index
@@ -2485,6 +2541,13 @@
           matchIndex: repeatedWordMatch.index
         });
       }
+      const postalCode = postalCodeDetails(value, parent);
+      if (postalCode) add("postal-code-format", parent, value, null, {
+        matchText: postalCode.text,
+        replacement: postalCode.replacement,
+        matchIndex: postalCode.index,
+        contextText: value
+      });
       const approvedRanges = approvedTermRanges(value);
       const bcExpression = /\bBC\b/g;
       let bcMatch;
@@ -2692,7 +2755,7 @@
         matchText: `⟦${doubleSpace.count} spaces⟧`,
         matchIndex: doubleSpace.index
       }));
-      if (!parent.closest("code,pre")) nonBreakingSpaceOccurrences(value).forEach(space => add("non-breaking-space", parent, space.evidence, null, {
+      if (optionalChecks.nonBreakingSpace && !parent.closest("code,pre")) nonBreakingSpaceOccurrences(value).forEach(space => add("non-breaking-space", parent, space.evidence, null, {
         matchText: "⟦non-breaking space⟧",
         matchIndex: space.evidence.indexOf("⟦non-breaking space⟧")
       }));
@@ -2719,7 +2782,9 @@
         .replace(/\b[^\s@]+@[^\s@]+\.[^\s@]+\b/g, "")
         .replace(/(^|\s)@[A-Za-z0-9_]{2,}\b/g, "$1");
       if (nonEmailAtText.includes("@")) add("at-symbol", parent, value, null, { matchText: "@", matchIndex: value.indexOf("@") });
-      const allCapsTokens = Array.from(value.matchAll(/\b[A-Z][A-Z’']{1,}\b/g))
+      const boldContainer = parent.closest("strong,b");
+      const fullBoldAllCaps = boldContainer && allCapsHeadingDetails(normalizeSpace(boldContainer.textContent));
+      const allCapsTokens = fullBoldAllCaps ? [] : Array.from(value.matchAll(/\b[A-Z][A-Z’']{1,}\b/g))
         .filter(match => isCommonAllCapsWord(match[0]));
       let allCapsGroup = [];
       const finishAllCapsGroup = () => {
@@ -2871,6 +2936,7 @@
       if (isWellKnownAcronym(acronym) || isWellKnownAcronym(displayedAcronym)) return;
       if (isCommonRomanNumeral(acronym)) return;
       if (/^[A-Z]\d[A-Z]$/.test(acronym)) return;
+      if (/^[ABCEGHJKLMNPRSTVXY]\d[ABCEGHJKLMNPRSTVWXYZ]\d[ABCEGHJKLMNPRSTVWXYZ]\d$/i.test(acronym)) return;
       const parent = occurrence.node.parentElement;
       const element = parent.closest("h1,h2,h3,h4,h5,h6,p,li,dd,dt,figcaption,blockquote") || parent;
       const elementText = normalizeSpace(element.textContent || occurrence.node.nodeValue || displayedAcronym);
@@ -3091,14 +3157,12 @@
             flaggedToken: label.raw,
             matchText: label.raw,
             replacement: expectedType ? `(${expectedType}, ${label.size}${label.unit})` : "",
-            matchIndex: Math.max(0, (linkText || "").indexOf(label.raw)),
-            diagnostics: ["The file size is already present; only the file type is missing."]
+            matchIndex: Math.max(0, (linkText || "").indexOf(label.raw))
           });
           else if (label.status === "missing-size") add("file-link-size", link, linkText || href, null, {
             flaggedToken: label.raw,
             matchText: label.raw,
-            matchIndex: Math.max(0, (linkText || "").indexOf(label.raw)),
-            diagnostics: ["The file type is already present; only the file size is missing."]
+            matchIndex: Math.max(0, (linkText || "").indexOf(label.raw))
           });
           else if ((expectedType || label.type || link.hasAttribute("download")) && !label.valid) add("file-link-label", link, linkText || href);
         }
@@ -3214,6 +3278,19 @@
       let levels = 0;
       while (nearby && levels < 4 && !nearby.querySelector("figure")) { nearby = nearby.parentElement; levels += 1; }
       if (nearby && levels < 4 && nearby.querySelector("figure")) return;
+      const formattedHeading = formattedHeadingDetails(element, inScanArea);
+      if (formattedHeading) {
+        add(formattedHeading.allCaps ? "formatted-all-caps-heading" : "formatted-heading", formattedHeading.block, formattedHeading.text);
+        return;
+      }
+      const standaloneAllCaps = allCapsHeadingDetails(normalizeSpace(element.textContent));
+      if (standaloneAllCaps) {
+        add("all-caps", element, element.textContent, null, {
+          matchText: standaloneAllCaps.text,
+          matchIndex: standaloneAllCaps.index
+        });
+        return;
+      }
       if (element.closest("h1,h2,h3,h4,h5,h6") || words(element.textContent).length > 12) add("bold-block", element, element.textContent);
     });
     Array.from(root.querySelectorAll("em,i")).filter(inScanArea).filter(element => !element.closest("h1,h2,h3,h4,h5,h6")).forEach(element => add("italics", element, element.textContent));
@@ -3376,7 +3453,8 @@
         canControlColour,
         rootSelector: cssPath(root),
         sectionSelector: sectionHeading ? cssPath(sectionHeading) : "",
-        sectionLabel: sectionHeading ? normalizeSpace(sectionHeading.textContent) : ""
+        sectionLabel: sectionHeading ? normalizeSpace(sectionHeading.textContent) : "",
+        optionalChecks
       },
       stats: {
         words: words(mainText).length,

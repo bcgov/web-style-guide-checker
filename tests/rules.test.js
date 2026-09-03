@@ -253,6 +253,53 @@ function has(report, ruleId) {
   report = await scan(page, '<h2>MULTI-USE LIST REQUEST FOR QUALIFICATIONS - GOODS</h2><p>Details.</p>');
   assert.equal(report.issues.some(issue => issue.ruleId === "all-caps" && /MULTI-USE LIST REQUEST/.test(issue.matchText)), true, "A multiword all-caps heading must be reported independently of its dash");
   assert.equal(has(report, "heading-dash"), true, "The heading dash finding must remain available alongside all caps");
+  assert.equal(report.issues.some(issue => issue.ruleId === "acronym-in-heading" && issue.flaggedToken === "GOODS"), false, "A word inside a whole all-caps heading must not receive a duplicate acronym finding");
+
+  report = await scan(page, '<h3 class="bc_h3">MULTI-USE LIST REQUEST FOR QUALIFICATIONS - GOODS</h3><p>Details.</p>', { profile: "cms-lite" });
+  assert.equal(has(report, "all-caps"), true, "CMS Lite semantic headings must receive the whole-heading all-caps finding");
+  assert.equal(report.issues.some(issue => issue.ruleId === "acronym-in-heading" && issue.flaggedToken === "GOODS"), false);
+
+  report = await scan(page, '<p>Mail forms to PO Box 9406 Stn Prov Govt, Victoria BC, V8W9V1.</p>');
+  const postalCode = report.issues.find(issue => issue.ruleId === "postal-code-format");
+  assert.ok(postalCode, "A compact Canadian postal code in a strong address context must be formatted");
+  assert.equal(postalCode.replacement, "V8W 9V1");
+  assert.equal(report.issues.some(issue => issue.ruleId === "undefined-acronym" && issue.flaggedToken === "V8W9V1"), false);
+  report = await scan(page, '<address>Victoria, B.C. V8W 9V1</address><p>Reference V8W9V1 is an internal product identifier.</p>');
+  assert.equal(has(report, "postal-code-format"), false, "A valid postal code and an uncontextualized identifier must remain quiet");
+
+  report = await scan(page, '<p><strong>TRANSITORY INFORMATION SCHEDULE</strong></p><p>This section explains which records are transitory.</p>');
+  assert.equal(has(report, "formatted-all-caps-heading"), true, "A standalone all-caps bold paragraph must receive the combined structure and sentence-case finding");
+  assert.equal(has(report, "formatted-heading"), false, "The same block must not receive a second visual-heading finding");
+
+  report = await scan(page, '<p><strong>Application requirements</strong></p><ul><li>Proof of identity</li><li>Completed form</li></ul>');
+  assert.equal(has(report, "formatted-heading"), true, "A short standalone bold phrase that introduces following content should be reviewed as a visual heading");
+  assert.equal(report.issues.find(issue => issue.ruleId === "formatted-heading").severity, "review");
+  report = await scan(page, '<div><span><strong>Who can apply?</strong></span></div><p>Residents can apply online.</p>');
+  assert.equal(has(report, "formatted-heading"), true, "A bold question may be a visual heading even when nested in neutral wrapper markup");
+  report = await scan(page, '<p><strong>Applications are now closed</strong></p><p>Applications reopen next year.</p>');
+  assert.equal(has(report, "formatted-heading"), false, "An unpunctuated status sentence must not be assumed to be a heading");
+  report = await scan(page, '<p><strong>Applications are now closed.</strong></p><p>Applications reopen next year.</p>');
+  assert.equal(has(report, "formatted-heading"), false, "Terminal sentence punctuation must exclude bold notices");
+  report = await scan(page, '<p><strong>TRANSITORY INFORMATION SCHEDULE.</strong></p><p>This sentence is emphasized rather than used as a visual heading.</p>');
+  assert.equal(has(report, "formatted-all-caps-heading"), false, "Terminal sentence punctuation must exclude the structural visual-heading finding");
+  assert.equal(report.issues.filter(issue => issue.ruleId === "all-caps" && /TRANSITORY INFORMATION SCHEDULE/.test(issue.matchText)).length, 1, "All-caps formatting must still be reported once when punctuation makes the block sentence-like");
+  report = await scan(page, '<p><strong>Important:</strong></p><p>Read this information.</p>');
+  assert.equal(has(report, "formatted-heading"), false, "A bold lead-in ending in a colon must stay outside visual-heading detection");
+  report = await scan(page, '<div class="alert"><p><strong>Application requirements</strong></p><p>Read this alert.</p></div>');
+  assert.equal(has(report, "formatted-heading"), false, "Alert titles must not be attributed to the content author as visual headings");
+  report = await scan(page, '<p><strong><a href="/apply">Application requirements</a></strong></p><p>Read the requirements.</p>');
+  assert.equal(has(report, "formatted-heading"), false, "Linked calls to action must not be treated as visual headings");
+  report = await scan(page, '<p><strong>Application requirements</strong></p><h2>Next section</h2><p>Text.</p>');
+  assert.equal(has(report, "formatted-heading"), false, "A bold block with no content before the next real heading must not be treated as a visual heading");
+  report = await scan(page, '<p><strong>Application requirements</strong></p><section><h2>Next section</h2><p>Text.</p></section>');
+  assert.equal(has(report, "formatted-heading"), false, "A real heading inside the next structural wrapper must stop visual-heading inference");
+  report = await scan(page, '<p><strong>What happens next?”</strong></p><p>We will contact you.</p>');
+  assert.equal(has(report, "formatted-heading"), true, "A question mark before a closing quotation mark must remain eligible");
+  report = await scan(page, '<ul><li><strong>Application requirements</strong><p>Proof of identity is required.</p></li></ul>');
+  assert.equal(has(report, "formatted-heading"), false, "Bold list-item content must not be treated as a visual heading");
+
+  report = await scan(page, '<div><h2>On this page</h2></div><div><ul><li><a href="#introduction">Introduction</a></li><li><a href="#when">When to apply</a></li><li><a href="#support">Get support</a></li></ul></div><hr><h2><a id="introduction" name="introduction"></a>Introduction</h2><p>Text.</p><h2><a id="when" name="when"></a>When to apply</h2><p>Text.</p><h2><a id="support" name="support"></a>Get support</h2><p>Text.</p>', { profile: "cms-lite" });
+  assert.equal(has(report, "on-this-page-links"), false, "An On this page heading and list may be in adjacent CMS Lite wrappers");
 
   report = await scan(page, '<p><a href="tel:+18442275422">1-844-227-5422</a> <a href="tel:911">9-1-1</a> <a href="tel:18442275422">1-844-227-5422</a></p>');
   assert.equal(report.issues.filter(issue => issue.ruleId === "phone-link-format").length, 1);
@@ -278,6 +325,10 @@ function has(report, ruleId) {
   report = await scan(page, '<p>Apply&nbsp;online today.</p><p>Travel 30&nbsp;km before 4&nbsp;pm.</p>');
   assert.equal(report.issues.filter(issue => issue.ruleId === "non-breaking-space").length, 1, "Only the contextually suspicious non-breaking space should be reviewed");
   assert.deepEqual(report.issues.find(issue => issue.ruleId === "non-breaking-space").diagnostics, [], "The evidence marker already explains the non-breaking-space location");
+  report = await scan(page, `<p>Apply&nbsp;online today. The request was approved by the ministry. ${Array(20).fill("Administrative institutionalization necessitates comprehensive interdisciplinary coordination.").join(" ")}</p>`, { optionalChecks: { nonBreakingSpace: false, passiveVoice: false } });
+  assert.equal(has(report, "non-breaking-space"), false);
+  assert.equal(has(report, "passive-voice"), false);
+  assert.equal(has(report, "reading-level"), true, "Reading-level review must remain active when optional contextual checks are off");
 
   report = await scan(page, '<p>The road configuration is documented here.Consult with the ministry professional engineer before implementation.</p>');
   const missingSentenceSpace = report.issues.find(issue => issue.ruleId === "missing-space-after-punctuation");
@@ -489,6 +540,8 @@ function has(report, ruleId) {
   report = await scan(page, "<p><a href='/guide.pdf'>Application guide (PDF, 1.MB)</a></p>");
   assert.equal(has(report, "file-link-size-format"), true, "An incomplete decimal file size must receive the specific size-format finding");
   assert.equal(has(report, "file-link-size"), false, "A malformed size must not be reported as missing");
+  report = await scan(page, "<p><a href='/guide.pdf'>Application guide (PDF)</a></p>");
+  assert.deepEqual(report.issues.find(issue => issue.ruleId === "file-link-size").diagnostics, [], "A missing-size card must not repeat what its title and explanation already say");
   report = await scan(page, "<p><a href='#one'>One</a><a href='#two'>Two</a></p><h2 id='one'>One</h2><p>Text.</p><h2 id='two'>Two</h2><p>Text.</p>");
   assert.equal(has(report, "split-link"), false);
   report = await scan(page, "<p><a class='btn btn-primary' href='/apply'>Apply</a><a class='btn btn-primary' href='/apply'>Apply now</a></p>");

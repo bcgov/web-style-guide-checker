@@ -9,7 +9,8 @@ const STORAGE_KEYS = {
   notes: "auditNotesV1",
   feedback: "feedbackNotesV1",
   reviewContexts: "reviewContextsV1",
-  navigation: "reviewNavigationV1"
+  navigation: "reviewNavigationV1",
+  optionalChecks: "optionalReviewChecksV1"
 };
 
 const MAX_REPORTS = 20;
@@ -47,7 +48,7 @@ function initialBatchState() {
     linkPermissionMode: "found",
     linkCheckTotal: 0,
     linkCheckCompleted: 0,
-    settings: { scope: "content", canControlColour: true },
+    settings: { scope: "content", canControlColour: true, optionalChecks: { nonBreakingSpace: true, passiveVoice: true } },
     exportPreset: "full",
     customSheets: [],
     includeReviewed: false,
@@ -67,6 +68,7 @@ const state = {
   feedbackNotes: [],
   reviewContexts: {},
   domainSettings: {},
+  optionalChecks: { nonBreakingSpace: true, passiveVoice: true },
   currentView: "current",
   reviewView: "review",
   reviewMode: "list",
@@ -272,7 +274,7 @@ function cacheElements() {
     "batch-custom-summary", "batch-custom-pages", "batch-custom-site-wide", "batch-custom-issues-page", "batch-custom-findings", "batch-custom-links", "batch-custom-metadata", "batch-custom-scan-log",
     "batch-start-button", "batch-pause-button", "batch-cancel-button", "batch-progress-panel", "batch-progress-label",
     "batch-progress-count", "batch-progress", "batch-link-finish-actions", "batch-link-access-button", "batch-finish-without-links", "batch-download-status", "batch-error", "batch-error-message", "batch-results",
-    "personal-term-count", "personal-terms", "built-in-terms-list", "exception-dialog", "exception-form",
+    "personal-term-count", "personal-terms", "built-in-terms-list", "optional-non-breaking-space", "optional-passive-voice", "optional-checks-status", "exception-dialog", "exception-form",
     "exception-dialog-heading", "exception-dialog-intro", "exception-rule-name", "exception-phrase", "exception-validation", "exception-cancel", "exception-page-scope", "exception-site-scope", "exception-all-scope", "exception-guardrail", "exception-submit", "section-dialog", "section-list", "section-cancel",
     "permission-dialog", "permission-close", "permission-linked", "permission-revoke", "permission-status", "settings-permission-button",
     "page-review-data-count", "batch-data-count", "unsent-feedback-data-count", "sent-feedback-data-count", "allowed-terms-data-count", "page-preferences-data-count", "data-management-status",
@@ -849,6 +851,11 @@ async function loadState() {
   state.feedbackNotes = retainedFeedbackNotes(stored[STORAGE_KEYS.feedback]);
   state.reviewContexts = retainedReviewContexts(stored[STORAGE_KEYS.reviewContexts] || {}, state.reports);
   state.domainSettings = stored[STORAGE_KEYS.domains] || {};
+  const savedOptionalChecks = stored[STORAGE_KEYS.optionalChecks] || {};
+  state.optionalChecks = {
+    nonBreakingSpace: savedOptionalChecks.nonBreakingSpace !== false,
+    passiveVoice: savedOptionalChecks.passiveVoice !== false
+  };
   const navigation = stored[STORAGE_KEYS.navigation] || {};
   state.lastReviewTabId = navigation.tabId || null;
   const navigationReport = navigation.pageKey ? savedReports[navigation.pageKey] : null;
@@ -987,7 +994,8 @@ function selectedSettings() {
     scope,
     profile,
     canControlColour: profile === "cms-lite" ? false : elements["colour-control"].checked,
-    sectionSelector: scope === "content" && state.selectedSection ? state.selectedSection.selector : ""
+    sectionSelector: scope === "content" && state.selectedSection ? state.selectedSection.selector : "",
+    optionalChecks: { ...state.optionalChecks }
   };
 }
 
@@ -1042,7 +1050,18 @@ function settingsMatchReport() {
   return state.activeReport.settings.scope === settings.scope &&
     state.activeReport.settings.profile === settings.profile &&
     state.activeReport.settings.canControlColour === settings.canControlColour &&
-    (state.activeReport.settings.sectionSelector || "") === (settings.sectionSelector || "");
+    (state.activeReport.settings.sectionSelector || "") === (settings.sectionSelector || "") &&
+    (state.activeReport.settings.optionalChecks?.nonBreakingSpace !== false) === settings.optionalChecks.nonBreakingSpace &&
+    (state.activeReport.settings.optionalChecks?.passiveVoice !== false) === settings.optionalChecks.passiveVoice;
+}
+
+async function saveOptionalChecks() {
+  state.optionalChecks = {
+    nonBreakingSpace: elements["optional-non-breaking-space"].checked,
+    passiveVoice: elements["optional-passive-voice"].checked
+  };
+  await saveKey(STORAGE_KEYS.optionalChecks, state.optionalChecks);
+  elements["optional-checks-status"].textContent = "Saved. Existing reports keep their original findings until you rescan.";
 }
 
 async function handleSettingsChange() {
@@ -3706,7 +3725,8 @@ function renderCurrentReport() {
   const scopeLabel = report.settings.sectionLabel
     ? `Section: ${report.settings.sectionLabel}`
     : report.settings.scope === "whole" ? "Whole page" : report.settings.profile === "cms-lite" ? "Editable content" : "Page content";
-  elements["scan-context-details"].textContent = `${report.settings.profileLabel} · ${scopeLabel} · ${formatDate(report.scannedAt)}`;
+  const excludedChecks = excludedOptionalCheckLabels(report);
+  elements["scan-context-details"].textContent = `${report.settings.profileLabel} · ${scopeLabel} · ${formatDate(report.scannedAt)}${excludedChecks.length ? ` · Excluded: ${excludedChecks.join(", ")}` : ""}`;
 
   const existingCategory = elements["category-filter"].value || "all";
   const categories = Array.from(new Set(report.issues.map(finding => finding.category))).sort();
@@ -4423,6 +4443,7 @@ function renderPageDetails(section = "overview") {
     elements["page-details"].innerHTML = `
       <p class="eyebrow">Review the page</p><h2>Page details</h2>
       <p class="hint">Choose an area to review. Findings remain available in the Findings tab.</p>
+      ${excludedOptionalCheckLabels(report).length ? `<p class="detail-help"><strong>Excluded from this scan:</strong> ${escapeHtml(excludedOptionalCheckLabels(report).join(", "))}. Reading-level checks were still included.</p>` : ""}
       <div class="details-landing">
         <button class="detail-card" type="button" data-detail-section="headings"><span><strong>Headings</strong><span>${headingIssues} heading issue${headingIssues === 1 ? "" : "s"}${generatedHeadings.length ? ` · ${generatedHeadings.length} accordion heading${generatedHeadings.length === 1 ? "" : "s"}` : ""}</span></span><span class="detail-card-count">${authoredHeadings.length}</span></button>
         <button class="detail-card" type="button" data-detail-section="images"><span><strong>Images and alt text</strong><span>${details.counts.imagesMissingAlt} missing alt · ${details.counts.imagesEmptyAlt} empty alt</span></span><span class="detail-card-count">${details.counts.images}</span></button>
@@ -5884,13 +5905,13 @@ function renderDataManagement() {
   const hasBatch = Boolean(state.batch.urls.length || batchPages);
   const unsentCount = readyFeedbackNotes().length;
   const sentCount = archivedFeedbackNotes().length;
-  const preferenceCount = Object.keys(state.domainSettings).length;
+  const preferenceCount = Object.keys(state.domainSettings).length + Number(!state.optionalChecks.nonBreakingSpace || !state.optionalChecks.passiveVoice);
   elements["page-review-data-count"].textContent = reportCount ? `${reportCount} saved` : "None saved";
   elements["batch-data-count"].textContent = hasBatch ? `${batchPages} of ${state.batch.urls.length} page${state.batch.urls.length === 1 ? "" : "s"} saved` : "None saved";
   elements["unsent-feedback-data-count"].textContent = unsentCount ? `${unsentCount} saved` : "None saved";
   elements["sent-feedback-data-count"].textContent = sentCount ? `${sentCount} saved` : "None saved";
   elements["allowed-terms-data-count"].textContent = state.exceptions.length ? `${state.exceptions.length} saved` : "None saved";
-  elements["page-preferences-data-count"].textContent = preferenceCount ? `${preferenceCount} site${preferenceCount === 1 ? "" : "s"}` : "None saved";
+  elements["page-preferences-data-count"].textContent = preferenceCount ? `${preferenceCount} saved choice${preferenceCount === 1 ? "" : "s"}` : "Defaults in use";
   elements["clear-page-reviews"].disabled = reportCount === 0;
   elements["clear-batch-data"].disabled = !hasBatch || state.batch.running;
   elements["clear-unsent-feedback"].disabled = unsentCount === 0;
@@ -5967,13 +5988,16 @@ async function clearAllowedTerms() {
 }
 
 async function clearPagePreferences() {
-  const count = Object.keys(state.domainSettings).length;
-  if (!count || !confirm(`Reset saved page preferences for ${count} site${count === 1 ? "" : "s"}?`)) return;
+  const count = Object.keys(state.domainSettings).length + Number(!state.optionalChecks.nonBreakingSpace || !state.optionalChecks.passiveVoice);
+  if (!count || !confirm("Reset saved page and optional-review preferences to their defaults?")) return;
   state.domainSettings = {};
-  await chrome.storage.local.remove(STORAGE_KEYS.domains);
+  state.optionalChecks = { nonBreakingSpace: true, passiveVoice: true };
+  await chrome.storage.local.remove([STORAGE_KEYS.domains, STORAGE_KEYS.optionalChecks]);
+  elements["optional-non-breaking-space"].checked = true;
+  elements["optional-passive-voice"].checked = true;
   if (state.activeTab) applySettings(defaultSettings(state.activeTab.url || ""));
   renderDataManagement();
-  elements["data-management-status"].textContent = `Page preferences reset for ${count} site${count === 1 ? "" : "s"}.`;
+  elements["data-management-status"].textContent = "Page and optional-review preferences reset to their defaults.";
 }
 
 function renderTerms() {
@@ -5984,6 +6008,8 @@ function renderTerms() {
       <button class="small-button remove-term" type="button" data-id="${escapeHtml(item.id)}">Remove</button>
     </div>`).join("") : `<div class="empty-state">No personal allowed terms yet.</div>`;
   elements["built-in-terms-list"].innerHTML = globalThis.BCWebStyleGuideChecker.builtInTerms.map(term => `<span class="term-chip">${escapeHtml(term)}</span>`).join("");
+  elements["optional-non-breaking-space"].checked = state.optionalChecks.nonBreakingSpace;
+  elements["optional-passive-voice"].checked = state.optionalChecks.passiveVoice;
   renderDataManagement();
 }
 
@@ -6001,10 +6027,24 @@ const ATTENTION_LABEL = {
   "nothing-flagged": "Nothing flagged"
 };
 
+function excludedOptionalCheckLabels(report) {
+  const checks = report && report.settings && report.settings.optionalChecks;
+  if (!checks) return [];
+  const excluded = [];
+  if (checks.nonBreakingSpace === false) excluded.push("Non-breaking spaces");
+  if (checks.passiveVoice === false) excluded.push("Passive voice");
+  return excluded;
+}
+
+function optionalCheckCoverage(report) {
+  const excluded = excludedOptionalCheckLabels(report);
+  return excluded.length ? `Excluded: ${excluded.join(", ")}` : "All optional checks included";
+}
+
 const STRUCTURE_RULES = new Set([
   "h1-count", "heading-skip", "heading-deep", "heading-empty", "heading-empty-sequence",
   "on-this-page-missing", "on-this-page-format", "on-this-page-links", "section-heading-density",
-  "fake-list", "list-depth", "faq-content"
+  "formatted-heading", "formatted-all-caps-heading", "fake-list", "list-depth", "faq-content"
 ]);
 
 const PLAIN_LANGUAGE_RULES = new Set([
@@ -6401,6 +6441,7 @@ function summarySheetRows(report) {
     sheetRow(["URL", report.page.url]),
     sheetRow(["Checked", formatDate(report.scannedAt)]),
     sheetRow(["Scope", `${report.settings.scope === "whole" ? "Whole page" : "Page content"} · ${report.settings.profileLabel}`]),
+    sheetRow(["Optional review checks", optionalCheckCoverage(report)]),
     sheetRow(["Finding coverage", findingCoverageText(report)]),
     sheetRow(["Link check", linkCheckCoverage(report)]),
     sheetRow(["Link check results", linkCheckResultSummary(report)]),
@@ -6659,7 +6700,7 @@ async function copyCurrentDetailedFindings() {
 }
 
 const BATCH_METADATA_HEADER = [
-  "Page", "Submitted URL", "Final URL", "Domain", "Scanned at", "HTML title", "Meta description", "Keywords", "Robots", "Page language",
+  "Page", "Submitted URL", "Final URL", "Domain", "Scanned at", "Optional review checks", "HTML title", "Meta description", "Keywords", "Robots", "Page language",
   "Open Graph title", "Open Graph description", "Twitter title", "Twitter description", "Alternate languages", "Additional published metadata"
 ];
 
@@ -6686,7 +6727,7 @@ function batchMetadataValues(report) {
 }
 
 function metadataRow(report, submittedUrl) {
-  return [report.page.title, submittedUrl || report.page.url, report.page.url, report.page.hostname, report.scannedAt, ...batchMetadataValues(report)];
+  return [report.page.title, submittedUrl || report.page.url, report.page.url, report.page.hostname, report.scannedAt, optionalCheckCoverage(report), ...batchMetadataValues(report)];
 }
 
 function linkResultLabel(status) {
@@ -7147,7 +7188,7 @@ function batchWorkbookSheets(records, includeReviewed, preset, customSelection) 
     { name: "Page issue summary", rows: [ISSUES_BY_PAGE_HEADER, ...issuesByPageRows(records, includeReviewed)], filterRow: 1, widths: [12, 34, 48, 36, 24, 20, 14, 14, 12, 40, 60, 60, 54, 24], maxColumnWidth: 60 },
     { name: "Findings detail", rows: [FINDING_DETAIL_HEADER, ...records.filter(record => record.status === "complete").flatMap(record => findingDetailRows(record.report, includeReviewed, record.submittedUrl, record.pageNumber))], filterRow: 1, widths: [14, 32, 48, 34, 24, 20, 36, 14, 14, 64, 24, 64, 64, 12, 40, 54, 24, 12], maxColumnWidth: 64 },
     { name: "Links", rows: [LINK_EXPORT_HEADER, ...records.filter(record => record.status === "complete").flatMap(record => linkRows(record.report))], filterRow: 1, maxColumnWidth: 55 },
-    { name: "Metadata", rows: [BATCH_METADATA_HEADER, ...records.filter(record => record.status === "complete").map(record => metadataRow(record.report, record.submittedUrl))], filterRow: 1, widths: [32, 48, 48, 24, 22, 34, 60, 28, 16, 14, 34, 60, 34, 60, 42, 60], maxColumnWidth: 60 },
+    { name: "Metadata", rows: [BATCH_METADATA_HEADER, ...records.filter(record => record.status === "complete").map(record => metadataRow(record.report, record.submittedUrl))], filterRow: 1, widths: [32, 48, 48, 24, 22, 30, 34, 60, 28, 16, 14, 34, 60, 34, 60, 42, 60], maxColumnWidth: 60 },
     { name: "Scan log", rows: [scanLogHeader, ...scanLogRows], filterRow: 1, widths: [52, 14, 34, 52, 24, 60], maxColumnWidth: 60 }
   ];
   const byName = new Map(allSheets.map(sheet => [sheet.name, sheet]));
@@ -7258,6 +7299,7 @@ async function scanBatchUrl(url, settings) {
       scope: settings.scope,
       profile,
       canControlColour: profile === "cms-lite" ? false : settings.canControlColour,
+      optionalChecks: settings.optionalChecks || state.optionalChecks,
       exceptions: state.exceptions
     });
     return { submittedUrl: url, status: "complete", report };
@@ -7477,7 +7519,7 @@ function applyBatchStateToControls() {
 function batchExportSnapshotFromUi() {
   const preset = elements["batch-export-preset"].value === "custom" ? "custom" : "full";
   return {
-    settings: { scope: elements["batch-scope"].value, canControlColour: elements["batch-colour-control"].checked },
+    settings: { scope: elements["batch-scope"].value, canControlColour: elements["batch-colour-control"].checked, optionalChecks: { ...state.optionalChecks } },
     checkLinks: elements["batch-check-links"].checked,
     linkPermissionMode: batchLinkPermissionModeFromUi(),
     exportPreset: preset,
@@ -8017,6 +8059,8 @@ function bindEvents() {
   elements["clear-sent-feedback"].addEventListener("click", () => clearFeedbackData(true));
   elements["clear-allowed-terms"].addEventListener("click", clearAllowedTerms);
   elements["clear-page-preferences"].addEventListener("click", clearPagePreferences);
+  elements["optional-non-breaking-space"].addEventListener("change", saveOptionalChecks);
+  elements["optional-passive-voice"].addEventListener("change", saveOptionalChecks);
   elements["return-review-button"].addEventListener("click", returnToReview);
   elements["note-form"].addEventListener("submit", saveAuditNote);
   elements["note-cancel"].addEventListener("click", () => elements["note-dialog"].close());
