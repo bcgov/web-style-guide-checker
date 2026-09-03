@@ -201,7 +201,7 @@
             <div><p class="eyebrow">Beta testing</p><h1 id="feedback-heading">Feedback notes</h1></div>
             <span id="feedback-ready-count" class="profile-badge">0 saved</span>
           </div>
-          <p>Add notes while you test. Notes stay on this device until you copy, export or create an email.</p>
+          <p>Add notes while you test. Unsent notes stay on this device until you send or delete them. Sent notes are removed after 30 days.</p>
           <button id="add-feedback-button" class="button secondary" type="button">Add feedback</button>
         </header>
 
@@ -220,12 +220,12 @@
             <button id="copy-feedback-report" class="text-button" type="button">Copy report</button>
             <button id="export-feedback-csv" class="text-button" type="button">Export CSV</button>
           </div>
-          <p class="feedback-reminder">Sent notes remain available below and do not take up space in the next feedback email.</p>
+          <p class="feedback-reminder">Sent notes remain available below for 30 days and do not take up space in the next feedback email.</p>
         </section>
 
         <details id="archived-feedback" class="archived-feedback" hidden>
           <summary>Sent feedback <span id="archived-feedback-count"></span></summary>
-          <p>Sent notes stay available for copying or export. Restore a note if you need to send it again.</p>
+          <p>Sent notes stay available for copying or export for 30 days. Restore a note if you need to send it again.</p>
           <div id="archived-feedback-list" class="feedback-list"></div>
         </details>
       </section>
@@ -253,13 +253,7 @@
               <label class="check-row"><input id="batch-colour-control" type="checkbox" checked> Include content colour contrast outside CMS Lite</label>
               <label class="check-row"><input id="batch-check-links" type="checkbox"> Check whether links work</label>
               <p class="hint batch-option-note">Checks links after each page. This takes longer and may ask for access to linked websites. CMS Lite links are checked in QA and live when applicable. Some internal links may use your current browser access.</p>
-              <fieldset id="batch-link-access-options" class="custom-export-options" hidden>
-                <legend>Website access for link checking</legend>
-                <label class="check-row"><input id="batch-link-access-found" type="radio" name="batch-link-access" value="found" checked> Ask only for websites in this scan</label>
-                <p class="hint batch-option-note">Only asks for access to websites found in the scan.</p>
-                <label class="check-row"><input id="batch-link-access-all" type="radio" name="batch-link-access" value="all"> Allow access to all websites</label>
-                <p class="hint batch-option-note">Avoids extra access prompts, but gives the checker access to all websites until you remove it in Settings.</p>
-              </fieldset>
+              <p id="batch-link-access-note" class="hint batch-option-note" hidden>After scanning the pages, the checker asks only for access to linked websites found in this batch.</p>
               <label>Workbook type
                 <select id="batch-export-preset">
                   <option value="full" selected>Full audit</option>
@@ -320,6 +314,38 @@
           <p>These names are already allowed for the “Use B.C.” check.</p>
           <div id="built-in-terms-list" class="term-chips"></div>
         </details>
+
+        <section class="workspace-card" aria-labelledby="saved-data-heading">
+          <h2 id="saved-data-heading">Saved data</h2>
+          <p>Manage information stored by the checker on this device. Each action affects only the named data.</p>
+          <div class="data-management-list">
+            <div class="data-management-row">
+              <div><strong>Page reviews</strong><span id="page-review-data-count"></span><small>Reports expire after 168 hours. This also deletes their decisions, audit notes and saved review positions.</small></div>
+              <button id="clear-page-reviews" class="button danger compact" type="button">Delete</button>
+            </div>
+            <div class="data-management-row">
+              <div><strong>Batch scan</strong><span id="batch-data-count"></span><small>Incomplete batches expire after 7 days. Completed batches expire after 30 days or when a new batch begins.</small></div>
+              <button id="clear-batch-data" class="button danger compact" type="button">Delete</button>
+            </div>
+            <div class="data-management-row">
+              <div><strong>Unsent feedback</strong><span id="unsent-feedback-data-count"></span><small>Unsent notes remain until you send or delete them.</small></div>
+              <button id="clear-unsent-feedback" class="button danger compact" type="button">Delete</button>
+            </div>
+            <div class="data-management-row">
+              <div><strong>Sent feedback</strong><span id="sent-feedback-data-count"></span><small>Sent notes expire 30 days after you mark them sent.</small></div>
+              <button id="clear-sent-feedback" class="button danger compact" type="button">Delete</button>
+            </div>
+            <div class="data-management-row">
+              <div><strong>Allowed terms</strong><span id="allowed-terms-data-count"></span><small>Exact rule-specific exceptions remain until you remove them.</small></div>
+              <button id="clear-allowed-terms" class="button danger compact" type="button">Delete</button>
+            </div>
+            <div class="data-management-row">
+              <div><strong>Page preferences</strong><span id="page-preferences-data-count"></span><small>Saved review scope and colour-control choices remain until reset.</small></div>
+              <button id="clear-page-preferences" class="button danger compact" type="button">Reset</button>
+            </div>
+          </div>
+          <p id="data-management-status" class="hint" aria-live="polite"></p>
+        </section>
       </section>
     </main>
 
@@ -421,13 +447,14 @@
     <dialog id="permission-dialog">
       <form method="dialog">
         <div class="dialog-heading"><div><p class="eyebrow">Link checking</p><h2>Website access</h2></div><button id="permission-close" class="icon-button" type="button" aria-label="Close website access settings">×</button></div>
-        <p>Content checks run in your browser. Most links are checked without signing in. For supported internal sites, the checker can use your current browser access. CMS Lite assets may be checked in CMS Lite, QA and live. To check these assets, the checker may briefly read the response from the asset link, including the B.C. government “Asset Not Found” page. The checker does not read or store your sign-in information. If a link cannot be checked safely, you’ll be asked to open it yourself.</p>
+        <p>Content checks run locally in your browser using fixed JavaScript rules. Page content, findings and reports are not sent to an external analysis service, AI system or the checker’s maintainers. They leave the checker only when you choose to copy, export or include them in feedback.</p>
+        <p>Link checking contacts each destination website, so that website receives a normal browser request. Most links are checked without signing in. For supported internal sites, the checker can use your current browser access. CMS Lite assets may be checked in CMS Lite, QA and live. For a managed CMS Lite asset, the checker may briefly read the response from the asset link, including the B.C. government “Asset Not Found” page. The checker does not read or store your sign-in information, including your password, cookies or sign-in tokens.</p>
+        <p>Local, private, embedded-credential and action-like authenticated links are not requested. If a link cannot be checked safely, you’ll be asked to open it yourself. The checker also retrieves a small release-status file without sending page content.</p>
+        <p>Single-page reports expire after 168 hours. A successful rescan of the same page replaces its earlier saved report.</p>
         <div class="permission-options">
           <button id="permission-linked" class="button primary" type="button">Allow linked sites on this page</button>
           <p>Your browser will show which websites the checker is asking to access.</p>
-          <button id="permission-all" class="button secondary" type="button">Allow all websites</button>
-          <p>Checks links without extra access prompts, but gives the checker access to all websites until you remove it.</p>
-          <button id="permission-revoke" class="button tertiary" type="button">Remove access to all websites</button>
+          <button id="permission-revoke" class="button tertiary" type="button">Remove all website access</button>
         </div>
         <p id="permission-status" class="hint" aria-live="polite"></p>
       </form>

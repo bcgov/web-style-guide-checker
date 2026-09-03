@@ -40,7 +40,7 @@ context.BCWebStyleGuideChecker = {
 };
 
 const helperChunk = sourceBetween("function canonicalUrl(value)", "async function requestPagePermission");
-vm.runInNewContext(`${helperChunk}\nthis.networkHelpers = { canonicalUrl, hostnameFor, originPattern, qaProductionEquivalent, signInMayBeRequired, prepareRemoteLink, remoteLinksForReport, linkResultFromRemote, permissionOriginsForRemoteUrl };`, context);
+vm.runInNewContext(`${helperChunk}\nthis.networkHelpers = { canonicalUrl, hostnameFor, originPattern, qaProductionEquivalent, signInMayBeRequired, prepareRemoteLink, remoteLinksForReport, linkResultFromRemote, permissionOriginsForRemoteUrl, remoteDestinationSafety, authenticatedActionUrl };`, context);
 const helpers = context.networkHelpers;
 
 assert.equal(
@@ -65,6 +65,29 @@ assert.equal(cmsLink.sessionAware, true);
 assert.equal(cmsLink.signInRequired, false);
 assert.deepEqual(Array.from(helpers.permissionOriginsForRemoteUrl("http://www.clicklaw.bc.ca/page")), ["http://www.clicklaw.bc.ca/*", "https://www.clicklaw.bc.ca/*", "https://clicklaw.bc.ca/*"]);
 assert.deepEqual(Array.from(helpers.permissionOriginsForRemoteUrl("https://www.choa.bc.ca/")), ["https://www.choa.bc.ca/*", "https://choa.bc.ca/*"], "The initial permission prompt must include a common www-to-apex HTTPS redirect");
+assert.equal(helpers.remoteDestinationSafety("https://example.com/page").allowed, true);
+[
+  "http://localhost/admin",
+  "http://127.0.0.1/",
+  "http://10.0.0.5/",
+  "http://169.254.169.254/latest/meta-data/",
+  "http://192.168.1.5/",
+  "http://[::1]/",
+  "http://[fc00::1]/",
+  "http://[fe80::1]/",
+  "http://[::ffff:127.0.0.1]/",
+  "https://user:secret@example.com/"
+].forEach(value => assert.equal(helpers.remoteDestinationSafety(value).allowed, false, `${value} must not be requested`));
+assert.deepEqual(Array.from(helpers.permissionOriginsForRemoteUrl("http://127.0.0.1/admin")), []);
+assert.equal(helpers.authenticatedActionUrl("https://intranet.gov.bc.ca/logout"), true);
+assert.equal(helpers.authenticatedActionUrl("https://intranet.gov.bc.ca/page?action=delete"), true);
+assert.equal(helpers.authenticatedActionUrl("https://intranet.gov.bc.ca/publications/about-submissions"), false, "Action safeguards must use complete path segments or explicit action parameters");
+
+const blockedLink = helpers.prepareRemoteLink(
+  { rawHref: "http://192.168.0.1/", href: "http://192.168.0.1/" },
+  "https://www2.gov.bc.ca/source"
+);
+assert.equal(blockedLink.safetyBlocked, true, "Blocked destinations must remain visible as review results rather than disappearing from the link inventory");
 
 const deduped = helpers.remoteLinksForReport({
   page: { url: "https://www2.qa.gov.bc.ca/source" },
@@ -156,11 +179,17 @@ function response(status, { type = "basic", url = "https://example.com/", header
 (async () => {
   let calls = [];
   context.chrome.permissions.contains = async () => true;
+  context.fetch = async () => { throw new Error("A blocked destination must not be requested"); };
+  let result = await remote.checkRemoteUrl("http://169.254.169.254/latest/meta-data/");
+  assert.equal(result.status, "safety-blocked");
+  result = await remote.checkRemoteUrl("https://intranet.gov.bc.ca/logout", 10000, { sessionAware: true });
+  assert.equal(result.status, "safety-blocked");
+
   context.fetch = async (url, options) => {
     calls.push({ url, options });
     return response(200, { url });
   };
-  let result = await remote.checkRemoteUrl("https://example.com/page");
+  result = await remote.checkRemoteUrl("https://example.com/page");
   assert.equal(result.status, "ok");
   assert.equal(calls[0].options.method, "HEAD");
   assert.equal(calls[0].options.redirect, "follow");

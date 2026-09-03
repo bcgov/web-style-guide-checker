@@ -10,7 +10,9 @@ const stateStart = source.indexOf("const STORAGE_KEYS");
 const stateEnd = source.indexOf("async function currentTab()");
 const helperStart = source.indexOf("function batchHasIncompletePageScan()");
 const helperEnd = source.indexOf("function batchLinkPermissionModeFromUi()", helperStart);
-assert.ok(stateStart >= 0 && stateEnd > stateStart && helperStart >= 0 && helperEnd > helperStart, "Batch state helpers must be testable");
+const retentionStart = source.indexOf("function reportKey(url)");
+const retentionEnd = source.indexOf("async function storeReport(report)", retentionStart);
+assert.ok(stateStart >= 0 && stateEnd > stateStart && helperStart >= 0 && helperEnd > helperStart && retentionStart >= 0 && retentionEnd > retentionStart, "Batch state helpers must be testable");
 
 let storedBatch = null;
 let savedBatch = null;
@@ -27,7 +29,8 @@ const context = {
     storage: {
       local: {
         get: async () => storedBatch ? { lastBatchV2: storedBatch } : {},
-        set: async value => { if (value.lastBatchV2) savedBatch = value.lastBatchV2; }
+        set: async value => { if (value.lastBatchV2) savedBatch = value.lastBatchV2; },
+        remove: async () => { storedBatch = null; }
       }
     }
   },
@@ -41,7 +44,7 @@ context.BCWebStyleGuideChecker = {
   }
 };
 vm.createContext(context);
-vm.runInContext(`${source.slice(stateStart, stateEnd)}\n${source.slice(helperStart, helperEnd)}\n;globalThis.batchTest={state,loadState,batchStorageValue,persistBatchState,batchHasIncompletePageScan};`, context);
+vm.runInContext(`${source.slice(stateStart, stateEnd)}\n${source.slice(retentionStart, retentionEnd)}\n${source.slice(helperStart, helperEnd)}\n;globalThis.batchTest={state,loadState,batchStorageValue,persistBatchState,batchHasIncompletePageScan};`, context);
 
 (async () => {
   storedBatch = {
@@ -54,7 +57,8 @@ vm.runInContext(`${source.slice(stateStart, stateEnd)}\n${source.slice(helperSta
     settings: { scope: "content", canControlColour: true },
     exportPreset: "full",
     customSheets: [],
-    includeReviewed: false
+    includeReviewed: false,
+    savedAt: new Date().toISOString()
   };
   await context.batchTest.loadState();
   assert.equal(context.batchTest.state.batch.phase, "paused", "A page scan interrupted between pages must restore as paused, not complete");

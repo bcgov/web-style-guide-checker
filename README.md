@@ -17,7 +17,7 @@ The checker supports content review. It does not replace editorial, accessibilit
 - Includes a small high-confidence Proofreading category for obvious patterns without using AI or a general spelling service
 - Reviews updated guidance for government names, headings, alt text, dates, times, measurements, currency, education terms and Canadian spelling
 - Shows page structure, published metadata, content statistics and link information
-- Checks whether web links work when the reviewer grants website access, without using browser sign-in; links to `www2.qa.gov.bc.ca` are checked against the matching live `www2.gov.bc.ca` address
+- Checks whether web links work when the reviewer grants website access; ordinary public checks are anonymous, while narrowly supported CMS Lite, QA, SharePoint and intranet checks can use the reviewer’s existing browser access
 - Scans up to 100 pasted page addresses into one workbook
 - Exports single-page and batch audit workbooks with a review summary, page-level attention profile, grouped issue views and one row per stored finding
 - Saves exact, rule-specific allowed terms
@@ -76,7 +76,7 @@ The Feedback area lets beta testers collect several notes before contacting the 
 
 The extension automatically captures a small context snapshot when a note is created. This can include the page title and address, detected site profile, scan scope, page section, related finding, extension version and browser version. Testers can exclude page context from any note before exporting it.
 
-Feedback notes stay on the tester's device. The extension keeps each email batch below a conservative encoded `mailto:` size so it never intentionally creates a truncated feedback email. When the current unsent batch is full, testers must create and send that complete batch before recording more feedback. Opening a draft does not mark anything sent: the tester confirms **I sent it** before those notes are archived. Sent notes remain available locally and do not count toward the next email batch. **Copy report** can copy unsent notes, all notes or a selected subset; CSV export remains available.
+Feedback notes stay on the tester's device. Unsent notes remain until the tester sends or deletes them. Opening a draft does not mark anything sent: the tester confirms **I sent it** before those notes are archived. Archived notes expire after 30 days and do not count toward the next email batch. The extension keeps each email batch below a conservative encoded `mailto:` size so it never intentionally creates a truncated feedback email. **Copy report** can copy unsent notes, all notes or a selected subset; CSV export remains available.
 
 ## Reports and batch scans
 
@@ -91,7 +91,7 @@ For one page, **Full audit** is the default Excel workbook and contains:
 
 The only other workbook choice is **Customize workbook**, which keeps sheet-by-sheet choices available without showing a large checklist by default. **Download findings CSV** is available as a separate button, and detailed findings can still be copied. Link checking is offered only when the selected workbook sheets actually use link-check findings, coverage or results; a metadata-only custom workbook does not require a link check.
 
-For batch scans, **Full audit** contains **Summary**, **Pages**, **Site-wide findings**, **Page issue summary**, **Findings detail**, **Links**, **Metadata** and **Scan log**. **Customize workbook** allows an explicit sheet selection when needed. Batch scans can optionally check each unique web destination once after all pages have been scanned, then map that result back to every page that uses the destination. Failed scans remain visible in the Pages sheet and Scan log.
+For batch scans, **Full audit** contains **Summary**, **Pages**, **Site-wide findings**, **Page issue summary**, **Findings detail**, **Links**, **Metadata** and **Scan log**. **Customize workbook** allows an explicit sheet selection when needed. Batch scans can optionally check each unique web destination once after all pages have been scanned, then map that result back to every page that uses the destination. Website access is requested only for destinations found in the batch. Failed scans remain visible in the Pages sheet and Scan log. Incomplete batches expire 7 days after their last saved activity. Completed batches expire after 30 days or when a new batch begins.
 
 The **Pages** sheet uses six review areas: Page information, Plain language, Structure and navigation, Accessibility, Links and documents, and Style and proofreading. Each area is labelled **Review first**, **Needs attention**, **Worth checking** or **Nothing flagged**. These are review-priority signals from automated findings, not quality ratings or compliance scores. **Nothing flagged** means the checker did not flag a rule in that area; it does not mean the page passed an accessibility or quality review.
 
@@ -99,11 +99,13 @@ Detailed findings are the authoritative evidence layer. Grouped and site-wide sh
 
 ## Privacy and permissions
 
-Content checks run locally using fixed JavaScript rules. The extension does not use AI and does not send page text to an analysis service.
+Content checks run locally using fixed JavaScript rules. Page content, findings and reports are not sent to an external analysis service, AI system or the maintainers. Information leaves the checker only when the tester chooses to copy, export or include it in feedback. The extension retrieves a small release-status file without including page content.
 
-Reports, decisions, allowed terms, feedback notes, settings and review position are stored in local extension storage. Feedback remains local until the tester copies, exports or creates an email.
+Reports, decisions, allowed terms, feedback notes, settings and review position are stored in local extension storage that is restricted to trusted extension pages. A saved single-page report expires after 168 hours, and the newest successful scan of the same page replaces the earlier report. Decisions and notes are retained only while their findings remain in a saved report. Unsent feedback remains until sent or deleted; sent feedback expires after 30 days. Incomplete batch state expires after 7 days and completed batch state after 30 days. Settings provides separate controls for deleting each category of saved data.
 
-Link and asset checks contact destination websites directly without browser cookies or sign-in details. In-page fragment links are checked locally instead of being sent over the network. For `www2.qa.gov.bc.ca`, the checker can test the matching live `www2.gov.bc.ca` address because QA destinations may require sign-in. Redirects are followed when the extension has website access to the resulting destination: same-origin redirects normally work with the site's existing permission, while cross-origin redirects may require access to the additional website. A redirect whose final destination cannot be verified is reported as uncertain rather than broken. The browser asks for website access before network checks run. Batch scans open temporary background tabs in the browser's normal browsing context.
+Link and asset checks contact destination websites directly, which receive a normal browser request. Ordinary public requests omit browser credentials. For supported CMS Lite, QA, SharePoint and intranet destinations, the checker can use access already established in the current browser session without reading or storing sign-in information. Authenticated URLs that look like state-changing actions are not requested. In-page fragments are checked locally, and links containing embedded credentials or explicit local, private, link-local or reserved destinations are not requested. Redirects are followed when the extension has website access to the resulting destination; a redirect whose final destination cannot be safely verified is reported as uncertain rather than broken. The browser asks only for access to websites discovered by the selected page or batch scan. Batch scans open temporary background tabs in the browser's normal browsing context. Local `file:` pages are not supported and receive a specific explanation in the scan view.
+
+CSV exports prefix cells that could otherwise be interpreted as spreadsheet formulas. Workbook and CSV output should still be handled according to the sensitivity of the scanned content.
 
 ## Repository structure
 
