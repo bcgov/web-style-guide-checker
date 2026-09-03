@@ -205,6 +205,10 @@ legend, .field-label { display: block; margin-bottom: 7px; color: var(--navy); f
 
 .check-row { display: flex; align-items: flex-start; gap: 8px; }
 .check-row input { flex: 0 0 auto; margin-top: 4px; }
+.optional-check-row > span, .optional-check-row strong, .optional-check-row small { display: block; }
+.optional-check-row > span { min-width: 0; }
+.optional-check-row small { margin-top: 2px; color: var(--muted); line-height: 1.35; }
+.optional-check-row + .optional-check-row { margin-top: 8px; }
 
 .section-scan-control { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 15px 0; padding: 11px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .section-scan-control strong, .section-scan-control small { display: block; }

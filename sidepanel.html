@@ -312,9 +312,8 @@
         <section class="workspace-card" aria-labelledby="optional-checks-heading">
           <h2 id="optional-checks-heading">Optional review checks</h2>
           <p>These contextual checks are included by default. Turn one off only when it is not useful for the content you review.</p>
-          <label class="check-row"><input id="optional-non-breaking-space" type="checkbox" checked><span><strong>Non-breaking spaces</strong><small>Review spaces that may intentionally keep words or values together.</small></span></label>
-          <label class="check-row"><input id="optional-passive-voice" type="checkbox" checked><span><strong>Passive voice</strong><small>Review wording that may make responsibility unclear.</small></span></label>
-          <p class="hint">Reading-level checks are always included.</p>
+          <label class="check-row optional-check-row"><input id="optional-non-breaking-space" type="checkbox" checked><span><strong>Non-breaking spaces</strong><small>Review spaces that may intentionally keep words or values together.</small></span></label>
+          <label class="check-row optional-check-row"><input id="optional-passive-voice" type="checkbox" checked><span><strong>Passive voice</strong><small>Review wording that may make responsibility unclear.</small></span></label>
           <p id="optional-checks-status" class="hint" aria-live="polite"></p>
         </section>
 
@@ -325,11 +324,11 @@
         </details>
 
         <section class="workspace-card" aria-labelledby="saved-data-heading">
-          <h2 id="saved-data-heading">Saved data</h2>
-          <p>Manage information stored by the checker on this device. Each action affects only the named data.</p>
+          <h2 id="saved-data-heading">Delete saved data</h2>
+          <p>Delete or reset information stored by the checker on this device. Each action affects only the named data.</p>
           <div class="data-management-list">
             <div class="data-management-row">
-              <div><strong>Page reviews</strong><span id="page-review-data-count"></span><small>Reports expire after 168 hours. This also deletes their decisions, audit notes and saved review positions.</small></div>
+              <div><strong>Page reviews</strong><span id="page-review-data-count"></span><small>Reports, decisions, audit notes and saved review positions expire after 7 days.</small></div>
               <button id="clear-page-reviews" class="button danger compact" type="button">Delete</button>
             </div>
             <div class="data-management-row">
@@ -455,11 +454,12 @@
 
     <dialog id="permission-dialog">
       <form method="dialog">
-        <div class="dialog-heading"><div><p class="eyebrow">Link checking</p><h2>Website access</h2></div><button id="permission-close" class="icon-button" type="button" aria-label="Close website access settings">×</button></div>
-        <p>Content checks run locally in your browser using fixed JavaScript rules. Page content, findings and reports are not sent to an external analysis service, AI system or the checker’s maintainers. They leave the checker only when you choose to copy, export or include them in feedback.</p>
-        <p>Link checking contacts each destination website, so that website receives a normal browser request. Most links are checked without signing in. For supported internal sites, the checker can use your current browser access. CMS Lite assets may be checked in CMS Lite, QA and live. For a managed CMS Lite asset, the checker may briefly read the response from the asset link, including the B.C. government “Asset Not Found” page. The checker does not read or store your sign-in information, including your password, cookies or sign-in tokens.</p>
-        <p>Local, private, embedded-credential and action-like authenticated links are not requested. If a link cannot be checked safely, you’ll be asked to open it yourself. The checker also retrieves a small release-status file without sending page content.</p>
-        <p>Single-page reports expire after 168 hours. A successful rescan of the same page replaces its earlier saved report.</p>
+        <div class="dialog-heading"><h2>Privacy and website access</h2><button id="permission-close" class="icon-button" type="button" aria-label="Close privacy and website access settings">×</button></div>
+        <p>Content checks run locally in your browser. Page content, findings and reports are not sent to external analysis services or AI systems.</p>
+        <p>Information leaves the checker only when needed to check links, retrieve release status, or when you choose to copy, export or manually submit information as feedback.</p>
+        <p>Link checking sends a normal browser request to each destination website. A limited list of supported internal links may use your current browser access. The checker does not read or store passwords, cookies or sign-in tokens.</p>
+        <p>Links that cannot be checked safely are not requested automatically.</p>
+        <p>Single-page reports expire after 7 days. A successful rescan replaces the previous saved report.</p>
         <div class="permission-options">
           <button id="permission-linked" class="button primary" type="button">Allow linked sites on this page</button>
           <p>Your browser will show which websites the checker is asking to access.</p>

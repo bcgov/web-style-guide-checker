@@ -13,21 +13,17 @@ This repository contains a browser extension built with HTML, CSS and JavaScript
 
 ## Run the checks
 
-From the repository folder:
+Use Node.js 20 or later. From the repository folder:
 
 ```bash
-node tests/helpers.test.js
-node tests/network-helpers.test.js
-node tests/rules.test.js
-node tests/static-build.test.js
-node tests/workbook.test.js
-node tests/export-model.test.js
-node tests/highlight.test.js
-node tests/feedback.test.js
-node tests/browser-regression.test.js
+npm ci
+npx playwright install chromium
+npm test
 ```
 
-The browser regression, style-guide rule and highlight checks use Playwright Chromium when it is installed. The other checks use Node.js built-in modules. Export-model tests stress individual finding detail and batch sizes up to 100 pages; workbook tests validate the generated XLSX structure.
+`npm test` is the complete local suite. The browser regression, style-guide rule and highlight checks use Playwright Chromium. When Chromium is unavailable locally, those suites report that they were skipped.
+
+Pull-request checks run `npm run test:ci`. Strict test mode requires all browser suites to run and fails when Playwright or Chromium is unavailable.
 
 ## Test the extension manually
 

@@ -1,0 +1,11 @@
+name: compliance
+description: |
+  Tracks the Privacy Impact Assessment (PIA) and Security Threat and Risk
+  Assessment (STRA). The project team has initiated both assessment processes.
+spec:
+  - name: PIA
+    status: in-progress
+    last-updated: '2026-09-03'
+  - name: STRA
+    status: in-progress
+    last-updated: '2026-09-03'

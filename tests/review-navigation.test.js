@@ -15,6 +15,7 @@ function sourceBetween(startText, endText) {
 }
 
 const context = {
+  URL,
   state: {
     guidedIndex: 0,
     guidedFingerprint: "",
@@ -51,6 +52,11 @@ const context = {
       }
     }
   },
+  chrome: {
+    runtime: {
+      getURL: path => `chrome-extension://checker-id/${path}`
+    }
+  },
   guidedFindings: () => context.queue.filter(finding => !context.state.skippedFingerprints.has(finding.fingerprint)),
   effectiveStatus() { return "open"; },
   findingAmount(finding) { return finding.occurrenceCount || 1; },
@@ -67,6 +73,34 @@ const functions = [
   sourceBetween("function resetGuidedFindingPosition()", "function renderGuidedReview(")
 ].join("\n");
 vm.runInNewContext(`${functions}\nthis.skipRemainingIssueType = skipRemainingIssueType; this.restoreSkippedIssueTypes = restoreSkippedIssueTypes; this.resetGuidedFindingPosition = resetGuidedFindingPosition;`, context);
+
+const workspaceContext = { URL, chrome: context.chrome };
+vm.runInNewContext(`${sourceBetween("function isExtensionWorkspaceTab(tab)", "async function currentReviewTab()") }\nthis.isExtensionWorkspaceTab = isExtensionWorkspaceTab;`, workspaceContext);
+assert.equal(workspaceContext.isExtensionWorkspaceTab({ url: "chrome-extension://checker-id/sidepanel.html?workspace=1&view=current" }), true, "The side panel must recognize its own full-tab workspace");
+assert.equal(workspaceContext.isExtensionWorkspaceTab({ url: "chrome-extension://checker-id/sidepanel.html" }), false, "The ordinary side-panel document is not a full-tab workspace");
+assert.equal(workspaceContext.isExtensionWorkspaceTab({ url: "chrome-extension://another-extension/sidepanel.html?workspace=1" }), false, "Another extension's page must not inherit the reviewed page context");
+assert.equal(workspaceContext.isExtensionWorkspaceTab({ url: "https://example.com/sidepanel.html?workspace=1" }), false);
+
+function reviewTabContext(activeTab, sourceTab) {
+  const tabContext = {
+    URL,
+    workspaceSurface: false,
+    state: { lastReviewTabId: 42 },
+    chrome: {
+      runtime: context.chrome.runtime,
+      tabs: {
+        query: async () => [activeTab],
+        get: async tabId => {
+          assert.equal(tabId, 42);
+          if (!sourceTab) throw new Error("Tab not found");
+          return sourceTab;
+        }
+      }
+    }
+  };
+  vm.runInNewContext(`${sourceBetween("async function currentTab()", "function isScannableUrl(url)")}\nthis.currentReviewTab = currentReviewTab;`, tabContext);
+  return tabContext;
+}
 
 const finding = (fingerprint, ruleId) => ({ fingerprint, ruleId, occurrenceCount: 1 });
 context.queue = [finding("a-1", "a"), finding("b-1", "b"), finding("a-2", "a"), finding("c-1", "c")];
@@ -115,4 +149,19 @@ context.resetGuidedFindingPosition();
 assert.equal(context.confirmationScrollBlock, "start", "A review confirmation must remain visible beneath the sticky tabs");
 assert.equal(context.findingFocusedWithoutScroll, true, "Showing a confirmation must retain keyboard focus on the finding");
 
-console.log("Review navigation tests passed");
+(async () => {
+  const sourceTab = { id: 42, url: "https://www2.gov.bc.ca/gov/content/example" };
+  const ownWorkspace = { id: 99, url: "chrome-extension://checker-id/sidepanel.html?workspace=1&view=current" };
+  assert.equal((await reviewTabContext(ownWorkspace, sourceTab).currentReviewTab()).id, 42, "Page actions must continue targeting the source webpage while the workspace is active");
+
+  const regularPage = { id: 7, url: "https://example.com/page" };
+  assert.equal((await reviewTabContext(regularPage, sourceTab).currentReviewTab()).id, 7, "Ordinary tab changes must continue following the active webpage");
+
+  const missingSource = await reviewTabContext(ownWorkspace, null).currentReviewTab();
+  assert.equal(missingSource, null, "The extension workspace must never become a scan target when its source tab has closed");
+
+  console.log("Review navigation tests passed");
+})().catch(error => {
+  console.error(error);
+  process.exitCode = 1;
+});

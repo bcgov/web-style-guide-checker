@@ -1,5 +1,9 @@
 # B.C. Web Style Guide Checker
 
+[![Lifecycle: Maturing](https://img.shields.io/badge/Lifecycle-Maturing-007EC6)](https://github.com/bcgov/repomountie/blob/master/doc/lifecycle-badges.md)
+[![Tests](https://github.com/bcgov/web-style-guide-checker/actions/workflows/tests.yml/badge.svg)](https://github.com/bcgov/web-style-guide-checker/actions/workflows/tests.yml)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+
 The B.C. Web Style Guide Checker is a Chrome and Microsoft Edge extension that reviews webpages against selected requirements and recommendations in the B.C. Web Style Guide.
 
 Version 1.3.2 combines security and data-retention controls with conservative structural, readability and proofreading checks. It is designed to improve useful coverage without turning contextual editorial judgement into automatic fixes.
@@ -99,11 +103,11 @@ Detailed findings are the authoritative evidence layer. Grouped and site-wide sh
 
 ## Privacy and permissions
 
-Content checks run locally using fixed JavaScript rules. Page content, findings and reports are not sent to an external analysis service, AI system or the maintainers. Information leaves the checker only when the tester chooses to copy, export or include it in feedback. The extension retrieves a small release-status file without including page content.
+Content checks run locally using fixed JavaScript rules. Page content, findings and reports are not sent to an external analysis service, AI system or the maintainers. Information leaves the checker only when the tester chooses to copy, export or include it in feedback. The extension retrieves a small release-status file without including page content and reuses the last validated policy for up to 24 hours.
 
-Reports, decisions, allowed terms, feedback notes, settings and review position are stored in local extension storage that is restricted to trusted extension pages. A saved single-page report expires after 168 hours, and the newest successful scan of the same page replaces the earlier report. Decisions and notes are retained only while their findings remain in a saved report. Unsent feedback remains until sent or deleted; sent feedback expires after 30 days. Incomplete batch state expires after 7 days and completed batch state after 30 days. Settings provides separate controls for deleting each category of saved data.
+Reports, decisions, allowed terms, feedback notes, settings and review position are stored in local extension storage that is restricted to trusted extension pages. A saved single-page report expires after 7 days, and the newest successful scan of the same page replaces the earlier report. Decisions and notes are retained only while their findings remain in a saved report. Unsent feedback remains until sent or deleted; sent feedback expires after 30 days. Incomplete batch state expires after 7 days and completed batch state after 30 days. Settings provides separate controls for deleting each category of saved data.
 
-Link and asset checks contact destination websites directly, which receive a normal browser request. Ordinary public requests omit browser credentials. For supported CMS Lite, QA, SharePoint and intranet destinations, the checker can use access already established in the current browser session without reading or storing sign-in information. Authenticated URLs that look like state-changing actions are not requested. In-page fragments are checked locally, and links containing embedded credentials or explicit local, private, link-local or reserved destinations are not requested. Redirects are followed when the extension has website access to the resulting destination; a redirect whose final destination cannot be safely verified is reported as uncertain rather than broken. The browser asks only for access to websites discovered by the selected page or batch scan. Batch scans open temporary background tabs in the browser's normal browsing context. Local `file:` pages are not supported and receive a specific explanation in the scan view.
+Link and asset checks contact destination websites directly, which receive a normal browser request. Ordinary public requests omit browser credentials. For supported CMS Lite, QA, SharePoint and intranet destinations, the checker can use access already established in the current browser session without reading or storing sign-in information. A managed CMS Lite asset check may briefly read the response from the asset link to recognize the B.C. government “Asset Not Found” page. Authenticated URLs that look like state-changing actions are not requested. In-page fragments are checked locally, and links containing embedded credentials or explicit local, private, link-local or reserved destinations are not requested. Redirects are followed when the extension has website access to the resulting destination; a redirect whose final destination cannot be safely verified is reported as uncertain rather than broken. The browser asks only for access to websites discovered by the selected page or batch scan. Batch scans open temporary background tabs in the browser's normal browsing context. Local `file:` pages are not supported and receive a specific explanation in the scan view.
 
 CSV exports prefix cells that could otherwise be interpreted as spreadsheet formulas. Workbook and CSV output should still be handled according to the sensitivity of the scanned content.
 
@@ -123,6 +127,6 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow.
 
 ## Licence
 
-The bundled BC Sans font files are distributed under the licence in [`fonts/LICENSE_OFL.txt`](fonts/LICENSE_OFL.txt).
+The extension source is licensed under the [Apache License 2.0](LICENSE).
 
-A licence for the extension source has not yet been added. Repository owners should choose and add an appropriate source-code licence before inviting reuse outside the project.
+The bundled BC Sans font files are distributed under the separate licence in [`fonts/LICENSE_OFL.txt`](fonts/LICENSE_OFL.txt).

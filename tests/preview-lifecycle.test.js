@@ -3,6 +3,7 @@
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const vm = require("node:vm");
 const lifecycle = require("../preview-lifecycle.js");
 
 const root = path.join(__dirname, "..");
@@ -79,4 +80,61 @@ assert.match(
   /async function requestBatchLinkAccessAndFinish\(\)\s*\{\s*if \(!await ensurePreviewCanRun\(\)\) return;/
 );
 
-console.log("Preview lifecycle tests passed.");
+async function lifecycleCheckWithCache({ ageMs, forceRemote = false }) {
+  const now = Date.parse("2026-09-03T12:00:00Z");
+  const savedPolicy = policy({ latestVersion: "1.3.2", promptBelowVersion: "1.3.2", minimumSupportedVersion: "1.3.2" });
+  const storage = {
+    previewLifecyclePolicyV1: savedPolicy,
+    previewLifecyclePolicyFetchedAtV1: now - ageMs
+  };
+  let fetchCount = 0;
+  class FixedDate extends Date {
+    constructor(...args) { super(...(args.length ? args : [now])); }
+    static now() { return now; }
+  }
+  const context = {
+    URL,
+    AbortController,
+    setTimeout,
+    clearTimeout,
+    Date: FixedDate,
+    console,
+    fetch: async () => {
+      fetchCount += 1;
+      return { ok: true, json: async () => savedPolicy };
+    },
+    chrome: {
+      runtime: { getManifest: () => ({ version: "1.3.2" }) },
+      storage: {
+        local: {
+          get: async keys => Object.fromEntries(keys.map(key => [key, storage[key]])),
+          set: async values => Object.assign(storage, values)
+        }
+      }
+    },
+    globalThis: null
+  };
+  context.globalThis = context;
+  vm.runInNewContext(fs.readFileSync(path.join(root, "preview-lifecycle.js"), "utf8"), context);
+  const result = await context.BCWebStyleGuidePreviewLifecycle.check({ forceRemote });
+  return { result, fetchCount };
+}
+
+(async () => {
+  const fresh = await lifecycleCheckWithCache({ ageMs: 60 * 60 * 1000 });
+  assert.equal(fresh.fetchCount, 0, "A validated policy fetched within 24 hours must prevent another outbound request");
+  assert.equal(fresh.result.source, "cached");
+
+  const stale = await lifecycleCheckWithCache({ ageMs: 25 * 60 * 60 * 1000 });
+  assert.equal(stale.fetchCount, 1, "An expired lifecycle cache must be refreshed when the extension is opened");
+  assert.equal(stale.result.source, "remote");
+
+  const forced = await lifecycleCheckWithCache({ ageMs: 60 * 60 * 1000, forceRemote: true });
+  assert.equal(forced.fetchCount, 1, "Check again must bypass a fresh lifecycle cache");
+  assert.equal(forced.result.source, "remote");
+
+  console.log("Preview lifecycle tests passed.");
+})().catch(error => {
+  console.error(error);
+  process.exitCode = 1;
+});

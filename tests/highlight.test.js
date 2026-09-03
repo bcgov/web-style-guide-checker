@@ -3,11 +3,17 @@
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const requireBrowserTests = process.env.REQUIRE_BROWSER_TESTS === "1";
 
 let chromium;
 try {
   ({ chromium } = require("playwright"));
-} catch (_) {
+} catch (error) {
+  if (requireBrowserTests) {
+    console.error("Highlight tests require Playwright in strict test mode.");
+    console.error(error);
+    process.exit(1);
+  }
   console.log("Highlight tests skipped: Playwright package is not installed.");
   process.exit(0);
 }
@@ -145,7 +151,7 @@ const revealSource = source.slice(start, end).trim();
   await browser.close();
   console.log("Highlight tests passed");
 })().catch(error => {
-  if (/Executable doesn't exist/i.test(String(error && error.message))) {
+  if (!requireBrowserTests && /Executable doesn't exist/i.test(String(error && error.message))) {
     console.log("Highlight tests skipped: Playwright Chromium is not installed.");
     return;
   }
