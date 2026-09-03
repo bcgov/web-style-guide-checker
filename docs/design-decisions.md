@@ -59,6 +59,7 @@ Help a reviewer understand a webpage, decide what needs attention and finish an 
 - Keep exact-term exceptions rule-specific and case-sensitive. A narrowly scoped proofreading exception may be page-only and case-insensitive when the action explicitly means “ignore this wording on this page.”
 - Keep the manual checklist on the Page details overview.
 - Identify the full-page review as a separate browser tab.
+- Keep the side panel connected to the original source page while the full-page workspace is active. Never treat the extension's own workspace as a page to scan.
 - Reflect what CMS Lite editors can change.
 
 ## Rule confidence and context
@@ -99,6 +100,7 @@ The checker leaves meaning-heavy decisions—such as whether an image is decorat
 ## Privacy and permissions
 
 - Run content checks locally.
+- Reuse a validated release-status policy for up to 24 hours across extension views. Permit an explicit **Check again** action to request a fresh policy immediately.
 - Store review state and feedback in extension storage restricted to trusted extension contexts.
 - Retain single-page reports for no more than 168 hours. A successful rescan of the same canonical page replaces its earlier single-page report regardless of review scope; a failed or cancelled scan does not. Retain decisions and notes only for findings still present in a saved report.
 - Retain incomplete batch state for 7 days after its last saved activity and completed batch state for 30 days or until a new batch begins. Retain unsent feedback until it is sent or deleted and sent feedback for 30 days after it is marked sent.

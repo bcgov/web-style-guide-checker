@@ -40,7 +40,7 @@ context.BCWebStyleGuideChecker = {
 };
 
 const helperChunk = sourceBetween("function canonicalUrl(value)", "async function requestPagePermission");
-vm.runInNewContext(`${helperChunk}\nthis.networkHelpers = { canonicalUrl, hostnameFor, originPattern, qaProductionEquivalent, signInMayBeRequired, prepareRemoteLink, remoteLinksForReport, linkResultFromRemote, permissionOriginsForRemoteUrl, remoteDestinationSafety, authenticatedActionUrl };`, context);
+vm.runInNewContext(`${helperChunk}\nthis.networkHelpers = { canonicalUrl, hostnameFor, originPattern, qaProductionEquivalent, signInMayBeRequired, prepareRemoteLink, remoteLinksForReport, linkResultFromRemote, permissionOriginsForRemoteUrl, remoteDestinationSafety, authenticatedActionUrl, trustedSessionHost };`, context);
 const helpers = context.networkHelpers;
 
 assert.equal(
@@ -81,7 +81,16 @@ assert.equal(helpers.remoteDestinationSafety("https://example.com/page").allowed
 assert.deepEqual(Array.from(helpers.permissionOriginsForRemoteUrl("http://127.0.0.1/admin")), []);
 assert.equal(helpers.authenticatedActionUrl("https://intranet.gov.bc.ca/logout"), true);
 assert.equal(helpers.authenticatedActionUrl("https://intranet.gov.bc.ca/page?action=delete"), true);
+assert.equal(helpers.authenticatedActionUrl("https://intranet.gov.bc.ca/edit"), true);
+assert.equal(helpers.authenticatedActionUrl("https://intranet.gov.bc.ca/%73ave"), true, "Encoded action segments must remain blocked");
+assert.equal(helpers.authenticatedActionUrl("https://intranet.gov.bc.ca/page?mode=edit"), true);
+assert.equal(helpers.authenticatedActionUrl("https://bcgov.sharepoint.com/sites/example/_layouts/15/viewlsts.aspx"), true, "Authenticated SharePoint system pages must require manual review");
 assert.equal(helpers.authenticatedActionUrl("https://intranet.gov.bc.ca/publications/about-submissions"), false, "Action safeguards must use complete path segments or explicit action parameters");
+assert.equal(helpers.authenticatedActionUrl("https://intranet.gov.bc.ca/guides/save-your-work"), false, "Action words inside descriptive slugs must remain checkable");
+assert.equal(helpers.trustedSessionHost("https://bcgov.sharepoint.com/sites/example"), true);
+assert.equal(helpers.trustedSessionHost("https://service.gww.gov.bc.ca/page"), true);
+assert.equal(helpers.trustedSessionHost("https://bcgov.sharepoint.com.evil.example/page"), false, "A hostname that merely starts with a trusted host must remain anonymous");
+assert.equal(helpers.trustedSessionHost("https://notgww.gov.bc.ca/page"), false, "Only a real subdomain boundary before gww.gov.bc.ca may use the browser session");
 
 const blockedLink = helpers.prepareRemoteLink(
   { rawHref: "http://192.168.0.1/", href: "http://192.168.0.1/" },
@@ -184,6 +193,8 @@ function response(status, { type = "basic", url = "https://example.com/", header
   assert.equal(result.status, "safety-blocked");
   result = await remote.checkRemoteUrl("https://intranet.gov.bc.ca/logout", 10000, { sessionAware: true });
   assert.equal(result.status, "safety-blocked");
+  result = await remote.checkRemoteUrl("https://bcgov.sharepoint.com/sites/example/_layouts/15/viewlsts.aspx", 10000, { sessionAware: true });
+  assert.equal(result.status, "safety-blocked");
 
   context.fetch = async (url, options) => {
     calls.push({ url, options });
@@ -194,6 +205,21 @@ function response(status, { type = "basic", url = "https://example.com/", header
   assert.equal(calls[0].options.method, "HEAD");
   assert.equal(calls[0].options.redirect, "follow");
   assert.equal(calls[0].options.credentials, "omit");
+
+  calls = [];
+  result = await remote.checkRemoteUrl("https://example.com/edit", 10000, { sessionAware: true });
+  assert.equal(result.status, "ok", "Action-like public paths must remain available to anonymous link checking");
+  assert.equal(calls[0].options.credentials, "omit");
+
+  calls = [];
+  result = await remote.checkRemoteUrl("https://bcgov.sharepoint.com.evil.example/page", 10000, { sessionAware: true });
+  assert.equal(result.status, "ok");
+  assert.equal(calls[0].options.credentials, "omit", "A SharePoint lookalike hostname must never receive browser credentials");
+
+  calls = [];
+  result = await remote.checkRemoteUrl("https://notgww.gov.bc.ca/page", 10000, { sessionAware: true });
+  assert.equal(result.status, "ok");
+  assert.equal(calls[0].options.credentials, "omit", "A hostname without the required subdomain boundary must never receive browser credentials");
 
   calls = [];
   context.fetch = async (url, options) => {

@@ -13,6 +13,11 @@ All notable public changes to the B.C. Web Style Guide Checker will be recorded 
 - Expanded the website-access explanation to state that page content and reports are processed locally without external analysis or AI, while link destinations receive normal browser requests
 - Replaced the all-sites permission option with destination-specific access for both page and batch link checks and removed legacy wildcard access during extension updates
 - Added a specific security explanation when someone opens the checker on a local `file:` page
+- Limited automatic release-status requests to once per 24 hours using the last validated saved policy, while keeping **Check again** available for an explicit refresh
+- Kept the side panel connected to its source webpage and saved report while the full-page workspace is the active browser tab
+- Expanded authenticated action safeguards to additional state-changing paths and SharePoint `_layouts` pages, and added malicious-lookalike hostname coverage for the credential allowlist
+- Declared an explicit extension-page content security policy that preserves required link-check connections
+- Added strict pull-request testing with Chromium, hostile-text rendering safeguards, repository security and compliance records, Apache 2.0 licensing, contribution guidance and issue and pull-request templates
 - Added separate controls for deleting page reviews, batch state, unsent feedback, sent feedback, allowed terms and saved page preferences
 - Added 7-day retention for incomplete batches, 30-day retention for completed batches and 30-day retention for sent feedback; unsent feedback remains until sent or deleted
 - Added optional, default-on review settings for non-breaking spaces and passive voice, disclosed excluded checks in saved reviews and exports, and kept reading-level checks always active

@@ -7,7 +7,7 @@
   const CACHE_TIME_KEY = "previewLifecyclePolicyFetchedAtV1";
   const SCHEMA_VERSION = 1;
   const REQUEST_TIMEOUT_MS = 4000;
-  const CHECK_INTERVAL_MS = 5 * 60 * 1000;
+  const CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
   const BUILT_IN_EXPIRY = "2026-10-31";
   const ALLOWED_PILOT_STATUSES = new Set(["active", "ended"]);
   const VERSION_PATTERN = /^\d+(?:\.\d+){0,3}$/;
@@ -202,11 +202,15 @@ function validHttpsUrl(value, { download = false } = {}) {
     if (!forceRemote && lastResult && now - lastCheckedAt < CHECK_INTERVAL_MS) return lastResult;
 
     const currentVersion = installedVersion();
-    let policy = await fetchRemotePolicy();
-    let source = "remote";
+    const cached = await readCachedPolicy();
+    const cachedIsFresh = Boolean(
+      cached && cached.policy && cached.fetchedAt > 0 &&
+      cached.fetchedAt <= now && now - cached.fetchedAt < CHECK_INTERVAL_MS
+    );
+    let policy = !forceRemote && cachedIsFresh ? cached.policy : await fetchRemotePolicy();
+    let source = !forceRemote && cachedIsFresh ? "cached" : "remote";
 
     if (!policy) {
-      const cached = await readCachedPolicy();
       if (cached && cached.policy) {
         policy = cached.policy;
         source = "cached";

@@ -94,6 +94,7 @@ const state = {
   skippedFingerprints: new Set(),
   lastReviewTabId: null,
   lastReviewPageKey: "",
+  workspaceTabActive: false,
   batch: initialBatchState(),
   pendingExceptionFinding: null,
   pendingNoteFinding: null,
@@ -350,7 +351,8 @@ const AUTH_REDIRECT_HOSTS = new Set([
 const AUTH_REDIRECT_PATH = /(?:^|\/)(?:login|logon|sign-in|signin)(?:\/|$)/i;
 
 const AUTHENTICATED_ACTION_SEGMENTS = new Set([
-  "approve", "delete", "logout", "publish", "reject", "remove", "signout", "submit", "unsubscribe"
+  "approve", "checkin", "checkout", "create", "delete", "discardcheckout", "edit", "logout", "new",
+  "publish", "reject", "remove", "save", "signout", "submit", "unsubscribe", "update"
 ]);
 
 function parsedIpv4(hostname) {
@@ -424,10 +426,14 @@ function remoteDestinationSafety(value) {
 function authenticatedActionUrl(value) {
   try {
     const url = new URL(value);
-    const segments = url.pathname.split("/").map(segment => decodeURIComponent(segment).toLowerCase()).filter(Boolean);
+    const segments = url.pathname.split("/").map(segment => {
+      try { return decodeURIComponent(segment).toLowerCase(); }
+      catch (_) { return segment.toLowerCase(); }
+    }).filter(Boolean);
+    if (url.hostname.toLowerCase() === "bcgov.sharepoint.com" && segments.includes("_layouts")) return true;
     if (segments.some(segment => AUTHENTICATED_ACTION_SEGMENTS.has(segment))) return true;
     return Array.from(url.searchParams.entries()).some(([key, entryValue]) =>
-      ["action", "command", "do", "operation"].includes(key.toLowerCase()) && AUTHENTICATED_ACTION_SEGMENTS.has(entryValue.toLowerCase())
+      ["action", "command", "do", "mode", "operation"].includes(key.toLowerCase()) && AUTHENTICATED_ACTION_SEGMENTS.has(entryValue.toLowerCase())
     );
   } catch (_) { return false; }
 }
@@ -946,11 +952,26 @@ async function currentTab() {
   return tabs[0] || null;
 }
 
-async function currentReviewTab() {
-  if (workspaceSurface && state.lastReviewTabId) {
-    try { return await chrome.tabs.get(state.lastReviewTabId); } catch (_) { }
+function isExtensionWorkspaceTab(tab) {
+  if (!tab || !tab.url) return false;
+  try {
+    const candidate = new URL(tab.url);
+    const workspace = new URL(chrome.runtime.getURL("sidepanel.html"));
+    return candidate.protocol === workspace.protocol && candidate.host === workspace.host && candidate.pathname === workspace.pathname && candidate.searchParams.get("workspace") === "1";
+  } catch (_) {
+    return false;
   }
-  return currentTab();
+}
+
+async function currentReviewTab() {
+  const active = await currentTab();
+  if (workspaceSurface || isExtensionWorkspaceTab(active)) {
+    if (state.lastReviewTabId) {
+      try { return await chrome.tabs.get(state.lastReviewTabId); } catch (_) { }
+    }
+    return null;
+  }
+  return active;
 }
 
 function isScannableUrl(url) {
@@ -1206,7 +1227,7 @@ async function saveNavigation() {
 
 function updateReturnButton() {
   if (!elements["return-review-button"]) return;
-  const available = Boolean(state.lastReviewTabId && (workspaceSurface || !state.activeTab || state.activeTab.id !== state.lastReviewTabId));
+  const available = Boolean(state.lastReviewTabId && (workspaceSurface || state.workspaceTabActive || !state.activeTab || state.activeTab.id !== state.lastReviewTabId));
   elements["return-review-button"].hidden = !available;
   elements["return-review-button"].textContent = workspaceSurface ? "Original page" : "Return";
 }
@@ -1247,6 +1268,7 @@ async function cachedPageChanged(tab, report) {
 function showStaleState(report, pageChanged) {
   const rulesChanged = Boolean(report && report.ruleVersion !== globalThis.BCWebStyleGuideChecker.ruleVersion);
   elements["stale-report-banner"].hidden = !rulesChanged && !pageChanged;
+  elements["stale-rescan-button"].hidden = false;
   if (pageChanged) {
     elements["stale-report-title"].textContent = "The page has changed since this review.";
     elements["stale-report-message"].textContent = "Your saved decisions are still here. Check the page again to update the findings.";
@@ -1254,6 +1276,13 @@ function showStaleState(report, pageChanged) {
     elements["stale-report-title"].textContent = "The checker has been updated.";
     elements["stale-report-message"].textContent = "Check the page again to update the findings.";
   }
+}
+
+function showMissingSourceTabState() {
+  elements["stale-report-banner"].hidden = false;
+  elements["stale-report-title"].textContent = "The original page is no longer open.";
+  elements["stale-report-message"].textContent = "The saved findings remain available. Open the page again before rescanning or showing findings on the page.";
+  elements["stale-rescan-button"].hidden = true;
 }
 
 function showScanSettings() {
@@ -1300,10 +1329,17 @@ async function showRescanSettings() {
 }
 
 async function syncActiveTab() {
-  if (workspaceSurface) {
+  const browserTab = await currentTab();
+  const workspaceTabInPanel = !workspaceSurface && isExtensionWorkspaceTab(browserTab);
+  state.workspaceTabActive = workspaceTabInPanel;
+  if (workspaceSurface || workspaceTabInPanel) {
     let tab = null;
     if (state.lastReviewTabId) {
-      try { tab = await chrome.tabs.get(state.lastReviewTabId); } catch (_) { }
+      try { tab = await chrome.tabs.get(state.lastReviewTabId); }
+      catch (_) {
+        state.lastReviewTabId = null;
+        await saveNavigation().catch(() => { });
+      }
     }
     const cached = state.lastReviewPageKey ? state.reports[state.lastReviewPageKey] : null;
     state.activeTab = tab;
@@ -1317,7 +1353,8 @@ async function syncActiveTab() {
       renderCurrentReport();
       showCurrentState("results");
       elements["scan-settings"].hidden = true;
-      showStaleState(cached, await cachedPageChanged(tab, cached));
+      if (tab) showStaleState(cached, await cachedPageChanged(tab, cached));
+      else showMissingSourceTabState();
       restoreReviewScroll(state.activePageKey);
     } else {
       state.activePageKey = tab ? reportKey(tab.url || "") : "";
@@ -1327,11 +1364,11 @@ async function syncActiveTab() {
       const scannable = Boolean(tab && isScannableUrl(tab.url || ""));
       elements["scan-button"].disabled = previewLifecycleBlocksUse() || !scannable;
       elements["scan-settings"].hidden = !scannable;
-      showCurrentState(scannable ? "idle" : "error", tab ? unsupportedScanUrlMessage(tab.url || "") : "No active browser tab was found.");
+      showCurrentState(scannable ? "idle" : "error", tab ? unsupportedScanUrlMessage(tab.url || "") : "The original page is no longer open. Open a regular HTTP or HTTPS webpage and try again.");
     }
     return;
   }
-  const tab = await currentTab();
+  const tab = browserTab;
   const nextPageKey = tab ? reportKey(tab.url || "") : "";
   const pageChanged = nextPageKey !== state.activePageKey;
   if (pageChanged && elements["feedback-dialog"] && elements["feedback-dialog"].open) {
@@ -4443,7 +4480,7 @@ function renderPageDetails(section = "overview") {
     elements["page-details"].innerHTML = `
       <p class="eyebrow">Review the page</p><h2>Page details</h2>
       <p class="hint">Choose an area to review. Findings remain available in the Findings tab.</p>
-      ${excludedOptionalCheckLabels(report).length ? `<p class="detail-help"><strong>Excluded from this scan:</strong> ${escapeHtml(excludedOptionalCheckLabels(report).join(", "))}. Reading-level checks were still included.</p>` : ""}
+      ${excludedOptionalCheckLabels(report).length ? `<p class="detail-help"><strong>Excluded from this scan:</strong> ${escapeHtml(excludedOptionalCheckLabels(report).join(", "))}.</p>` : ""}
       <div class="details-landing">
         <button class="detail-card" type="button" data-detail-section="headings"><span><strong>Headings</strong><span>${headingIssues} heading issue${headingIssues === 1 ? "" : "s"}${generatedHeadings.length ? ` · ${generatedHeadings.length} accordion heading${generatedHeadings.length === 1 ? "" : "s"}` : ""}</span></span><span class="detail-card-count">${authoredHeadings.length}</span></button>
         <button class="detail-card" type="button" data-detail-section="images"><span><strong>Images and alt text</strong><span>${details.counts.imagesMissingAlt} missing alt · ${details.counts.imagesEmptyAlt} empty alt</span></span><span class="detail-card-count">${details.counts.images}</span></button>
@@ -8167,7 +8204,7 @@ async function init() {
   if (state.batch.records.length || state.batch.urls.length) renderBatchProgress();
   else updateBatchControls();
   await syncActiveTab();
-  await refreshPreviewLifecycle({ forceRemote: true });
+  await refreshPreviewLifecycle({ forceRemote: false });
   const requestedView = surfaceParams.get("view");
   if (workspaceSurface && ["current", "batch", "terms"].includes(requestedView)) switchView(requestedView);
 }

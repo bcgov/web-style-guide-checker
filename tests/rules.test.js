@@ -2,9 +2,15 @@
 
 const assert = require("node:assert/strict");
 const path = require("node:path");
+const requireBrowserTests = process.env.REQUIRE_BROWSER_TESTS === "1";
 let chromium;
 try { ({ chromium } = require("playwright")); }
-catch (_) {
+catch (error) {
+  if (requireBrowserTests) {
+    console.error("Style-guide rule tests require Playwright in strict test mode.");
+    console.error(error);
+    process.exit(1);
+  }
   console.log("Style-guide rule tests skipped: Playwright package is not installed.");
   process.exit(0);
 }
@@ -633,7 +639,7 @@ function has(report, ruleId) {
   await browser.close();
   console.log("Style-guide rule tests passed");
 })().catch(error => {
-  if (/Executable doesn't exist/i.test(String(error && error.message))) {
+  if (!requireBrowserTests && /Executable doesn't exist/i.test(String(error && error.message))) {
     console.log("Style-guide rule tests skipped: Playwright Chromium is not installed.");
     return;
   }

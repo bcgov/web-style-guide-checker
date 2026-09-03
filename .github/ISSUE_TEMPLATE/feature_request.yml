@@ -1,0 +1,26 @@
+name: Feature request
+description: Suggest an improvement to the checker or its review workflow.
+title: "Suggestion: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: What would this help someone do?
+    validations:
+      required: true
+  - type: textarea
+    id: current
+    attributes:
+      label: What happens now?
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Desired outcome
+    validations:
+      required: true
+  - type: textarea
+    id: risks
+    attributes:
+      label: Accuracy, privacy or workflow considerations
