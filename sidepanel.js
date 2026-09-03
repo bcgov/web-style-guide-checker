@@ -13,6 +13,10 @@ const STORAGE_KEYS = {
 };
 
 const MAX_REPORTS = 20;
+const SINGLE_PAGE_REPORT_RETENTION_MS = 168 * 60 * 60 * 1000;
+const INCOMPLETE_BATCH_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
+const COMPLETE_BATCH_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
+const ARCHIVED_FEEDBACK_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 const MAX_BATCH_URLS = 100;
 const BATCH_TIMEOUT_MS = 45000;
 const FEEDBACK_RECIPIENTS = ["julia.ready@gov.bc.ca", "karmen.abrahams-munroe@gov.bc.ca"];
@@ -28,6 +32,30 @@ const FEEDBACK_TYPES = {
 const MAILTO_SAFE_URI_LIMIT = 7000;
 const surfaceParams = new URLSearchParams(location.search);
 const workspaceSurface = surfaceParams.get("workspace") === "1";
+
+function initialBatchState() {
+  return {
+    running: false,
+    paused: false,
+    cancelled: false,
+    phase: "idle",
+    urls: [],
+    records: [],
+    currentIndex: -1,
+    tempTabId: null,
+    checkLinks: false,
+    linkPermissionMode: "found",
+    linkCheckTotal: 0,
+    linkCheckCompleted: 0,
+    settings: { scope: "content", canControlColour: true },
+    exportPreset: "full",
+    customSheets: [],
+    includeReviewed: false,
+    downloaded: false,
+    downloadFilename: "",
+    downloadedAt: ""
+  };
+}
 
 const state = {
   activeTab: null,
@@ -64,27 +92,7 @@ const state = {
   skippedFingerprints: new Set(),
   lastReviewTabId: null,
   lastReviewPageKey: "",
-  batch: {
-    running: false,
-    paused: false,
-    cancelled: false,
-    phase: "idle",
-    urls: [],
-    records: [],
-    currentIndex: -1,
-    tempTabId: null,
-    checkLinks: false,
-    linkPermissionMode: "found",
-    linkCheckTotal: 0,
-    linkCheckCompleted: 0,
-    settings: { scope: "content", canControlColour: true },
-    exportPreset: "full",
-    customSheets: [],
-    includeReviewed: false,
-    downloaded: false,
-    downloadFilename: "",
-    downloadedAt: ""
-  },
+  batch: initialBatchState(),
   pendingExceptionFinding: null,
   pendingNoteFinding: null,
   pendingFeedbackId: "",
@@ -260,13 +268,15 @@ function cacheElements() {
     "current-export-preset", "current-export-preset-description", "current-export-custom", "current-export-reviewed", "current-export-status", "current-export-confirmation",
     "current-custom-summary", "current-custom-issues", "current-custom-findings", "current-custom-page-details", "current-custom-links", "current-custom-metadata",
     "check-links-and-download-current", "download-current-workbook", "download-current-action-csv", "copy-detailed-findings",
-    "batch-csv-button", "batch-urls", "batch-validation", "batch-scope", "batch-colour-control", "batch-check-links", "batch-link-access-options", "batch-link-access-found", "batch-link-access-all", "batch-include-reviewed", "batch-export-preset", "batch-export-description", "batch-export-custom",
+    "batch-csv-button", "batch-urls", "batch-validation", "batch-scope", "batch-colour-control", "batch-check-links", "batch-link-access-note", "batch-include-reviewed", "batch-export-preset", "batch-export-description", "batch-export-custom",
     "batch-custom-summary", "batch-custom-pages", "batch-custom-site-wide", "batch-custom-issues-page", "batch-custom-findings", "batch-custom-links", "batch-custom-metadata", "batch-custom-scan-log",
     "batch-start-button", "batch-pause-button", "batch-cancel-button", "batch-progress-panel", "batch-progress-label",
     "batch-progress-count", "batch-progress", "batch-link-finish-actions", "batch-link-access-button", "batch-finish-without-links", "batch-download-status", "batch-error", "batch-error-message", "batch-results",
     "personal-term-count", "personal-terms", "built-in-terms-list", "exception-dialog", "exception-form",
     "exception-dialog-heading", "exception-dialog-intro", "exception-rule-name", "exception-phrase", "exception-validation", "exception-cancel", "exception-page-scope", "exception-site-scope", "exception-all-scope", "exception-guardrail", "exception-submit", "section-dialog", "section-list", "section-cancel",
-    "permission-dialog", "permission-close", "permission-linked", "permission-all", "permission-revoke", "permission-status", "settings-permission-button",
+    "permission-dialog", "permission-close", "permission-linked", "permission-revoke", "permission-status", "settings-permission-button",
+    "page-review-data-count", "batch-data-count", "unsent-feedback-data-count", "sent-feedback-data-count", "allowed-terms-data-count", "page-preferences-data-count", "data-management-status",
+    "clear-page-reviews", "clear-batch-data", "clear-unsent-feedback", "clear-sent-feedback", "clear-allowed-terms", "clear-page-preferences",
     "note-dialog", "note-form", "note-finding-name", "note-important", "note-text", "note-cancel", "toast",
     "feedback-view", "feedback-back-button", "feedback-ready-count", "add-feedback-button", "feedback-empty", "feedback-list", "feedback-send-panel", "feedback-send-status",
     "create-feedback-email", "copy-feedback-report", "export-feedback-csv", "archived-feedback", "archived-feedback-count", "archived-feedback-list",
@@ -293,8 +303,13 @@ function escapeHtml(value) {
   }[character]));
 }
 
+function spreadsheetSafeText(value) {
+  const text = String(value === undefined || value === null ? "" : value);
+  return /^[\u0000-\u0020]*[=+\-@]/.test(text) ? `'${text}` : text;
+}
+
 function csvCell(value) {
-  return `"${String(value === undefined || value === null ? "" : value).replace(/"/g, '""')}"`;
+  return `"${spreadsheetSafeText(value).replace(/"/g, '""')}"`;
 }
 
 function formatDate(value) {
@@ -312,7 +327,6 @@ function hostnameFor(value) {
 
 function originPattern(value) {
   const url = new URL(value);
-  if (url.protocol === "file:") return "file:///*";
   return `${url.protocol}//${url.host}/*`;
 }
 
@@ -333,6 +347,89 @@ const AUTH_REDIRECT_HOSTS = new Set([
 
 const AUTH_REDIRECT_PATH = /(?:^|\/)(?:login|logon|sign-in|signin)(?:\/|$)/i;
 
+const AUTHENTICATED_ACTION_SEGMENTS = new Set([
+  "approve", "delete", "logout", "publish", "reject", "remove", "signout", "submit", "unsubscribe"
+]);
+
+function parsedIpv4(hostname) {
+  if (!/^\d{1,3}(?:\.\d{1,3}){3}$/.test(hostname)) return null;
+  const parts = hostname.split(".").map(Number);
+  return parts.every(part => Number.isInteger(part) && part >= 0 && part <= 255) ? parts : null;
+}
+
+function blockedIpv4(parts) {
+  if (!parts) return false;
+  const [first, second, third] = parts;
+  return first === 0 || first === 10 || first === 127 || first >= 224 ||
+    (first === 100 && second >= 64 && second <= 127) ||
+    (first === 169 && second === 254) ||
+    (first === 172 && second >= 16 && second <= 31) ||
+    (first === 192 && second === 168) ||
+    (first === 192 && second === 0 && [0, 2].includes(third)) ||
+    (first === 198 && [18, 19].includes(second)) ||
+    (first === 198 && second === 51 && third === 100) ||
+    (first === 203 && second === 0 && third === 113);
+}
+
+function ipv6Words(hostname) {
+  let value = String(hostname || "").toLowerCase().replace(/^\[|\]$/g, "").split("%")[0];
+  if (!value.includes(":")) return null;
+  const dotted = value.match(/(?:^|:)(\d{1,3}(?:\.\d{1,3}){3})$/);
+  if (dotted) {
+    const ipv4 = parsedIpv4(dotted[1]);
+    if (!ipv4) return null;
+    value = value.slice(0, -dotted[1].length) + `${((ipv4[0] << 8) | ipv4[1]).toString(16)}:${((ipv4[2] << 8) | ipv4[3]).toString(16)}`;
+  }
+  if ((value.match(/::/g) || []).length > 1) return null;
+  const halves = value.split("::");
+  const left = halves[0] ? halves[0].split(":") : [];
+  const right = halves.length > 1 && halves[1] ? halves[1].split(":") : [];
+  if (halves.length === 1 && left.length !== 8) return null;
+  const missing = 8 - left.length - right.length;
+  if (missing < (halves.length > 1 ? 1 : 0)) return null;
+  const words = [...left, ...Array(missing).fill("0"), ...right];
+  if (words.length !== 8 || words.some(word => !/^[0-9a-f]{1,4}$/.test(word))) return null;
+  return words.map(word => parseInt(word, 16));
+}
+
+function blockedIpv6(words) {
+  if (!words) return false;
+  const allZero = words.every(word => word === 0);
+  const loopback = words.slice(0, 7).every(word => word === 0) && words[7] === 1;
+  const uniqueLocal = (words[0] & 0xfe00) === 0xfc00;
+  const linkLocal = (words[0] & 0xffc0) === 0xfe80;
+  const multicast = (words[0] & 0xff00) === 0xff00;
+  const documentation = words[0] === 0x2001 && words[1] === 0x0db8;
+  const mappedIpv4 = words.slice(0, 5).every(word => word === 0) && words[5] === 0xffff
+    ? [words[6] >> 8, words[6] & 0xff, words[7] >> 8, words[7] & 0xff]
+    : null;
+  return allZero || loopback || uniqueLocal || linkLocal || multicast || documentation || blockedIpv4(mappedIpv4);
+}
+
+function remoteDestinationSafety(value) {
+  let url;
+  try { url = new URL(value); } catch (_) { return { allowed: false, reason: "The destination address is invalid." }; }
+  if (!/^https?:$/.test(url.protocol)) return { allowed: false, reason: "Only HTTP and HTTPS destinations can be checked." };
+  if (url.username || url.password) return { allowed: false, reason: "The link contains embedded sign-in information and was not requested." };
+  const hostname = url.hostname.toLowerCase().replace(/\.$/, "").replace(/^\[|\]$/g, "");
+  const localName = hostname === "localhost" || hostname.endsWith(".localhost") || hostname.endsWith(".local") || hostname.endsWith(".home.arpa") || !hostname.includes(".");
+  if (localName || blockedIpv4(parsedIpv4(hostname)) || blockedIpv6(ipv6Words(hostname))) {
+    return { allowed: false, reason: "The destination is local, private or reserved and was not requested." };
+  }
+  return { allowed: true, reason: "" };
+}
+
+function authenticatedActionUrl(value) {
+  try {
+    const url = new URL(value);
+    const segments = url.pathname.split("/").map(segment => decodeURIComponent(segment).toLowerCase()).filter(Boolean);
+    if (segments.some(segment => AUTHENTICATED_ACTION_SEGMENTS.has(segment))) return true;
+    return Array.from(url.searchParams.entries()).some(([key, entryValue]) =>
+      ["action", "command", "do", "operation"].includes(key.toLowerCase()) && AUTHENTICATED_ACTION_SEGMENTS.has(entryValue.toLowerCase())
+    );
+  } catch (_) { return false; }
+}
+
 const LINK_RESULT_LABELS = {
   broken: "Broken",
   server: "Server error",
@@ -349,6 +446,7 @@ const LINK_RESULT_LABELS = {
   redirect: "Redirect could not be verified",
   "sign-in": "Redirected to sign-in",
   unavailable: "Could not verify",
+  "safety-blocked": "Not checked for safety",
   permission: "Website access needed",
   "qa-live-ok": "Available in QA and live",
   "session-ok": "Working",
@@ -379,6 +477,7 @@ const LINK_RESULT_GROUPS = [
       { label: "Available in CMS Lite · publication not verified", statuses: ["cms-publishing-unverified"] },
       { label: "Available in QA · live not verified", statuses: ["qa-live-unverified"] },
       { label: "Could not verify automatically", statuses: ["session-unverified", "unavailable"] },
+      { label: "Not checked for safety", statuses: ["safety-blocked"] },
       { label: "Rate limited", statuses: ["rate-limited"] },
       { label: "Restricted", statuses: ["restricted"] },
       { label: "Redirect could not be verified", statuses: ["redirect"] },
@@ -596,6 +695,7 @@ function prepareRemoteLink(link, pageUrl) {
   const liveUrl = publicEnvironmentPair ? publicEnvironmentPair.live : liveEquivalent;
   const cmsLiteSameOrigin = cmsLiteEditorSource(pageUrl) && hostnameFor(href) === "cmslite.gov.bc.ca";
   const cmsLiteAssetGuid = cmsLiteSameOrigin ? cmsLiteManagedAssetGuid(href) : "";
+  const destinationSafety = remoteDestinationSafety(href);
   return {
     ...link,
     href,
@@ -607,6 +707,8 @@ function prepareRemoteLink(link, pageUrl) {
     publicQaPair: Boolean(publicEnvironmentPair),
     cmsLiteEditorLink: cmsLiteSameOrigin,
     cmsLiteAssetGuid,
+    safetyBlocked: !destinationSafety.allowed,
+    safetyMessage: destinationSafety.reason,
     sessionAware: trustedSessionHost(href) || trustedSessionHost(checkUrl) || cmsLiteSameOrigin,
     signInRequired: !liveEquivalent && !cmsLiteSameOrigin && signInMayBeRequired(checkUrl)
   };
@@ -685,6 +787,7 @@ function permissionOriginsForPreparedLink(link) {
 
 function permissionOriginsForRemoteUrl(value) {
   try {
+    if (!remoteDestinationSafety(value).allowed) return [];
     const url = new URL(value);
     const origins = new Set([originPattern(url.href)]);
     if (url.protocol === "http:") {
@@ -713,22 +816,60 @@ function showToast(message) {
   showToast.timeout = setTimeout(() => { elements.toast.hidden = true; }, 1800);
 }
 
+function retainedFeedbackNotes(notes, now = Date.now()) {
+  return (Array.isArray(notes) ? notes : []).filter(note => {
+    if (!note || !note.archivedAt) return Boolean(note);
+    const archivedAt = Date.parse(note.archivedAt);
+    return Number.isFinite(archivedAt) && archivedAt <= now && now - archivedAt <= ARCHIVED_FEEDBACK_RETENTION_MS;
+  });
+}
+
+function storedBatchIsComplete(batch) {
+  return Boolean(batch && batch.phase === "done" && Array.isArray(batch.urls) && batch.urls.length && Array.isArray(batch.records) && batch.records.length >= batch.urls.length);
+}
+
+function retainedStoredBatch(batch, now = Date.now()) {
+  if (!batch || !Array.isArray(batch.records)) return null;
+  const savedAt = Date.parse(batch.savedAt || "");
+  if (!Number.isFinite(savedAt) || savedAt > now) return null;
+  const retention = storedBatchIsComplete(batch) ? COMPLETE_BATCH_RETENTION_MS : INCOMPLETE_BATCH_RETENTION_MS;
+  return now - savedAt <= retention ? batch : null;
+}
+
 async function loadState() {
   const stored = await chrome.storage.local.get(Object.values(STORAGE_KEYS));
-  state.reports = stored[STORAGE_KEYS.reports] || {};
-  state.decisions = stored[STORAGE_KEYS.decisions] || {};
+  const savedReports = stored[STORAGE_KEYS.reports] || {};
+  state.reports = normalizedStoredReports(savedReports);
+  const storedFingerprints = storedFindingFingerprints(state.reports);
+  state.decisions = retainedFindingMap(stored[STORAGE_KEYS.decisions] || {}, storedFingerprints);
   const savedExceptions = stored[STORAGE_KEYS.exceptions] || [];
   state.exceptions = savedExceptions.filter(item => !(item.ruleId === "bc-abbreviation" && normalizeSpace(item.phrase) === "BC"));
   if (state.exceptions.length !== savedExceptions.length) await saveKey(STORAGE_KEYS.exceptions, state.exceptions);
-  state.notes = stored[STORAGE_KEYS.notes] || {};
-  state.feedbackNotes = Array.isArray(stored[STORAGE_KEYS.feedback]) ? stored[STORAGE_KEYS.feedback] : [];
-  state.reviewContexts = stored[STORAGE_KEYS.reviewContexts] || {};
+  state.notes = retainedFindingMap(stored[STORAGE_KEYS.notes] || {}, storedFingerprints);
+  state.feedbackNotes = retainedFeedbackNotes(stored[STORAGE_KEYS.feedback]);
+  state.reviewContexts = retainedReviewContexts(stored[STORAGE_KEYS.reviewContexts] || {}, state.reports);
   state.domainSettings = stored[STORAGE_KEYS.domains] || {};
   const navigation = stored[STORAGE_KEYS.navigation] || {};
   state.lastReviewTabId = navigation.tabId || null;
-  state.lastReviewPageKey = navigation.pageKey || "";
-  if (stored[STORAGE_KEYS.batch] && Array.isArray(stored[STORAGE_KEYS.batch].records)) {
-    const savedBatch = stored[STORAGE_KEYS.batch];
+  const navigationReport = navigation.pageKey ? savedReports[navigation.pageKey] : null;
+  const normalizedNavigationKey = navigationReport && navigationReport.page ? reportKey(navigationReport.page.url) : navigation.pageKey || "";
+  state.lastReviewPageKey = state.reports[normalizedNavigationKey] ? normalizedNavigationKey : "";
+  const retainedState = {
+    [STORAGE_KEYS.reports]: state.reports,
+    [STORAGE_KEYS.decisions]: state.decisions,
+    [STORAGE_KEYS.notes]: state.notes,
+    [STORAGE_KEYS.feedback]: state.feedbackNotes,
+    [STORAGE_KEYS.reviewContexts]: state.reviewContexts,
+    [STORAGE_KEYS.navigation]: { tabId: state.lastReviewTabId, pageKey: state.lastReviewPageKey }
+  };
+  if (Object.entries(retainedState).some(([key, value]) => JSON.stringify(stored[key] || (Array.isArray(value) ? [] : {})) !== JSON.stringify(value))) {
+    await chrome.storage.local.set(retainedState);
+  }
+  const storedBatch = stored[STORAGE_KEYS.batch];
+  const legacyBatchWithoutTimestamp = storedBatch && Array.isArray(storedBatch.records) && !Object.prototype.hasOwnProperty.call(storedBatch, "savedAt");
+  const batchForRetention = legacyBatchWithoutTimestamp ? { ...storedBatch, savedAt: new Date().toISOString() } : storedBatch;
+  const savedBatch = retainedStoredBatch(batchForRetention);
+  if (savedBatch) {
     const savedUrls = savedBatch.urls || [];
     const pageScanFinished = savedUrls.length > 0 && savedBatch.records.length >= savedUrls.length;
     let restoredPhase = savedBatch.phase || (savedBatch.records.length && !pageScanFinished ? "paused" : savedBatch.records.length ? "done" : "idle");
@@ -745,7 +886,7 @@ async function loadState() {
       urls: savedBatch.urls || [],
       currentIndex: Number.isFinite(savedBatch.currentIndex) ? savedBatch.currentIndex : savedBatch.records.length - 1,
       checkLinks: Boolean(savedBatch.checkLinks),
-      linkPermissionMode: savedBatch.linkPermissionMode === "all" ? "all" : "found",
+      linkPermissionMode: "found",
       linkCheckTotal: Number(savedBatch.linkCheckTotal) || 0,
       linkCheckCompleted: Number(savedBatch.linkCheckCompleted) || 0,
       settings: savedBatch.settings || state.batch.settings,
@@ -756,6 +897,9 @@ async function loadState() {
       downloadFilename: savedBatch.downloadFilename || "",
       downloadedAt: savedBatch.downloadedAt || ""
     };
+    if (legacyBatchWithoutTimestamp) await persistBatchState();
+  } else if (storedBatch) {
+    await chrome.storage.local.remove(STORAGE_KEYS.batch);
   }
 }
 
@@ -803,7 +947,14 @@ async function currentReviewTab() {
 }
 
 function isScannableUrl(url) {
-  return /^https?:\/\//i.test(url || "") || /^file:\/\//i.test(url || "");
+  return /^https?:\/\//i.test(url || "");
+}
+
+function unsupportedScanUrlMessage(url) {
+  if (/^file:/i.test(url || "")) {
+    return "Local files cannot be checked. For security, the checker supports only pages opened through HTTP or HTTPS.";
+  }
+  return "This browser page cannot be checked. Open a regular HTTP or HTTPS webpage and try again.";
 }
 
 function detectProfile(url) {
@@ -900,17 +1051,61 @@ async function handleSettingsChange() {
   if (!settingsMatchReport()) elements["cache-note"].textContent = "Review settings changed. Rescan to update the findings.";
 }
 
-function reportKey(url, sectionSelector) { return canonicalUrl(url) + (sectionSelector ? `::${sectionSelector}` : ""); }
+function reportKey(url) { return canonicalUrl(url); }
 
-function trimReports() {
-  const entries = Object.entries(state.reports).sort((first, second) => String(second[1].scannedAt).localeCompare(String(first[1].scannedAt)));
-  state.reports = Object.fromEntries(entries.slice(0, MAX_REPORTS));
+function reportTimestamp(report) {
+  const timestamp = Date.parse(report && report.scannedAt ? report.scannedAt : "");
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
+function normalizedStoredReports(reports, now = Date.now()) {
+  const newestByPage = new Map();
+  Object.values(reports || {}).forEach(report => {
+    const url = report && report.page && report.page.url ? report.page.url : "";
+    const key = reportKey(url);
+    const timestamp = reportTimestamp(report);
+    if (!key || !timestamp || timestamp > now || now - timestamp > SINGLE_PAGE_REPORT_RETENTION_MS) return;
+    const existing = newestByPage.get(key);
+    if (!existing || reportTimestamp(existing) < timestamp) newestByPage.set(key, report);
+  });
+  return Object.fromEntries(
+    Array.from(newestByPage.entries())
+      .sort((first, second) => reportTimestamp(second[1]) - reportTimestamp(first[1]))
+      .slice(0, MAX_REPORTS)
+  );
+}
+
+function storedFindingFingerprints(reports) {
+  return new Set(Object.values(reports || {}).flatMap(report =>
+    Array.isArray(report && report.issues) ? report.issues.map(finding => finding && finding.fingerprint).filter(Boolean) : []
+  ));
+}
+
+function retainedFindingMap(values, fingerprints) {
+  return Object.fromEntries(Object.entries(values || {}).filter(([fingerprint]) => fingerprints.has(fingerprint)));
+}
+
+function retainedReviewContexts(contexts, reports) {
+  const reportKeys = new Set(Object.keys(reports || {}));
+  return Object.fromEntries(Object.entries(contexts || {}).filter(([key]) => reportKeys.has(key)));
 }
 
 async function storeReport(report) {
-  state.reports[reportKey(report.page.url, report.settings && report.settings.sectionSelector)] = report;
-  trimReports();
-  await saveKey(STORAGE_KEYS.reports, state.reports);
+  const key = reportKey(report.page.url);
+  const previous = state.reports[key];
+  const replacesSuccessfulScan = !previous || previous.scannedAt !== report.scannedAt;
+  state.reports = normalizedStoredReports({ ...state.reports, [key]: report });
+  const fingerprints = storedFindingFingerprints(state.reports);
+  state.decisions = retainedFindingMap(state.decisions, fingerprints);
+  state.notes = retainedFindingMap(state.notes, fingerprints);
+  state.reviewContexts = retainedReviewContexts(state.reviewContexts, state.reports);
+  if (replacesSuccessfulScan) delete state.reviewContexts[key];
+  await chrome.storage.local.set({
+    [STORAGE_KEYS.reports]: state.reports,
+    [STORAGE_KEYS.decisions]: state.decisions,
+    [STORAGE_KEYS.notes]: state.notes,
+    [STORAGE_KEYS.reviewContexts]: state.reviewContexts
+  });
 }
 
 function effectiveStatus(finding) {
@@ -1105,14 +1300,15 @@ async function syncActiveTab() {
       elements["scan-settings"].hidden = true;
       showStaleState(cached, await cachedPageChanged(tab, cached));
       restoreReviewScroll(state.activePageKey);
-    } else if (surfaceParams.get("view") === "current") {
+    } else {
       state.activePageKey = tab ? reportKey(tab.url || "") : "";
       elements["active-page-label"].textContent = tab ? (tab.title || tab.url || "Current page") : "No reviewed page";
       elements["active-page-label"].title = tab ? (tab.url || "") : "";
       if (tab) applySettings(defaultSettings(tab.url || ""));
-      elements["scan-button"].disabled = previewLifecycleBlocksUse() || !tab || !isScannableUrl(tab.url || "");
-      elements["scan-settings"].hidden = false;
-      showCurrentState("idle");
+      const scannable = Boolean(tab && isScannableUrl(tab.url || ""));
+      elements["scan-button"].disabled = previewLifecycleBlocksUse() || !scannable;
+      elements["scan-settings"].hidden = !scannable;
+      showCurrentState(scannable ? "idle" : "error", tab ? unsupportedScanUrlMessage(tab.url || "") : "No active browser tab was found.");
     }
     return;
   }
@@ -1159,6 +1355,14 @@ async function syncActiveTab() {
   }
   elements["active-page-label"].textContent = tab.title || tab.url || "Current page";
   elements["active-page-label"].title = tab.url || "";
+  if (!isScannableUrl(tab.url || "")) {
+    state.activeReport = null;
+    elements["scan-settings"].hidden = true;
+    elements["scan-button"].disabled = true;
+    elements["stale-report-banner"].hidden = true;
+    showCurrentState("error", unsupportedScanUrlMessage(tab.url || ""));
+    return;
+  }
   applySettings(defaultSettings(tab.url || ""));
   const cached = state.reports[reportKey(tab.url || "")];
   if (cached) {
@@ -1935,11 +2139,23 @@ function sessionVerificationMessage(status) {
   return "The checker could not fully check this link. Open it to confirm.";
 }
 
+function safetyBlockedResult(value, reason) {
+  return {
+    status: "safety-blocked",
+    checkedUrl: value,
+    finalUrl: value,
+    error: reason || "This destination was not requested because of a link-check safety control. Open it yourself if you need to confirm it."
+  };
+}
+
 async function checkRemoteUrl(value, timeoutMs = 10000, options = {}) {
-  const sessionAware = Boolean(options.sessionAware && trustedSessionHost(value));
-  if (signInMayBeRequired(value)) return { status: "sign-in", checkedUrl: value, finalUrl: value, error: sessionVerificationMessage("sign-in") };
   let startingUrl;
   try { startingUrl = new URL(value).href; } catch (_) { return { status: "unavailable", checkedUrl: value, finalUrl: value, error: "The destination address is invalid." }; }
+  const destinationSafety = remoteDestinationSafety(startingUrl);
+  if (!destinationSafety.allowed) return safetyBlockedResult(startingUrl, destinationSafety.reason);
+  const sessionAware = Boolean(options.sessionAware && trustedSessionHost(startingUrl));
+  if (sessionAware && authenticatedActionUrl(startingUrl)) return safetyBlockedResult(startingUrl, "The authenticated destination looks like an action and was not requested.");
+  if (signInMayBeRequired(startingUrl)) return { status: "sign-in", checkedUrl: startingUrl, finalUrl: startingUrl, error: sessionVerificationMessage("sign-in") };
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   const classifyResponse = (response, url, redirected, accessMode = "") => {
@@ -1975,6 +2191,9 @@ async function checkRemoteUrl(value, timeoutMs = 10000, options = {}) {
         try { location = response.headers.get("location") || ""; } catch (_) {}
         let nextUrl = "";
         try { nextUrl = location ? new URL(location, url).href : ""; } catch (_) {}
+        const nextSafety = nextUrl ? remoteDestinationSafety(nextUrl) : { allowed: true };
+        if (!nextSafety.allowed) return safetyBlockedResult(startingUrl, nextSafety.reason);
+        if (nextUrl && authenticatedActionUrl(nextUrl)) return safetyBlockedResult(startingUrl, "The authenticated redirect looks like an action and was not requested.");
         if (nextUrl && authenticationRedirectHost(nextUrl)) {
           return { status: "sign-in", checkedUrl: startingUrl, finalUrl: startingUrl, redirected: true, error: sessionVerificationMessage("sign-in") };
         }
@@ -2000,6 +2219,8 @@ async function checkRemoteUrl(value, timeoutMs = 10000, options = {}) {
       const followed = await fetchRemoteFollowingRedirects(url, controller.signal, { sessionAware: false, allowGetFallback: true });
       const finalUrl = followed.url || url;
       const didRedirect = Boolean(redirected || followed.redirected || canonicalUrl(finalUrl) !== canonicalUrl(url));
+      const finalSafety = remoteDestinationSafety(finalUrl);
+      if (!finalSafety.allowed) return safetyBlockedResult(startingUrl, finalSafety.reason);
       if (didRedirect && looksLikeAuthenticationRedirect(startingUrl, finalUrl)) {
         return { status: "sign-in", checkedUrl: startingUrl, finalUrl: startingUrl, redirected: true, error: sessionVerificationMessage("sign-in") };
       }
@@ -2026,6 +2247,8 @@ async function checkRemoteUrl(value, timeoutMs = 10000, options = {}) {
         let nextUrl = "";
         try { nextUrl = new URL(location, url).href; } catch (_) {}
         if (nextUrl) {
+          const nextSafety = remoteDestinationSafety(nextUrl);
+          if (!nextSafety.allowed) return safetyBlockedResult(startingUrl, nextSafety.reason);
           if (looksLikeAuthenticationRedirect(startingUrl, nextUrl) || signInMayBeRequired(nextUrl)) return { status: "sign-in", checkedUrl: startingUrl, finalUrl: startingUrl, redirected: true, error: sessionVerificationMessage("sign-in") };
           if (await permittedFor(nextUrl)) return visitAnonymous(nextUrl, depth + 1, true);
           return {
@@ -2068,6 +2291,9 @@ async function checkRemoteUrl(value, timeoutMs = 10000, options = {}) {
 }
 
 async function checkPublicQaWithCurrentAccess(report, value, timeoutMs = 10000, useCurrentAccess = false) {
+  const destinationSafety = remoteDestinationSafety(value);
+  if (!destinationSafety.allowed) return safetyBlockedResult(value, destinationSafety.reason);
+  if (useCurrentAccess && authenticatedActionUrl(value)) return safetyBlockedResult(value, "The authenticated destination looks like an action and was not requested.");
   if (!publicQaCmsDestination(value) || !useCurrentAccess) {
     return checkRemoteUrl(value, timeoutMs, { sessionAware: false });
   }
@@ -2238,6 +2464,9 @@ async function checkIntranetContentIdResolver(report, value, timeoutMs = 10000) 
 
 async function checkWithCurrentPageSession(report, value, timeoutMs = 8000) {
   if (!report) return null;
+  const destinationSafety = remoteDestinationSafety(value);
+  if (!destinationSafety.allowed) return safetyBlockedResult(value, destinationSafety.reason);
+  if (authenticatedActionUrl(value)) return safetyBlockedResult(value, "The authenticated destination looks like an action and was not requested.");
   const sourceUrl = report.page && report.page.url ? report.page.url : "";
   const cmsLiteEditorSession = Boolean(
     report.settings &&
@@ -2981,6 +3210,7 @@ async function checkCmsLiteManagedAssetLink(report, link) {
 }
 
 async function checkOneHttpLink(report, link) {
+  if (link.safetyBlocked) return linkResultFromRemote(link, safetyBlockedResult(link.href, link.safetyMessage));
   if (link.cmsLiteAssetGuid) return checkCmsLiteManagedAssetLink(report, link);
   if (cmsLiteEditorHomeLink(report, link.href)) {
     return linkResultFromRemote(link, {
@@ -3044,6 +3274,7 @@ function summarizeLinkCheck(totalFound, results) {
     rateLimited: count("rate-limited"),
     clientErrors: count("client-error"),
     unavailable: count("unavailable"),
+    safetyBlocked: count("safety-blocked"),
     pending: Math.max(0, totalFound - results.length)
   };
 }
@@ -3286,10 +3517,21 @@ function linkedOriginPatterns(report) {
 }
 
 async function openPermissionDialog() {
-  const allGranted = await chrome.permissions.contains({ origins: ["http://*/*", "https://*/*"] }).catch(() => false);
-  elements["permission-status"].textContent = allGranted ? "Access to all websites is currently allowed." : "Access to all websites is not currently allowed.";
+  const origins = await grantedOptionalWebsiteOrigins();
+  const broad = origins.some(origin => ["http://*/*", "https://*/*"].includes(origin));
+  elements["permission-status"].textContent = broad
+    ? "Access from an earlier version is still allowed for all websites. You can remove it below."
+    : origins.length
+      ? `Website access is currently allowed for ${origins.length} site${origins.length === 1 ? "" : "s"}.`
+      : "No optional website access is currently saved.";
   elements["permission-linked"].textContent = state.activeReport ? "Allow linked sites on this page" : "Allow the current website";
   elements["permission-dialog"].showModal();
+}
+
+async function grantedOptionalWebsiteOrigins() {
+  const granted = await chrome.permissions.getAll().catch(() => ({ origins: [] }));
+  const required = new Set(chrome.runtime.getManifest().host_permissions || []);
+  return Array.from(new Set((granted.origins || []).filter(origin => /^https?:\/\//i.test(origin) && !required.has(origin))));
 }
 
 async function requestLinkedPermissions() {
@@ -3303,14 +3545,14 @@ async function requestLinkedPermissions() {
   elements["permission-status"].textContent = granted ? `Website access allowed for ${origins.length} linked site${origins.length === 1 ? "" : "s"}.` : "Website access was not allowed.";
 }
 
-async function requestAllPermissions() {
-  const granted = await chrome.permissions.request({ origins: ["http://*/*", "https://*/*"] }).catch(() => false);
-  elements["permission-status"].textContent = granted ? "Access to all websites is now allowed." : "Access to all websites was not allowed.";
-}
-
 async function revokeAllPermissions() {
-  const removed = await chrome.permissions.remove({ origins: ["http://*/*", "https://*/*"] }).catch(() => false);
-  elements["permission-status"].textContent = removed ? "Access to all websites was removed. Access granted to individual sites may remain." : "There was no all-websites access to remove.";
+  const origins = await grantedOptionalWebsiteOrigins();
+  if (!origins.length) {
+    elements["permission-status"].textContent = "No optional website access is currently saved.";
+    return;
+  }
+  const removed = await chrome.permissions.remove({ origins }).catch(() => false);
+  elements["permission-status"].textContent = removed ? "Saved website access was removed." : "Website access could not be removed.";
 }
 
 function readableScanError(error) {
@@ -3398,7 +3640,7 @@ async function scanCurrentPage(suppliedOptions) {
   try {
     state.activeTab = await currentReviewTab();
     if (!state.activeTab || !state.activeTab.id) throw new Error("No active browser tab was found.");
-    if (!isScannableUrl(state.activeTab.url)) throw new Error("This type of browser page cannot be checked.");
+    if (!isScannableUrl(state.activeTab.url)) throw new Error(unsupportedScanUrlMessage(state.activeTab.url));
     const granted = await requestPagePermission(state.activeTab.url);
     if (!granted) throw new Error("Access to this site was not granted. The checker needs permission to inspect the page.");
     const settings = selectedSettings();
@@ -5344,6 +5586,7 @@ function renderFeedback() {
   elements["archived-feedback"].hidden = archived.length === 0;
   elements["archived-feedback-count"].textContent = archived.length ? `(${archived.length})` : "";
   elements["archived-feedback-list"].innerHTML = feedbackGroups(archived, true);
+  renderDataManagement();
 }
 
 function feedbackReportDate(value = new Date()) {
@@ -5635,6 +5878,104 @@ async function removeException(id) {
   if (state.activeReport) await scanCurrentPage({ preserveReview: true });
 }
 
+function renderDataManagement() {
+  const reportCount = Object.keys(state.reports).length;
+  const batchPages = state.batch.records.length;
+  const hasBatch = Boolean(state.batch.urls.length || batchPages);
+  const unsentCount = readyFeedbackNotes().length;
+  const sentCount = archivedFeedbackNotes().length;
+  const preferenceCount = Object.keys(state.domainSettings).length;
+  elements["page-review-data-count"].textContent = reportCount ? `${reportCount} saved` : "None saved";
+  elements["batch-data-count"].textContent = hasBatch ? `${batchPages} of ${state.batch.urls.length} page${state.batch.urls.length === 1 ? "" : "s"} saved` : "None saved";
+  elements["unsent-feedback-data-count"].textContent = unsentCount ? `${unsentCount} saved` : "None saved";
+  elements["sent-feedback-data-count"].textContent = sentCount ? `${sentCount} saved` : "None saved";
+  elements["allowed-terms-data-count"].textContent = state.exceptions.length ? `${state.exceptions.length} saved` : "None saved";
+  elements["page-preferences-data-count"].textContent = preferenceCount ? `${preferenceCount} site${preferenceCount === 1 ? "" : "s"}` : "None saved";
+  elements["clear-page-reviews"].disabled = reportCount === 0;
+  elements["clear-batch-data"].disabled = !hasBatch || state.batch.running;
+  elements["clear-unsent-feedback"].disabled = unsentCount === 0;
+  elements["clear-sent-feedback"].disabled = sentCount === 0;
+  elements["clear-allowed-terms"].disabled = state.exceptions.length === 0;
+  elements["clear-page-preferences"].disabled = preferenceCount === 0;
+}
+
+async function clearSavedPageReviews() {
+  const count = Object.keys(state.reports).length;
+  if (!count || !confirm(`Delete ${count} saved page review${count === 1 ? "" : "s"}, including their decisions and audit notes? This cannot be undone.`)) return;
+  state.reports = {};
+  state.decisions = {};
+  state.notes = {};
+  state.reviewContexts = {};
+  state.activeReport = null;
+  state.activePageKey = "";
+  state.lastReviewPageKey = "";
+  state.lastReviewTabId = null;
+  state.manualReportKey = "";
+  await chrome.storage.local.remove([
+    STORAGE_KEYS.reports,
+    STORAGE_KEYS.decisions,
+    STORAGE_KEYS.notes,
+    STORAGE_KEYS.reviewContexts,
+    STORAGE_KEYS.navigation
+  ]);
+  renderDataManagement();
+  elements["data-management-status"].textContent = `${count} saved page review${count === 1 ? "" : "s"} deleted.`;
+  const scannable = Boolean(state.activeTab && isScannableUrl(state.activeTab.url || ""));
+  elements["scan-settings"].hidden = !scannable;
+  elements["scan-button"].disabled = previewLifecycleBlocksUse() || !scannable;
+  elements["cancel-settings-button"].hidden = true;
+  elements["cache-note"].textContent = "";
+  elements["stale-report-banner"].hidden = true;
+  showCurrentState(scannable ? "idle" : "error", state.activeTab ? unsupportedScanUrlMessage(state.activeTab.url || "") : "No active browser tab was found.");
+}
+
+async function clearSavedBatch() {
+  if (state.batch.running) return;
+  const pages = state.batch.records.length;
+  if (!(state.batch.urls.length || pages) || !confirm(`Delete the saved batch containing ${pages} completed page${pages === 1 ? "" : "s"}? This cannot be undone.`)) return;
+  state.batch = initialBatchState();
+  await chrome.storage.local.remove(STORAGE_KEYS.batch);
+  elements["batch-urls"].value = "";
+  elements["batch-error"].hidden = true;
+  applyBatchStateToControls();
+  renderBatchValidation();
+  renderBatchProgress();
+  renderDataManagement();
+  elements["data-management-status"].textContent = "Saved batch data deleted.";
+}
+
+async function clearFeedbackData(archived) {
+  const notes = state.feedbackNotes.filter(note => Boolean(note.archivedAt) === archived);
+  const label = archived ? "sent" : "unsent";
+  if (!notes.length || !confirm(`Delete ${notes.length} ${label} feedback note${notes.length === 1 ? "" : "s"}? This cannot be undone.`)) return;
+  const removing = new Set(notes.map(note => note.id));
+  state.feedbackNotes = state.feedbackNotes.filter(note => !removing.has(note.id));
+  state.preparedFeedbackIds = state.preparedFeedbackIds.filter(id => !removing.has(id));
+  await saveKey(STORAGE_KEYS.feedback, state.feedbackNotes);
+  renderFeedback();
+  renderDataManagement();
+  elements["data-management-status"].textContent = `${notes.length} ${label} feedback note${notes.length === 1 ? "" : "s"} deleted.`;
+}
+
+async function clearAllowedTerms() {
+  const count = state.exceptions.length;
+  if (!count || !confirm(`Delete ${count} allowed term${count === 1 ? "" : "s"}? Findings using these exceptions will be updated the next time each page is scanned.`)) return;
+  state.exceptions = [];
+  await chrome.storage.local.remove(STORAGE_KEYS.exceptions);
+  renderTerms();
+  elements["data-management-status"].textContent = `${count} allowed term${count === 1 ? "" : "s"} deleted. Rescan saved pages to update their findings.`;
+}
+
+async function clearPagePreferences() {
+  const count = Object.keys(state.domainSettings).length;
+  if (!count || !confirm(`Reset saved page preferences for ${count} site${count === 1 ? "" : "s"}?`)) return;
+  state.domainSettings = {};
+  await chrome.storage.local.remove(STORAGE_KEYS.domains);
+  if (state.activeTab) applySettings(defaultSettings(state.activeTab.url || ""));
+  renderDataManagement();
+  elements["data-management-status"].textContent = `Page preferences reset for ${count} site${count === 1 ? "" : "s"}.`;
+}
+
 function renderTerms() {
   elements["personal-term-count"].textContent = `${state.exceptions.length} saved`;
   elements["personal-terms"].innerHTML = state.exceptions.length ? state.exceptions.map(item => `
@@ -5643,6 +5984,7 @@ function renderTerms() {
       <button class="small-button remove-term" type="button" data-id="${escapeHtml(item.id)}">Remove</button>
     </div>`).join("") : `<div class="empty-state">No personal allowed terms yet.</div>`;
   elements["built-in-terms-list"].innerHTML = globalThis.BCWebStyleGuideChecker.builtInTerms.map(term => `<span class="term-chip">${escapeHtml(term)}</span>`).join("");
+  renderDataManagement();
 }
 
 const ATTENTION_RANK = {
@@ -6365,6 +6707,7 @@ function linkCheckResultSummary(report) {
   if (check.cmsPublishingUnverified) parts.push(`${check.cmsPublishingUnverified} CMS Lite asset publication state unverified`);
   if (check.qaLiveUnverified) parts.push(`${check.qaLiveUnverified} available in QA with live version unverified`);
   if (check.sessionUnverified) parts.push(`${check.sessionUnverified} could not be verified automatically`);
+  if (check.safetyBlocked) parts.push(`${check.safetyBlocked} not checked for safety`);
   if (check.redirects) parts.push(`${check.redirects} redirect${check.redirects === 1 ? "" : "s"} to review`);
   if (check.signInRequired) parts.push(`${check.signInRequired} sign-in redirect${check.signInRequired === 1 ? "" : "s"} encountered`);
   if (check.serverErrors) parts.push(`${check.serverErrors} server error${check.serverErrors === 1 ? "" : "s"}`);
@@ -6389,6 +6732,7 @@ function aggregateLinkCheckResultSummary(reports) {
   const cmsPublishingUnverified = total("cmsPublishingUnverified");
   const qaLiveUnverified = total("qaLiveUnverified");
   const sessionUnverified = total("sessionUnverified");
+  const safetyBlocked = total("safetyBlocked");
   const redirects = total("redirects");
   const signInRequired = total("signInRequired");
   const serverErrors = total("serverErrors");
@@ -6404,6 +6748,7 @@ function aggregateLinkCheckResultSummary(reports) {
   if (cmsPublishingUnverified) parts.push(`${cmsPublishingUnverified} CMS Lite asset publication state unverified`);
   if (qaLiveUnverified) parts.push(`${qaLiveUnverified} available in QA with live version unverified`);
   if (sessionUnverified) parts.push(`${sessionUnverified} could not be verified automatically`);
+  if (safetyBlocked) parts.push(`${safetyBlocked} not checked for safety`);
   if (redirects) parts.push(`${redirects} redirect${redirects === 1 ? "" : "s"} to review`);
   if (signInRequired) parts.push(`${signInRequired} sign-in redirect${signInRequired === 1 ? "" : "s"} encountered`);
   if (serverErrors) parts.push(`${serverErrors} server error${serverErrors === 1 ? "" : "s"}`);
@@ -7114,7 +7459,7 @@ function batchHasIncompletePageScan() {
 }
 
 function batchLinkPermissionModeFromUi() {
-  return elements["batch-link-access-all"].checked ? "all" : "found";
+  return "found";
 }
 
 function applyBatchStateToControls() {
@@ -7123,8 +7468,6 @@ function applyBatchStateToControls() {
   if (batch.settings && batch.settings.scope) elements["batch-scope"].value = batch.settings.scope;
   elements["batch-colour-control"].checked = batch.settings ? batch.settings.canControlColour !== false : true;
   elements["batch-check-links"].checked = Boolean(batch.checkLinks);
-  elements["batch-link-access-all"].checked = batch.linkPermissionMode === "all";
-  elements["batch-link-access-found"].checked = batch.linkPermissionMode !== "all";
   elements["batch-export-preset"].value = batch.exportPreset === "custom" ? "custom" : "full";
   elements["batch-include-reviewed"].checked = Boolean(batch.includeReviewed);
   const custom = new Set(batch.customSheets || []);
@@ -7169,9 +7512,7 @@ function updateBatchControls() {
   elements["batch-scope"].disabled = lockSetup;
   elements["batch-colour-control"].disabled = lockSetup;
   elements["batch-check-links"].disabled = lockSetup;
-  elements["batch-link-access-found"].disabled = lockSetup;
-  elements["batch-link-access-all"].disabled = lockSetup;
-  elements["batch-link-access-options"].hidden = !elements["batch-check-links"].checked;
+  elements["batch-link-access-note"].hidden = !elements["batch-check-links"].checked;
   elements["batch-link-finish-actions"].hidden = !waitingForLinkAccess;
   updateBatchExportDescription();
 }
@@ -7225,14 +7566,6 @@ function renderBatchProgress() {
     return `<div class="batch-row"><span class="batch-status-icon">✓</span><div><strong>${escapeHtml(record.report.page.title)}</strong><small>${escapeHtml(record.report.page.url)}</small></div><span class="batch-total">${counts.fix + counts.check + counts.review} open</span></div>`;
   }).join("");
   updateBatchControls();
-}
-
-async function requestAllWebsiteAccessForBatch() {
-  try {
-    return await chrome.permissions.request({ origins: ["http://*/*", "https://*/*"] });
-  } catch (_) {
-    return false;
-  }
 }
 
 async function continueBatchPageScan() {
@@ -7327,19 +7660,8 @@ async function startBatchScan() {
   }
 
   const snapshot = batchExportSnapshotFromUi();
-  // The broad permission request must happen directly from this Start-button gesture.
-  let allWebsiteAccessGranted = false;
-  if (snapshot.checkLinks && snapshot.linkPermissionMode === "all") {
-    allWebsiteAccessGranted = await requestAllWebsiteAccessForBatch();
-    if (!allWebsiteAccessGranted) {
-      elements["batch-error-message"].textContent = "Access to all websites was not allowed. Choose ‘Ask only for websites in this scan’ and start again.";
-      elements["batch-error"].hidden = false;
-      return;
-    }
-  }
-
   try {
-    if (!allWebsiteAccessGranted) await requestBatchPermissions(parsed.valid);
+    await requestBatchPermissions(parsed.valid);
   } catch (error) {
     elements["batch-error-message"].textContent = readableScanError(error);
     elements["batch-error"].hidden = false;
@@ -7357,7 +7679,7 @@ async function startBatchScan() {
     currentIndex: -1,
     tempTabId: null,
     checkLinks: snapshot.checkLinks,
-    linkPermissionMode: snapshot.linkPermissionMode,
+    linkPermissionMode: "found",
     linkCheckTotal: 0,
     linkCheckCompleted: 0,
     settings: snapshot.settings,
@@ -7687,9 +8009,14 @@ function bindEvents() {
   elements["section-cancel"].addEventListener("click", () => elements["section-dialog"].close());
   elements["permission-close"].addEventListener("click", () => elements["permission-dialog"].close());
   elements["permission-linked"].addEventListener("click", requestLinkedPermissions);
-  elements["permission-all"].addEventListener("click", requestAllPermissions);
   elements["permission-revoke"].addEventListener("click", revokeAllPermissions);
   elements["settings-permission-button"].addEventListener("click", openPermissionDialog);
+  elements["clear-page-reviews"].addEventListener("click", clearSavedPageReviews);
+  elements["clear-batch-data"].addEventListener("click", clearSavedBatch);
+  elements["clear-unsent-feedback"].addEventListener("click", () => clearFeedbackData(false));
+  elements["clear-sent-feedback"].addEventListener("click", () => clearFeedbackData(true));
+  elements["clear-allowed-terms"].addEventListener("click", clearAllowedTerms);
+  elements["clear-page-preferences"].addEventListener("click", clearPagePreferences);
   elements["return-review-button"].addEventListener("click", returnToReview);
   elements["note-form"].addEventListener("submit", saveAuditNote);
   elements["note-cancel"].addEventListener("click", () => elements["note-dialog"].close());
@@ -7743,8 +8070,6 @@ function bindEvents() {
   elements["batch-cancel-button"].addEventListener("click", cancelBatch);
   elements["batch-csv-button"].addEventListener("click", downloadBatchCsv);
   elements["batch-check-links"].addEventListener("change", updateBatchControls);
-  elements["batch-link-access-found"].addEventListener("change", updateBatchControls);
-  elements["batch-link-access-all"].addEventListener("change", updateBatchControls);
   elements["batch-link-access-button"].addEventListener("click", requestBatchLinkAccessAndFinish);
   elements["batch-finish-without-links"].addEventListener("click", finishBatchWithoutLinks);
   elements["batch-export-preset"].addEventListener("change", updateBatchControls);

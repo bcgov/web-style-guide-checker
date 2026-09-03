@@ -17,6 +17,7 @@ assert.equal(packageLock.version, packageManifest.version, "Package-lock version
 assert.equal(packageLock.packages[""].version, packageManifest.version, "Root lockfile package version must match package.json");
 assert.ok(manifest.optional_host_permissions.includes("http://*/*"));
 assert.ok(manifest.optional_host_permissions.includes("https://*/*"));
+assert.ok(!manifest.optional_host_permissions.includes("file:///*"), "Local file access must not be requested");
 
 const html = read("sidepanel.html");
 const ids = [...html.matchAll(/\bid=["']([^"']+)["']/g)].map(match => match[1]);
@@ -34,8 +35,11 @@ const idSet = new Set(ids);
   "stale-report-banner",
   "permission-dialog",
   "permission-linked",
-  "permission-all",
   "permission-revoke",
+  "clear-page-reviews",
+  "clear-batch-data",
+  "clear-unsent-feedback",
+  "clear-sent-feedback",
   "important-filter",
   "review-issues-button",
   "review-skip-summary",
@@ -76,6 +80,25 @@ const reviewTabs = [...html.matchAll(/data-review-view="([^"]+)"/g)].map(match =
 assert.deepEqual(reviewTabs, ["review", "details"]);
 
 const script = read("sidepanel.js");
+const background = read("background.js");
+const readme = read("README.md");
+const designDecisions = read("docs/design-decisions.md");
+assert.match(background, /setAccessLevel\(\{ accessLevel: "TRUSTED_CONTEXTS" \}\)/, "Local extension storage must be restricted to trusted extension contexts");
+assert.match(background, /removeLegacyBroadWebsiteAccess[\s\S]*chrome\.permissions\.remove/, "Extension updates must remove the legacy all-sites grant");
+assert.match(script, /SINGLE_PAGE_REPORT_RETENTION_MS = 168 \* 60 \* 60 \* 1000/, "Single-page reports must expire after 168 hours");
+assert.match(script, /INCOMPLETE_BATCH_RETENTION_MS = 7 \* 24 \* 60 \* 60 \* 1000/, "Incomplete batches must expire after 7 days");
+assert.match(script, /COMPLETE_BATCH_RETENTION_MS = 30 \* 24 \* 60 \* 60 \* 1000/, "Completed batches must expire after 30 days");
+assert.match(script, /ARCHIVED_FEEDBACK_RETENTION_MS = 30 \* 24 \* 60 \* 60 \* 1000/, "Sent feedback must expire after 30 days");
+assert.match(script, /legacyBatchWithoutTimestamp[\s\S]*await persistBatchState\(\)/, "A pre-retention batch must be timestamped once instead of deleted during migration");
+assert.match(script, /function normalizedStoredReports\(/, "Saved reports must be normalized by age and canonical page");
+assert.match(script, /function spreadsheetSafeText\(/, "CSV exports must protect spreadsheet-formula prefixes");
+assert.match(script, /function remoteDestinationSafety\(/, "Link checks must classify local, private and reserved destinations before requesting them");
+assert.match(script, /function authenticatedActionUrl\(/, "Authenticated link checks must avoid action-like destinations");
+assert.match(readme, /successful scan of the same page replaces the earlier report/i, "Report replacement and retention must be documented");
+assert.match(designDecisions, /residual risk that a public hostname or opaque redirect can resolve internally/i, "The accepted network-check residual risk must be documented");
+assert.match(html, /Page content, findings and reports are not sent to an external analysis service, AI system or the checker’s maintainers/, "The permission explanation must disclose local processing clearly");
+assert.doesNotMatch(html, /id="permission-all"|Allow access to all websites/, "The pilot must not offer an all-sites permission option");
+assert.match(script, /Local files cannot be checked[\s\S]*security[\s\S]*HTTP or HTTPS/, "Local files must receive a specific security explanation");
 const cacheBlock = script.match(/function cacheElements\(\) \{([\s\S]*?)\.forEach\(id/);
 assert.ok(cacheBlock, "Element cache must be readable by the static test");
 const cachedReferences = [...cacheBlock[1].matchAll(/"([a-z][a-z0-9-]+)"/g)].map(match => match[1]);
@@ -258,7 +281,11 @@ assert.doesNotMatch(batchPresetHtml, /value="standard"|value="summary"/, "Legacy
 assert.match(script, /function batchStorageValue\(/, "Batch progress must have a persistable state snapshot");
 assert.match(script, /await persistBatchState\(\);[\s\S]{0,220}renderBatchProgress\(\);/, "Batch progress must be saved as page scanning advances");
 assert.match(script, /Resume batch scan/, "Interrupted batch scans must provide a resume path");
-assert.match(script, /chrome\.permissions\.request\(\{ origins: \["http:\/\/\*\/\*", "https:\/\/\*\/\*"\] \}\)/, "One-step batch link checking must require an explicit all-sites permission request");
+assert.doesNotMatch(script, /chrome\.permissions\.request\(\{ origins: \["http:\/\/\*\/\*", "https:\/\/\*\/\*"\] \}\)/, "Page and batch link checks must never request all-sites access");
+assert.match(script, /function batchLinkPermissionModeFromUi\(\) \{\s*return "found";/, "Batch link checks must always use destinations discovered by the scan");
+assert.match(script, /function clearSavedPageReviews\(/, "Settings must provide a page-review deletion control");
+assert.match(script, /function clearSavedBatch\(/, "Settings must provide a batch-data deletion control");
+assert.match(script, /function clearFeedbackData\(/, "Settings must provide separate feedback deletion controls");
 assert.match(script, /MAILTO_SAFE_URI_LIMIT = 7000/, "Feedback email batches must use a conservative complete-mailto size ceiling");
 assert.doesNotMatch(script, /feedbackEmailSummary|downloadTextFile\(report/, "Feedback email creation must never replace a complete batch with a truncated summary or attachment fallback");
 assert.match(html, /I sent it/, "Feedback must require explicit sent confirmation before archiving");

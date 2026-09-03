@@ -99,12 +99,18 @@ The checker leaves meaning-heavy decisions—such as whether an image is decorat
 ## Privacy and permissions
 
 - Run content checks locally.
-- Store review state and feedback in extension storage.
-- Omit browser credentials from link and asset requests.
-- Request broader website access only when required by the chosen check. For batch link checking, offer a deliberate all-sites option at Start for a one-step workflow; otherwise request only the destinations discovered by the scan from a separate user action.
+- Store review state and feedback in extension storage restricted to trusted extension contexts.
+- Retain single-page reports for no more than 168 hours. A successful rescan of the same canonical page replaces its earlier single-page report regardless of review scope; a failed or cancelled scan does not. Retain decisions and notes only for findings still present in a saved report.
+- Retain incomplete batch state for 7 days after its last saved activity and completed batch state for 30 days or until a new batch begins. Retain unsent feedback until it is sent or deleted and sent feedback for 30 days after it is marked sent.
+- Provide separate, confirmed controls for deleting page reviews, batch state, unsent feedback, sent feedback, allowed terms and saved page preferences.
+- Omit browser credentials from ordinary public link and asset requests. Permit credentials only for the existing narrowly supported CMS Lite, QA, SharePoint and intranet checks, using access the reviewer has already established without reading or storing sign-in information.
+- Request website access only for the current page or destinations discovered by the selected page or batch scan. Remove the earlier all-sites option and revoke its legacy wildcard grant when this update is installed.
 - Never send in-page fragment links through the network checker. Validate fragment targets from the scanned document instead.
-- Keep remote checks anonymous (`credentials: "omit"`). Attempt redirect chains with `redirect: "follow"` when the resulting origins are covered by granted website access, then fall back to manual redirect handling when access is insufficient. Same-origin redirects should not require broader access; an unverified cross-origin redirect is uncertainty, not a broken-link finding.
+- Keep ordinary remote checks anonymous (`credentials: "omit"`). Attempt redirect chains with `redirect: "follow"` when the resulting origins are covered by granted website access, then fall back to manual redirect handling when access is insufficient. Same-origin redirects should not require broader access; an unverified cross-origin redirect is uncertainty, not a broken-link finding.
+- Do not request links with embedded credentials, explicit local/private/link-local/reserved destinations or action-like authenticated paths. Report them as not checked for safety so the reviewer can decide whether to open them. This is a syntactic control, not DNS rebinding protection; the pilot retains the residual risk that a public hostname or opaque redirect can resolve internally.
+- Do not request `file:` access. The extension reviews HTTP and HTTPS pages only.
+- Neutralize spreadsheet-formula prefixes in CSV cells while preserving the original visible text.
 - Treat `www2.qa.gov.bc.ca` as a specific B.C. authoring environment: for link verification, derive the matching `www2.gov.bc.ca` address by changing only the hostname and report the result explicitly as a live-version check.
 - A failed or blocked automated request is not proof of a broken link. Reserve broken-link findings for reliable 404 or 410 responses from the destination being checked.
-- Keep feedback on the device until the tester chooses a copy, export or email action. Keep sent feedback archived locally rather than deleting it.
+- Keep unsent feedback on the device until the tester sends or deletes it. Keep sent feedback available locally for 30 days for copying, export or restoration.
 - Persist large batch state after every scanned page so a closed/reloaded workspace or another page review cannot turn a partial batch into a false completion. Use extension unlimited storage for this audit-state persistence rather than silently failing at the default local-storage quota.

@@ -4,6 +4,16 @@ All notable public changes to the B.C. Web Style Guide Checker will be recorded 
 
 ## Unreleased
 
+- Added a 168-hour retention limit for single-page reports and made each successful rescan replace the earlier saved report for the same canonical page while preserving decisions and notes for findings that remain
+- Kept public link checks anonymous and existing authenticated CMS Lite, QA, SharePoint and intranet checks available, while refusing embedded credentials, explicit local/private/reserved destinations and action-like authenticated URLs
+- Removed optional access to local `file:` pages and restricted extension storage to trusted extension contexts
+- Protected CSV exports from spreadsheet-formula interpretation and added the previously standalone batch-state and highlight suites to the full test command
+- Expanded the website-access explanation to state that page content and reports are processed locally without external analysis or AI, while link destinations receive normal browser requests
+- Replaced the all-sites permission option with destination-specific access for both page and batch link checks and removed legacy wildcard access during extension updates
+- Added a specific security explanation when someone opens the checker on a local `file:` page
+- Added separate controls for deleting page reviews, batch state, unsent feedback, sent feedback, allowed terms and saved page preferences
+- Added 7-day retention for incomplete batches, 30-day retention for completed batches and 30-day retention for sent feedback; unsent feedback remains until sent or deleted
+
 ## 1.3.1 — 2026-09-02
 
 - Replaced unstable CMS Lite editor-region numbers with semantic locations such as **Topic → Body** and **Alerts → Alert 1 → Message**
