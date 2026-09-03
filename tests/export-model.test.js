@@ -35,7 +35,7 @@ const context = {
 };
 context.globalThis = context;
 vm.createContext(context);
-vm.runInContext(`${source.slice(evidenceStart, evidenceEnd)}\n${source.slice(start, end)}\n;globalThis.exportModel = { pageReviewProfile, findingDetailRows, issueSummaryRows, siteWideRows, batchPageRecords, batchPagesRows, batchSummaryRows, batchWorkbookSheets, summarySheetRows, linkCheckCoverage, workbookSheetsNeedLinkCheck };`, context);
+vm.runInContext(`${source.slice(evidenceStart, evidenceEnd)}\n${source.slice(start, end)}\n;globalThis.exportModel = { pageReviewProfile, findingDetailRows, issueSummaryRows, siteWideRows, batchPageRecords, batchPagesRows, batchSummaryRows, batchWorkbookSheets, summarySheetRows, metadataRow, optionalCheckCoverage, linkCheckCoverage, workbookSheetsNeedLinkCheck };`, context);
 
 function finding(ruleId, category, severity, title, extra = {}) {
   return {
@@ -169,6 +169,12 @@ assert.equal(context.exportModel.linkCheckCoverage(first), "Complete");
 const summary = context.exportModel.summarySheetRows(first);
 assert.ok(summary.some(row => row.values && row.values[0] === "Automated review profile"), "Single-page summary must include the review profile");
 assert.ok(summary.some(row => row.kind === "note" && /not confirmed compliance failures/i.test(row.values[0])), "Summary must explain the limits of automated findings");
+assert.ok(summary.some(row => row.values && row.values[0] === "Optional review checks" && row.values[1] === "All optional checks included"), "Older and default reports must disclose complete optional-check coverage");
+const limitedReview = report("Limited optional review");
+limitedReview.settings.optionalChecks = { nonBreakingSpace: false, passiveVoice: true };
+assert.equal(context.exportModel.optionalCheckCoverage(limitedReview), "Excluded: Non-breaking spaces");
+assert.equal(context.exportModel.metadataRow(limitedReview)[5], "Excluded: Non-breaking spaces", "Workbook metadata must preserve excluded optional checks");
+assert.ok(context.exportModel.summarySheetRows(limitedReview).some(row => row.values && row.values[0] === "Optional review checks" && /Non-breaking spaces/.test(row.values[1])));
 const batchSummary = context.exportModel.batchSummaryRows(records, false);
 assert.ok(batchSummary.some(row => row.values && row.values[0] === "Fix"), "Batch summary must separate Fix findings from other review levels");
 assert.ok(batchSummary.some(row => row.values && row.values[0] === "Link check results"), "Batch summary must expose link-check results without requiring the full Links sheet");

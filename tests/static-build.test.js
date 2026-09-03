@@ -11,7 +11,7 @@ const manifest = JSON.parse(read("manifest.json"));
 const packageManifest = JSON.parse(read("package.json"));
 const packageLock = JSON.parse(read("package-lock.json"));
 assert.equal(manifest.manifest_version, 3);
-assert.equal(manifest.version, "1.3.1");
+assert.equal(manifest.version, "1.3.2");
 assert.equal(packageManifest.version, manifest.version, "Package and extension versions must match");
 assert.equal(packageLock.version, packageManifest.version, "Package-lock version must match package.json");
 assert.equal(packageLock.packages[""].version, packageManifest.version, "Root lockfile package version must match package.json");
@@ -244,6 +244,12 @@ const decisionFunction = script.match(/async function setDecision\([\s\S]*?\n\}/
 assert.ok(decisionFunction, "Review decision handler must exist");
 assert.match(decisionFunction[0], /nextInGroup/, "Review decisions must advance to the next finding");
 assert.doesNotMatch(html, /Follow findings on page|id="follow-page"/, "Page following must be standard guided-review behaviour instead of an optional checkbox");
+assert.match(html, /id="optional-non-breaking-space"[^>]*checked/, "Non-breaking-space review must be enabled by default");
+assert.match(html, /id="optional-passive-voice"[^>]*checked/, "Passive-voice review must be enabled by default");
+assert.match(html, /Reading-level checks are always included/, "Settings must make the non-optional reading-level coverage clear");
+assert.match(script, /optionalReviewChecksV1/, "Optional contextual review choices must be stored explicitly");
+assert.match(script, /Excluded from this scan:[\s\S]*Reading-level checks were still included/, "Page details must disclose optional checks excluded from a scan");
+assert.match(script, /Optional review checks/, "Workbook summaries and metadata must disclose optional-check coverage");
 assert.match(script, /if \(locate && !workspaceSurface && finding\.selector\)/, "Side-panel guided review must always follow a locatable finding");
 assert.match(html, /<\/div>\s*<div class="review-summary">\s*<div id="list-controls"/, "The findings summary must sit outside the sticky tab row");
 assert.match(script, /function resetGuidedFindingPosition\(\)[\s\S]*querySelector\("\.finding"\)[\s\S]*scrollIntoView\(\{ block: "start" \}\)/, "Finding navigation must place the finding card beneath the sticky tabs");
@@ -304,7 +310,7 @@ assert.match(core, /channel <= 0\.04045/, "Contrast must use the current WCAG re
 assert.match(core, /if \(ratio < required\)/, "Contrast thresholds must not use a rounding tolerance");
 assert.match(core, /"contrast-unverified"/, "Unmeasurable rendered backgrounds need a separate review finding");
 assert.match(core, /Colour contrast in other states/, "Non-text and alternate-state contrast must remain a distinct manual check");
-assert.match(core, /const RULE_VERSION = "1\.3\.1"/);
+assert.match(core, /const RULE_VERSION = "1\.3\.2"/);
 assert.match(core, /const PER_RULE_FINDING_LIMIT = 500;/, "One issue type must retain up to 500 findings before a safety limit applies");
 assert.doesNotMatch(core, /perRuleLimit = 25|PER_RULE_FINDING_LIMIT = 25/, "The former silent 25-finding cap must not return");
 assert.match(core, /findingLimits:[\s\S]*truncatedRules/, "Reports must identify every issue type affected by the safety limit");
@@ -342,6 +348,11 @@ assert.doesNotMatch(script, /[\u00C2\u00E2\u00C3]/, "Side panel source must not 
 ["government-capitalization", "moved-page-notice", "heading-dash", "heading-parentheses", "heading-colon-case", "heading-empty-sequence", "image-alt-length", "image-alt-prefix", "time-zone", "currency-cents", "canadian-spelling", "canadian-spelling-context", "list-introduction", "file-link-type", "file-link-size", "split-link", "dash-separator", "wifi-format", "fake-list", "image-alt-meaningless", "proofreading-pubic", "proofreading-repeat", "section-reading-level", "section-heading-density"].forEach(rule => {
   assert.match(core, new RegExp(`"${rule}"`), `Missing updated-guide rule: ${rule}`);
 });
+["postal-code-format", "formatted-heading", "formatted-all-caps-heading"].forEach(rule => assert.match(core, new RegExp(`"${rule}"`), `Missing v1.3.2 rule: ${rule}`));
+assert.match(core, /terminal && terminal !== "\?"/, "Visual-heading detection must allow questions while excluding other terminal punctuation");
+assert.match(core, /sentenceLike/, "Visual-heading detection must avoid likely status sentences without punctuation");
+assert.match(core, /optionalChecks\.passiveVoice/, "Passive-voice detection must honour its optional setting");
+assert.match(core, /optionalChecks\.nonBreakingSpace/, "Non-breaking-space detection must honour its optional setting");
 assert.match(core, /function isOnThisPageList\(/, "List-introduction checks must reuse structural On this page recognition");
 assert.match(core, /function isMeaningfulList\(/, "List rules must ignore empty editor markup");
 assert.match(script, /async function revealFindingElements\(/, "Show on page must use a testable reveal helper");
