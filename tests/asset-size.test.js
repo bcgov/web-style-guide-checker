@@ -658,7 +658,6 @@ function editorEnvironment(reply) {
   const origin = 'https://cmslite.gov.bc.ca';
   Object.assign(context, {
     remoteDestinationSafety: () => ({ allowed: true }), authenticatedActionUrl: () => false,
-    cmsLiteManagedAssetGuid: value => /\/assets\/download\/[a-f0-9]{32}/i.test(value),
     cmsLiteEditorSource: value => new URL(value).hostname === 'cmslite.gov.bc.ca',
     urlOrigin: value => new URL(value).origin, publicQaCmsDestination: () => false,
     currentReviewTab: async () => ({ id: 10, url: origin + '/editor' }),
@@ -675,7 +674,7 @@ function editorEnvironment(reply) {
       return [{ result: JSON.parse(JSON.stringify(await isolated(...args))) }];
     } } }
   });
-  for (const name of ['checkWithCurrentPageSession', 'checkCmsLiteManagedAssetSource']) {
+  for (const name of ['cmsLiteManagedAssetGuid', 'checkWithCurrentPageSession', 'checkCmsLiteManagedAssetSource']) {
     vm.runInContext(shippedFunction(name), context);
   }
   return { context, requests, origin };
@@ -825,5 +824,74 @@ test('KB suggestions round to the nearest whole KB on both sides of the midpoint
   for (const [bytes, label] of [[812 * 1024 + 511, '812KB'], [812 * 1024 + 512, '813KB'],
     [813 * 1024 + 511, '813KB'], [813 * 1024 + 512, '814KB']]) {
     assert.equal(context.displayBytes(bytes), label);
+  }
+});
+
+test('AFB editor download route uses the signed-in GET and measures the complete file', async () => {
+  const route = '/cmslite/assets/asset/download/D4C59126EF894B76945881728C957C7B';
+  const { context, requests, origin } = editorEnvironment((_url, options) => {
+    assert.equal(options.method, 'GET', 'Managed editor assets must not depend on HEAD support');
+    return networkResponse(new Uint8Array(311000));
+  });
+  const { report, asset } = editorFixture(context, new URL(route, origin).href, 'American Foulbrood (AFB) bulletin 200 (PDF, 500KB)');
+  await context.verifyOneAsset(report, asset);
+  assert.equal(asset.actualSize, 311000);
+  assert.equal(report.issues.length, 1);
+  assert.equal(report.issues[0].suggestion, 'Change 500KB to 304KB.');
+  assert.equal(report.issues[0].editorSource.editorKey, 'body-field');
+  assert.equal(requests.length, 2);
+  assert.ok(requests.every(r => r.url === origin + route && r.credentials === 'include'));
+  assert.equal(requests[1].redirect, 'error');
+});
+
+test('AFB editor route with no PDF extension or label gets a measured label suggestion', async () => {
+  const { context, origin } = editorEnvironment(() => networkResponse(new Uint8Array(311000)));
+  const href = origin + '/cmslite/assets/asset/download/D4C59126EF894B76945881728C957C7B';
+  const { report, asset } = editorFixture(context, href, 'American Foulbrood (AFB) bulletin 200');
+  // The initial scanner cannot infer PDF from this GUID URL.
+  asset.expectedType = '';
+  report.issues = [];
+  await context.verifyOneAsset(report, asset);
+  assert.equal(report.issues.length, 1);
+  assert.equal(report.issues[0].ruleId, 'file-link-label');
+  assert.equal(report.issues[0].suggestion, 'Add (PDF, 304KB) to the link text.');
+  assert.equal(report.issues[0].editorSource.editorKey, 'body-field');
+});
+
+test('Both managed editor routes recognize GUIDs while rejecting unrelated URLs', async () => {
+  const { context, requests, origin } = editorEnvironment(() => { throw new Error('Unexpected request'); });
+  const guid = 'D4C59126EF894B76945881728C957C7B';
+  for (const prefix of ['/assets/download/', '/cmslite/assets/asset/download/']) {
+    assert.equal(context.cmsLiteManagedAssetGuid(origin + prefix + guid.toLowerCase()), guid);
+    assert.equal(context.cmsLiteManagedAssetGuid(origin + prefix + guid + '/'), guid);
+  }
+  const { report } = editorFixture(context, origin + '/assets/gov/form.pdf');
+  for (const url of [
+    'https://example.com/cmslite/assets/asset/download/' + guid,
+    origin + '/cmslite/assets/asset/download/not-a-guid',
+    origin + '/cmslite/assets/asset/download/' + guid + '/delete',
+    origin + '/cmslite/assets/asset/delete/' + guid
+  ]) {
+    assert.equal(context.cmsLiteManagedAssetGuid(url), '');
+    const result = { status: 'ok', code: 200, finalUrl: url, headers: { contentType: 'application/pdf' } };
+    assert.equal(await context.measureEditorAssetSize(report, result), result);
+  }
+  assert.equal(requests.length, 0);
+});
+
+test('Managed editor route uses full Content-Range totals and resolved asset URLs', async () => {
+  for (const mode of ['range', 'resolved']) {
+    const { context, requests, origin } = editorEnvironment((_url, _options, count) => {
+      const r = mode === 'range' ? networkResponse(new Uint8Array(1), {
+        status: 206, headers: { 'content-length': '1', 'content-range': 'bytes 0-0/311000' }
+      }) : networkResponse(new Uint8Array(311000));
+      if (mode === 'resolved') Object.defineProperty(r, 'url', { value: origin + '/assets/gov/afb.pdf' });
+      return r;
+    });
+    const { report, asset } = editorFixture(context, origin + '/cmslite/assets/asset/download/D4C59126EF894B76945881728C957C7B');
+    await context.verifyOneAsset(report, asset);
+    assert.equal(asset.actualSize, 311000);
+    assert.equal(requests.length, mode === 'range' ? 1 : 2);
+    if (mode === 'resolved') assert.equal(requests[1].url, origin + '/assets/gov/afb.pdf');
   }
 });

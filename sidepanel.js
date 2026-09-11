@@ -631,7 +631,7 @@ function cmsLiteManagedAssetGuid(value) {
   try {
     const url = new URL(value);
     if (url.hostname.toLowerCase() !== "cmslite.gov.bc.ca") return "";
-    const match = /^\/assets\/download\/([a-f0-9]{32})(?:\/)?$/i.exec(url.pathname);
+    const match = /^\/(?:assets\/download|cmslite\/assets\/asset\/download)\/([a-f0-9]{32})(?:\/)?$/i.exec(url.pathname);
     return match ? match[1].toUpperCase() : "";
   } catch (_) { return ""; }
 }
@@ -2798,7 +2798,7 @@ async function checkCmsLiteManagedAssetSource(report, value, timeoutMs = 10000) 
         let parsed;
         try { parsed = new URL(targetUrl, location.href); } catch (_) { return null; }
         if (parsed.origin !== location.origin || parsed.hostname.toLowerCase() !== "cmslite.gov.bc.ca") return null;
-        if (!/^\/assets\/download\/[a-f0-9]{32}(?:\/)?$/i.test(parsed.pathname)) return null;
+        if (!/^\/(?:assets\/download|cmslite\/assets\/asset\/download)\/[a-f0-9]{32}(?:\/)?$/i.test(parsed.pathname)) return null;
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), timeoutValue);
         try {
@@ -2922,8 +2922,10 @@ async function measureEditorAssetInPage(result, timeoutMs) {
   // This function runs in the editor tab and must remain self-contained.
   let target;
   try { target = new URL(result.finalUrl); } catch (_) { return null; }
+  const publishedAssetPath = /^\/assets\/(?:gov|intranet)\//i.test(target.pathname);
+  const managedAssetPath = /^\/(?:assets\/download|cmslite\/assets\/asset\/download)\/[a-f0-9]{32}\/?$/i.test(target.pathname);
   if (target.origin !== location.origin || target.hostname !== "cmslite.gov.bc.ca"
-    || !/^\/assets\/(?:gov|intranet|download)\//i.test(target.pathname)) return null;
+    || !(publishedAssetPath || managedAssetPath)) return null;
   function assetResponseHeader(result, field, header) {
     if (result.headers && Object.prototype.hasOwnProperty.call(result.headers, field)) {
       return String(result.headers[field] || "").trim();
