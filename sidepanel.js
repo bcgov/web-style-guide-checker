@@ -2083,9 +2083,178 @@ function declaredBytes(asset) {
 
 function displayBytes(value) {
   if (!Number.isFinite(value)) return "unknown size";
+  // Use decimal units for new suggestions: 1,788KB rounds to 1.8MB.
   if (value >= 1024 ** 3) return `${(value / 1024 ** 3).toFixed(1).replace(/\.0$/, "")}GB`;
-  if (value >= 1024 ** 2) return `${(value / 1024 ** 2).toFixed(1).replace(/\.0$/, "")}MB`;
-  return `${Math.max(0.1, value / 1024).toFixed(1).replace(/\.0$/, "")}KB`;
+  if (value >= 1000 ** 2) return `${(value / 1000 ** 2).toFixed(1).replace(/\.0$/, "")}MB`;
+  const kb = Math.max(1, Math.round(value / 1000));
+  // Promote a rounded 1,000KB value so suggestions stay consistent at the boundary.
+  return kb >= 1000 ? "1MB" : `${kb}KB`;
+}
+
+function assetResponseHeader(result, field, header) {
+  if (result.headers && Object.prototype.hasOwnProperty.call(result.headers, field)) {
+    return String(result.headers[field] || "").trim();
+  }
+  return String(result.response && result.response.headers
+    ? result.response.headers.get(header) || "" : "").trim();
+}
+
+function verifiedAssetSize(result) {
+  if (Number.isSafeInteger(result.measuredSize) && result.measuredSize > 0) return result.measuredSize;
+  const encoding = assetResponseHeader(result, "contentEncoding", "content-encoding").toLowerCase();
+  // Encoded lengths describe the transfer, not the downloaded file. Keep the
+  // existing label quiet when a reliable file size is unavailable.
+  if (encoding && encoding !== "identity") return null;
+  const status = Number(result.code || (result.response && result.response.status));
+  const length = assetResponseHeader(result, "contentLength", "content-length");
+  const range = assetResponseHeader(result, "contentRange", "content-range");
+  const positiveBytes = value => /^\d+$/.test(value) && Number.isSafeInteger(Number(value)) && Number(value) > 0;
+  if (status === 206) {
+    const match = /^bytes (\d+)-(\d+)\/(\d+)$/i.exec(range);
+    if (!match || !positiveBytes(match[3])) return null;
+    const start = Number(match[1]);
+    const end = Number(match[2]);
+    const total = Number(match[3]);
+    if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || start > end || end >= total) return null;
+    if (length && (!positiveBytes(length) || Number(length) !== end - start + 1)) return null;
+    return total;
+  }
+  // A partial length, empty response or malformed header is never a file size.
+  return status === 200 && !range && positiveBytes(length) ? Number(length) : null;
+}
+
+async function measurePublicAssetSize(result, signal) {
+  // Only called for a successful, permission-checked anonymous asset request.
+  // Keep the original result if this optional size check fails.
+  if (result.status !== "ok" || verifiedAssetSize(result) !== null) return result;
+  const contentType = assetResponseHeader(result, "contentType", "content-type");
+  if (/^(?:text\/html|application\/xhtml\+xml)\b/i.test(contentType)) return result;
+  if (!mimeAssetType(contentType,
+    assetResponseHeader(result, "contentDisposition", "content-disposition"), result.finalUrl)) return result;
+  let response;
+  let reader;
+  try {
+    response = await fetch(result.finalUrl, {
+      method: "GET",
+      headers: { Range: "bytes=0-0" },
+      credentials: "omit",
+      // The HEAD check has already resolved and checked the final destination.
+      // Do not follow a new redirect during this optional download.
+      redirect: "error",
+      cache: "no-store",
+      signal
+    });
+    const type = response.headers.get("content-type") || "";
+    if (/^(?:text\/html|application\/xhtml\+xml)\b/i.test(type)) return result;
+    if (!mimeAssetType(type, response.headers.get("content-disposition") || "", result.finalUrl)) return result;
+    const measured = { ...result, response, code: response.status };
+    const headerSize = verifiedAssetSize(measured);
+    if (headerSize !== null) return measured;
+    // Some servers ignore Range and omit Content-Length. Count a complete
+    // decoded response, without keeping its contents. Partial responses cannot
+    // establish the full size unless Content-Range supplied a valid total.
+    if (response.status !== 200 || response.headers.get("content-range") || !response.body) return result;
+    const limit = 5 * 1024 ** 2;
+    reader = response.body.getReader();
+    let bytes = 0;
+    while (true) {
+      const chunk = await reader.read();
+      if (signal.aborted) return result;
+      if (chunk.done) return bytes > 0 ? { ...measured, measuredSize: bytes } : result;
+      bytes += chunk.value.byteLength;
+      if (bytes > limit) return result;
+    }
+  } catch (_) {
+    return result;
+  } finally {
+    // The download timeout also bounds this stream.
+    if (reader) {
+      try { await reader.cancel(); } catch (_) {}
+      reader.releaseLock();
+    } else if (response && response.body) {
+      try { await response.body.cancel(); } catch (_) {}
+    }
+  }
+}
+
+function assetSizeTolerance(asset, actualSize) {
+  if (asset.declaredUnit === "KB") return 10 * 1024;
+  // Whole-byte rounding keeps the 0.1MB boundary inclusive.
+  if (asset.declaredUnit === "MB") return Math.ceil(0.1 * 1024 ** 2);
+  // Preserve the existing behaviour for GB labels outside this change's scope.
+  return Math.max(2048, actualSize * 0.04);
+}
+
+function assetSizeMismatch(asset, actualSize) {
+  const labelledSize = declaredBytes(asset);
+  if (labelledSize === null || !Number.isFinite(actualSize)) return false;
+  // Existing labels may come from decimal or binary file properties. Accept
+  // either convention within the requested tolerance, without rounding away
+  // a real discrepancy. New suggestions consistently use decimal units.
+  const binaryDifference = Math.abs(labelledSize - actualSize);
+  if (binaryDifference <= assetSizeTolerance(asset, actualSize)) return false;
+  if (asset.declaredUnit === "KB" || asset.declaredUnit === "MB") {
+    const multiplier = asset.declaredUnit === "MB" ? 1000 ** 2 : 1000;
+    const tolerance = asset.declaredUnit === "MB" ? 0.1 * multiplier : 10 * multiplier;
+    return Math.abs(asset.declaredSize * multiplier - actualSize) > tolerance;
+  }
+  return true;
+}
+
+function updateAssetLabelSuggestion(report, asset, actualType, actualSize) {
+  const ruleId = {
+    "outside-link": "file-link-label-outside",
+    "missing-label": "file-link-label",
+    "missing-size": "file-link-size",
+    "missing-type": "file-link-type"
+  }[asset.labelStatus];
+  if (!ruleId) return;
+  const type = actualType || asset.declaredType || asset.expectedType || "";
+  const labelledSize = declaredBytes(asset);
+  const sizeChanged = assetSizeMismatch(asset, actualSize);
+  const retainOutsideSize = asset.labelStatus === "outside-link" && labelledSize !== null && !sizeChanged;
+  const size = actualSize !== null && !retainOutsideSize ? displayBytes(actualSize)
+    : Number.isFinite(asset.declaredSize) ? `${asset.declaredSize}${asset.declaredUnit}` : "";
+  const suggestion = asset.labelStatus === "outside-link"
+    ? `Move the file details into the link text${sizeChanged ? ` and change ${asset.declaredSize}${asset.declaredUnit} to ${size}` : ""}: (${type || "[file type]"}, ${size || "[file size]"}).`
+    : size
+    ? `Add (${type || "[file type]"}, ${size}) to the link text.`
+    : type ? `Add (${type}, [file size]) to the link text. Use KB or MB for the size.`
+    : "Add ([file type], [file size]) to the link text. Use KB or MB for the size.";
+  const existing = report.issues.filter(item => item.ruleId === ruleId
+    && item.selector === asset.selector && editorSourceKey(item) === editorSourceKey(asset)
+    && (!item.assetHref || item.assetHref === asset.href));
+  if (existing.length) {
+    // Keep evidence, highlights, fingerprints, occurrence counts and decisions.
+    // Updating the original also avoids appendUniqueFinding discarding the size.
+    existing.forEach(finding => {
+      finding.suggestion = suggestion;
+      if (asset.labelStatus === "outside-link") {
+        finding.title = sizeChanged ? "Correct the size and move the file details" : "Move the file details into the link";
+        finding.why = sizeChanged
+          ? "The file size needs updating, and the file details belong inside the link."
+          : "The file details are beside the link. Include them in the link text.";
+        finding.suggestionSteps = sizeChanged ? [
+          `Change ${asset.declaredSize}${asset.declaredUnit} to ${size}.`,
+          `Move (${type || "[file type]"}, ${size}) into the link text.`
+        ] : [];
+        if (sizeChanged) finding.suggestion = finding.suggestionSteps.join(" ");
+      }
+      if (type && size && finding.matchText) finding.replacement = `(${type}, ${size})`;
+    });
+    return;
+  }
+  if (ruleId !== "file-link-label" || !actualType) return;
+  const finding = globalThis.BCWebStyleGuideChecker.createExternalFinding(ruleId, report.page.url, {
+    id: `file-link-label-${asset.selector}`,
+    selector: asset.selector,
+    editorRegion: Number(asset.editorRegion) || null,
+    location: asset.location || "Page",
+    evidence: asset.text || asset.href,
+    suggestion
+  });
+  if (finding) finding.editorSource = asset.editorSource || null;
+  appendUniqueFinding(report, finding);
 }
 
 function editorSourceKey(item) {
@@ -2335,7 +2504,17 @@ async function checkRemoteUrl(value, timeoutMs = 10000, options = {}) {
     return classifyResponse(response, url, redirected);
   };
   try {
-    return sessionAware ? await visitSessionAware(startingUrl, 0, false) : await visitAnonymous(startingUrl, 0, false);
+    const result = sessionAware ? await visitSessionAware(startingUrl, 0, false) : await visitAnonymous(startingUrl, 0, false);
+    if (options.measureAssetSize && !sessionAware && result.status === "ok" && verifiedAssetSize(result) === null) {
+      // Give the fallback its own bounded request window. A slow HEAD response
+      // must not consume the time needed to retrieve the file's size.
+      clearTimeout(timeout);
+      const sizeController = new AbortController();
+      const sizeTimeout = setTimeout(() => sizeController.abort(), timeoutMs);
+      try { return await measurePublicAssetSize(result, sizeController.signal); }
+      finally { clearTimeout(sizeTimeout); }
+    }
+    return result;
   } catch (error) {
     return {
       status: sessionAware ? "session-unverified" : "unavailable",
@@ -2563,8 +2742,6 @@ async function checkWithCurrentPageSession(report, value, timeoutMs = 8000) {
           if (finalOrigin && finalOrigin !== startingOrigin) {
             return { status: "session-unverified", checkedUrl: parsed.href, finalUrl: parsed.href, redirected: true, error: "This link left the signed-in website, so the final page could not be confirmed." };
           }
-          const contentRange = response.headers.get("content-range") || "";
-          const totalFromRange = (contentRange.match(/\/(\d+)$/) || [])[1] || "";
           const base = {
             code: response.status,
             checkedUrl: parsed.href,
@@ -2572,7 +2749,9 @@ async function checkWithCurrentPageSession(report, value, timeoutMs = 8000) {
             redirected: Boolean(response.redirected),
             accessMode: "current-session",
             headers: {
-              contentLength: totalFromRange || response.headers.get("content-length") || "",
+              contentLength: response.headers.get("content-length") || "",
+              contentRange: response.headers.get("content-range") || "",
+              contentEncoding: response.headers.get("content-encoding") || "",
               contentType: response.headers.get("content-type") || "",
               contentDisposition: response.headers.get("content-disposition") || ""
             }
@@ -2647,6 +2826,8 @@ async function checkCmsLiteManagedAssetSource(report, value, timeoutMs = 10000) 
             accessMode: "current-session",
             headers: {
               contentLength: response.headers.get("content-length") || "",
+              contentRange: response.headers.get("content-range") || "",
+              contentEncoding: response.headers.get("content-encoding") || "",
               contentType: response.headers.get("content-type") || "",
               contentDisposition: response.headers.get("content-disposition") || ""
             }
@@ -2739,27 +2920,162 @@ async function checkManagedAssetEnvironmentUrl(value, family, timeoutMs = 10000)
   }
 }
 
+async function measureEditorAssetInPage(result, timeoutMs) {
+  // This function runs in the editor tab and must remain self-contained.
+  let target;
+  try { target = new URL(result.finalUrl); } catch (_) { return null; }
+  if (target.origin !== location.origin || target.hostname !== "cmslite.gov.bc.ca"
+    || !/^\/assets\/(?:gov|intranet|download)\//i.test(target.pathname)) return null;
+  function assetResponseHeader(result, field, header) {
+    if (result.headers && Object.prototype.hasOwnProperty.call(result.headers, field)) {
+      return String(result.headers[field] || "").trim();
+    }
+    return String(result.response && result.response.headers
+      ? result.response.headers.get(header) || "" : "").trim();
+  }
+
+  function verifiedAssetSize(result) {
+    if (Number.isSafeInteger(result.measuredSize) && result.measuredSize > 0) return result.measuredSize;
+    const encoding = assetResponseHeader(result, "contentEncoding", "content-encoding").toLowerCase();
+    // Encoded lengths describe the transfer, not the downloaded file. Keep the
+    // existing label quiet when a reliable file size is unavailable.
+    if (encoding && encoding !== "identity") return null;
+    const status = Number(result.code || (result.response && result.response.status));
+    const length = assetResponseHeader(result, "contentLength", "content-length");
+    const range = assetResponseHeader(result, "contentRange", "content-range");
+    const positiveBytes = value => /^\d+$/.test(value) && Number.isSafeInteger(Number(value)) && Number(value) > 0;
+    if (status === 206) {
+      const match = /^bytes (\d+)-(\d+)\/(\d+)$/i.exec(range);
+      if (!match || !positiveBytes(match[3])) return null;
+      const start = Number(match[1]);
+      const end = Number(match[2]);
+      const total = Number(match[3]);
+      if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || start > end || end >= total) return null;
+      if (length && (!positiveBytes(length) || Number(length) !== end - start + 1)) return null;
+      return total;
+    }
+    // A partial length, empty response or malformed header is never a file size.
+    return status === 200 && !range && positiveBytes(length) ? Number(length) : null;
+  }
+
+  function mimeAssetType(type, disposition, url) {
+      if (/^(?:application\/(?:pdf|msword|vnd\.|rtf|zip|octet-stream)|text\/(?:plain|csv))\b/i.test(type)) return "document";
+      try { return /\.(?:pdf|docx?|xlsx?|csv|pptx?|rtf|txt|odt|ods|odp|zip)$/i.test(new URL(url).pathname) ? "document" : ""; }
+      catch (_) { return ""; }
+    }
+  async function measureInSession(result, signal) {
+    // Only called for a successful asset request within the current editor session.
+    // Keep the original result if this optional size check fails.
+    if (result.status !== "ok" || verifiedAssetSize(result) !== null) return result;
+    const contentType = assetResponseHeader(result, "contentType", "content-type");
+    if (/^(?:text\/html|application\/xhtml\+xml)\b/i.test(contentType)) return result;
+    if (!mimeAssetType(contentType,
+      assetResponseHeader(result, "contentDisposition", "content-disposition"), result.finalUrl)) return result;
+    let response;
+    let reader;
+    try {
+      response = await fetch(result.finalUrl, {
+        method: "GET",
+        headers: { Range: "bytes=0-0" },
+        credentials: "include",
+        // The earlier check has resolved and checked the final destination.
+        // Do not follow a new redirect during this optional download.
+        redirect: "error",
+        cache: "no-store",
+        signal
+      });
+      const type = response.headers.get("content-type") || "";
+      if (/^(?:text\/html|application\/xhtml\+xml)\b/i.test(type)) return result;
+      if (!mimeAssetType(type, response.headers.get("content-disposition") || "", result.finalUrl)) return result;
+      const measured = { ...result, headers: undefined, response, code: response.status };
+      const headerSize = verifiedAssetSize(measured);
+      if (headerSize !== null) return measured;
+      // Some servers ignore Range and omit Content-Length. Count a complete
+      // decoded response, without keeping its contents. Partial responses cannot
+      // establish the full size unless Content-Range supplied a valid total.
+      if (response.status !== 200 || response.headers.get("content-range") || !response.body) return result;
+      const limit = 5 * 1024 ** 2;
+      reader = response.body.getReader();
+      let bytes = 0;
+      while (true) {
+        const chunk = await reader.read();
+        if (signal.aborted) return result;
+        if (chunk.done) return bytes > 0 ? { ...measured, measuredSize: bytes } : result;
+        bytes += chunk.value.byteLength;
+        if (bytes > limit) return result;
+      }
+    } catch (_) {
+      return result;
+    } finally {
+      // The download timeout also bounds this stream.
+      if (reader) {
+        try { await reader.cancel(); } catch (_) {}
+        reader.releaseLock();
+      } else if (response && response.body) {
+        try { await response.body.cancel(); } catch (_) {}
+      }
+    }
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const measured = await measureInSession(result, controller.signal);
+    if (measured === result) return result;
+    return { status: "ok", code: measured.code, finalUrl: result.finalUrl,
+      measuredSize: verifiedAssetSize(measured), headers: {
+        contentLength: measured.response.headers.get("content-length") || "",
+        contentRange: measured.response.headers.get("content-range") || "",
+        contentEncoding: measured.response.headers.get("content-encoding") || "",
+        contentType: measured.response.headers.get("content-type") || "",
+        contentDisposition: measured.response.headers.get("content-disposition") || ""
+      } };
+  }
+  finally { clearTimeout(timeout); }
+}
+
+async function measureEditorAssetSize(report, result, timeoutMs = 8000) {
+  if (!report.settings || !report.settings.editorMode || result.status !== "ok"
+    || verifiedAssetSize(result) !== null) return result;
+  const value = result.finalUrl || result.checkedUrl;
+  const sourceUrl = report.page && report.page.url;
+  if (!cmsLiteEditorSource(sourceUrl) || hostnameFor(value) !== "cmslite.gov.bc.ca"
+    || urlOrigin(sourceUrl) !== urlOrigin(value)) return result;
+  if (!remoteDestinationSafety(value).allowed || authenticatedActionUrl(value)) return result;
+  const tab = await currentReviewTab().catch(() => null);
+  if (!tab || !tab.id || urlOrigin(tab.url || "") !== urlOrigin(value)) return result;
+  try {
+    const results = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      args: [{ status: result.status, code: result.code, finalUrl: value, headers: result.headers || {} }, timeoutMs],
+      func: measureEditorAssetInPage
+    });
+    const measured = results && results[0] && results[0].result;
+    return measured && measured.status === "ok" ? { ...result, ...measured } : result;
+  } catch (_) { return result; }
+}
+
 async function verifyOneAsset(report, asset) {
   if (!/^https?:/i.test(asset.href || "")) {
     asset.verificationStatus = "unsupported";
     return;
   }
 
-  const liveEquivalent =
-    qaProductionEquivalent(asset.href);
-
-  const checkUrl =
-    liveEquivalent || asset.href;
+  // Measure the linked version. QA/live publication checks remain separate.
+  const checkUrl = asset.href;
 
   asset.checkedUrl = checkUrl;
-  asset.liveEquivalent = liveEquivalent || "";
+  asset.liveEquivalent = "";
 
   const pageSessionResult = cmsLiteManagedAssetGuid(checkUrl)
     ? await checkCmsLiteManagedAssetSource(report, checkUrl, 8000)
     : await checkWithCurrentPageSession(report, checkUrl, 8000);
 
-  const result =
-    pageSessionResult || await checkRemoteUrl(checkUrl, 8000, { sessionAware: trustedSessionHost(checkUrl) });
+  let result =
+    pageSessionResult || await checkRemoteUrl(checkUrl, 8000, { sessionAware: trustedSessionHost(checkUrl), measureAssetSize: true });
+  if (pageSessionResult && result.status === "ok" && verifiedAssetSize(result) === null) {
+    result = await measureEditorAssetSize(report, result, 8000);
+  }
 
   asset.finalUrl =
     result.finalUrl || checkUrl;
@@ -2769,12 +3085,6 @@ async function verifyOneAsset(report, asset) {
 
   if (result.status !== "ok") {
     if (
-      liveEquivalent &&
-      result.status === "broken"
-    ) {
-      asset.verificationStatus =
-        "live-not-found";
-    } else if (
       result.status === "sign-in"
     ) {
       asset.verificationStatus =
@@ -2820,94 +3130,25 @@ async function verifyOneAsset(report, asset) {
     return;
   }
 
-  const response = result.response;
-
-  const lengthHeader =
-    result.headers && result.headers.contentLength
-      ? result.headers.contentLength
-      : response && response.headers
-        ? response.headers.get("content-length")
-        : "";
-
-  const actualSize =
-    lengthHeader &&
-    /^\d+$/.test(lengthHeader)
-      ? Number(lengthHeader)
-      : null;
-
-  const actualType = mimeAssetType(
-    result.headers && result.headers.contentType
-      ? result.headers.contentType
-      : response && response.headers
-        ? response.headers.get("content-type")
-        : "",
-    result.headers && result.headers.contentDisposition
-      ? result.headers.contentDisposition
-      : response && response.headers
-        ? response.headers.get(
-            "content-disposition"
-          )
-        : "",
-    result.finalUrl || checkUrl
-  );
+  const contentType = assetResponseHeader(result, "contentType", "content-type");
+  // A successful HTML sign-in/error page must not supply a document's size.
+  if (/^(?:text\/html|application\/xhtml\+xml)\b/i.test(contentType)) {
+    asset.actualSize = null;
+    asset.actualType = "";
+    asset.verificationStatus = "unavailable";
+    return;
+  }
+  const actualType = mimeAssetType(contentType,
+    assetResponseHeader(result, "contentDisposition", "content-disposition"),
+    result.finalUrl || checkUrl);
+  const actualSize = actualType ? verifiedAssetSize(result) : null;
 
   asset.actualSize = actualSize;
   asset.actualType = actualType;
 
-  asset.verificationStatus =
-    liveEquivalent
-      ? actualSize === null
-        ? "live-type-verified"
-        : "live-verified"
-      : actualSize === null
-        ? "type-verified"
-        : "verified";
-
-  if (
-    actualType &&
-    !asset.validLabel &&
-    asset.labelStatus === "missing-label"
-  ) {
-    appendUniqueFinding(
-      report,
-      globalThis.BCWebStyleGuideChecker
-        .createExternalFinding(
-          "file-link-label",
-          report.page.url,
-          {
-            id:
-              `file-link-label-${asset.selector}`,
-
-            selector:
-              asset.selector,
-
-            editorRegion:
-              Number(asset.editorRegion) ||
-              null,
-
-            editorSource:
-              asset.editorSource || null,
-
-            location:
-              asset.location || "Page",
-
-            evidence:
-              `${asset.text || asset.href} → ` +
-              `${actualType}` +
-              `${
-                actualSize === null
-                  ? ""
-                  : `, ${displayBytes(actualSize)}`
-              }` +
-              `${
-                liveEquivalent
-                  ? " · checked live version"
-                  : ""
-              }`
-          }
-        )
-    );
-  }
+  asset.verificationStatus = actualSize !== null ? "verified"
+    : actualType ? "type-verified" : "unavailable";
+  updateAssetLabelSuggestion(report, asset, actualType, actualSize);
 
   if (
     asset.declaredType &&
@@ -2940,12 +3181,7 @@ async function verifyOneAsset(report, asset) {
             evidence:
               `Link says ${asset.declaredType}; ` +
               `server returned ${actualType}: ` +
-              `${asset.text || asset.href}` +
-              `${
-                liveEquivalent
-                  ? " · checked live version"
-                  : ""
-              }`
+              `${asset.text || asset.href}`
           }
         )
     );
@@ -2955,20 +3191,11 @@ async function verifyOneAsset(report, asset) {
     declaredBytes(asset);
 
   if (
+    asset.labelStatus !== "outside-link" &&
     labelledSize !== null &&
     actualSize !== null
   ) {
-    const tolerance =
-      Math.max(
-        2048,
-        actualSize * 0.04
-      );
-
-    if (
-      Math.abs(
-        labelledSize - actualSize
-      ) > tolerance
-    ) {
+    if (assetSizeMismatch(asset, actualSize)) {
       appendUniqueFinding(
         report,
         globalThis.BCWebStyleGuideChecker
@@ -2992,18 +3219,11 @@ async function verifyOneAsset(report, asset) {
               location:
                 asset.location || "Page",
 
+              suggestion:
+                `Change ${asset.declaredSize}${asset.declaredUnit} to ${displayBytes(actualSize)}.`,
+
               evidence:
-                `Link says ` +
-                `${asset.declaredSize}` +
-                `${asset.declaredUnit}; ` +
-                `server returned about ` +
-                `${displayBytes(actualSize)}: ` +
-                `${asset.text || asset.href}` +
-                `${
-                  liveEquivalent
-                    ? " · checked live version"
-                    : ""
-                }`
+                asset.text || asset.href
             }
           )
       );
@@ -4184,7 +4404,9 @@ function renderFinding(finding) {
       ${finding.suggestedTarget ? `<p class="target-suggestion"><strong>Suggested target:</strong> <code>${escapeHtml(finding.suggestedTarget)}</code></p>` : ""}
       ${finding.diagnostics && finding.diagnostics.length ? `<div class="finding-diagnostics"><strong>What does not match</strong><ul>${finding.diagnostics.map(item => `<li>${escapeHtml(item)}</li>`).join("")}</ul></div>` : ""}
       ${finding.occurrenceCount > 1 ? `<p class="occurrences">${finding.occurrenceCount} identical occurrences</p>` : ""}
-      <p class="suggestion"><strong>Suggested action:</strong> ${escapeHtml(finding.suggestion)}</p>
+      ${Array.isArray(finding.suggestionSteps) && finding.suggestionSteps.length
+        ? `<div class="suggestion"><strong>Suggested actions:</strong><ol>${finding.suggestionSteps.map(step => `<li>${escapeHtml(step)}</li>`).join("")}</ol></div>`
+        : `<p class="suggestion"><strong>Suggested action:</strong> ${escapeHtml(finding.suggestion)}</p>`}
       ${note.text ? `<div class="audit-note"><strong>Audit note</strong><p>${escapeHtml(note.text)}</p></div>` : ""}
       <div class="finding-footer">
         <div class="finding-actions">
@@ -6100,7 +6322,7 @@ const ACCESSIBILITY_CONTEXTUAL_ALT = new Set(["image-alt-empty", "image-alt-leng
 const LINKS_REVIEW_FIRST = new Set(["broken-http-link", "broken-anchor", "staging-url", "empty-link"]);
 const LINKS_NEEDS = new Set([
   "generic-link", "split-link", "email-link-text", "phone-unlinked", "phone-link-format", "file-link-label",
-  "file-link-type", "file-link-size", "file-link-label-format", "file-link-size-spacing", "file-link-type-mismatch",
+  "file-link-label-outside", "file-link-type", "file-link-size", "file-link-label-format", "file-link-size-spacing", "file-link-type-mismatch",
   "punctuation-only-link"
 ]);
 

@@ -79,9 +79,10 @@
     "email-link-missing": ["Links", "fix", "Link the email address", "This email address is inside a link element that has no destination.", "Add a mailto link for the displayed address, or remove the empty link markup if the address should not be linked.", "links"],
     "phone-unlinked": ["Links", "fix", "Link the phone number", "Phone numbers should be clickable.", "Wrap the number in a tel link using international dialling format.", "links"],
     "phone-link-format": ["Links", "fix", "Fix the phone link", "Telephone links should use international dialling format.", "Use a value such as tel:+1-250-555-0123.", "links"],
-    "file-link-label": ["Links", "fix", "Add the file type and size", "Document link text should tell people the file type and size before they open it.", "Add a label such as ‘(PDF, 504KB)’ to the linked text.", "links"],
-    "file-link-type": ["Links", "fix", "Add the file type", "The link already includes a file size, but people also need to know the file type before opening the document.", "Add the file type before the size, such as ‘(PDF, 2MB)’.", "links"],
-    "file-link-size": ["Links", "fix", "Add the file size", "The link already includes a file type, but people also need to know the file size before opening the document.", "Add the file size after the type, such as ‘(PDF, 504KB)’.", "links"],
+    "file-link-label": ["Links", "fix", "Add the file type and size", "Document link text should tell people the file type and size before they open it.", "Add ([file type], [file size]) to the link text. Use KB or MB for the size.", "links"],
+    "file-link-label-outside": ["Links", "fix", "Move the file details into the link", "The file details are beside the link. Include them in the link text.", "Move the file type and size into the link text.", "links"],
+    "file-link-type": ["Links", "fix", "Add the file type", "The link already includes a file size, but people also need to know the file type before opening the document.", "Add the file type before the size: ([file type], [file size]).", "links"],
+    "file-link-size": ["Links", "fix", "Add the file size", "The link already includes a file type, but people also need to know the file size before opening the document.", "Add the file size after the type, using KB or MB.", "links"],
     "file-link-label-format": ["Links", "fix", "Fix the file type and size label", "A document label needs a comma after the file type and no space between the size and unit.", "Use the format ‘(PDF, 159KB)’ or the equivalent for this file.", "links"],
     "file-link-size-spacing": ["Links", "fix", "Remove the space in the file size", "File sizes use no space between the number and unit.", "Remove the space between the number and unit, such as changing ‘271 KB’ to ‘271KB’.", "links"],
     "file-link-size-format": ["Links", "check", "Fix the file size", "The document label contains a decimal point without a complete decimal value.", "Confirm the file size and use a complete value such as ‘1MB’ or ‘1.5MB’.", "links"],
@@ -998,12 +999,20 @@
     }
     const parts = [];
     let current = element;
-    while (current && current.nodeType === 1 && parts.length < 8) {
+    while (current && current.nodeType === 1) {
       let part = current.tagName.toLowerCase();
       const siblings = current.parentElement ? Array.from(current.parentElement.children).filter(item => item.tagName === current.tagName) : [];
       if (siblings.length > 1) part += ":nth-of-type(" + (siblings.indexOf(current) + 1) + ")";
       parts.unshift(part);
       if (current === current.ownerDocument.documentElement) break;
+      // Eight levels may identify the same row in several separate tables.
+      // Keep extending until this selector resolves to this element alone.
+      if (parts.length >= 8) {
+        try {
+          const matches = element.ownerDocument.querySelectorAll(parts.join(" > "));
+          if (matches.length === 1 && matches[0] === element) break;
+        } catch (_) { /* Continue to the document root. */ }
+      }
       current = current.parentElement;
     }
     return parts.join(" > ");
@@ -1743,6 +1752,38 @@
     return { valid: false, status: typeOnly ? "missing-size" : "missing-label", type: typeOnly ? typeOnly[1].toUpperCase() : "", size: null, unit: "", raw: typeOnly ? typeOnly[0] : "", sizeText: "", replacement: "" };
   }
 
+  function adjacentAssetLabel(link) {
+    // Read only an immediately following label, across harmless inline wrappers.
+    // Stop at another link, a line break or a different content block.
+    const inline = /^(?:SPAN|STRONG|EM|B|I|SMALL|SUP|SUB)$/;
+    let text = "";
+    let stopped = false;
+    function collect(node) {
+      if (stopped || text.length > 160) return;
+      if (node.nodeType === 3) { text += node.textContent || ""; return; }
+      if (node.nodeType === 8) return;
+      if (node.nodeType !== 1 || !inline.test(node.tagName) || node.hidden
+        || node.getAttribute("aria-hidden") === "true") { stopped = true; return; }
+      const view = node.ownerDocument && node.ownerDocument.defaultView;
+      const style = view && view.getComputedStyle ? view.getComputedStyle(node) : null;
+      if (style && (style.display === "none" || style.visibility === "hidden")) { stopped = true; return; }
+      for (const child of Array.from(node.childNodes)) collect(child);
+    }
+    let current = link;
+    while (current && !stopped && text.length <= 160) {
+      if (current.nextSibling) { current = current.nextSibling; collect(current); }
+      else {
+        current = current.parentElement;
+        if (!current || !inline.test(current.tagName)) break;
+      }
+      if (/[)\]]/.test(text)) break;
+    }
+    const match = normalizeSpace(text).match(/^[([][^)\]]{1,100}[)\]]/);
+    if (!match) return null;
+    const label = assetLabel(match[0]);
+    return label.type || Number.isFinite(label.size) ? { ...label, raw: match[0] } : null;
+  }
+
   function looksLikeAssetLink(link, href, label) {
     if (assetTypeFromUrl(href) || label.type || link.hasAttribute("download")) return true;
     return /(?:download|attachment|asset|document|file)(?:[/?#=&_-]|$)/i.test(href);
@@ -2086,6 +2127,7 @@
       evidence: excerpt(data.evidence || ""),
       selector: data.selector || "",
       editorRegion: Number(data.editorRegion) || null,
+      editorSource: data.editorSource || null,
       sourceLabel: source[0],
       sourceUrl: source[1],
       flaggedToken: data.flaggedToken || "",
@@ -2228,6 +2270,9 @@
         pageOrder: element && documentOrder.has(element) ? documentOrder.get(element) : Number.MAX_SAFE_INTEGER,
         occurrenceCount: 1
       };
+      if (ruleId.startsWith("file-link-") && element && element.getAttribute) {
+        try { finding.assetHref = new URL(element.getAttribute("href"), pageUrl).href; } catch (_) {}
+      }
       finding.location = meta.location || (profile === "cms-lite" ? cmsLiteComponentLabel(element) : "") || locationLabel(element, root);
       finding.fingerprint = findingFingerprint(pageUrl, finding);
       const duplicate = issues.find(item => item.ruleId === finding.ruleId && item.selector === finding.selector && item.evidence === finding.evidence && item.automaticStatus === finding.automaticStatus && (item.matchIndex === undefined ? "" : item.matchIndex) === (finding.matchIndex === undefined ? "" : finding.matchIndex));
@@ -3118,7 +3163,18 @@
         }
         if (/^tel:/i.test(href) && !isValidTelHref(href)) add("phone-link-format", link, href);
       }
-      const label = assetLabel(linkText);
+      const linkedLabel = assetLabel(linkText);
+      let adjacentLabel = ["missing-label", "missing-type", "missing-size"].includes(linkedLabel.status)
+        ? adjacentAssetLabel(link) : null;
+      if (adjacentLabel && ((linkedLabel.type && adjacentLabel.type && linkedLabel.type !== adjacentLabel.type)
+        || (Number.isFinite(linkedLabel.size) && Number.isFinite(adjacentLabel.size)))) adjacentLabel = null;
+      const label = adjacentLabel ? {
+        ...linkedLabel,
+        type: linkedLabel.type || adjacentLabel.type,
+        size: Number.isFinite(linkedLabel.size) ? linkedLabel.size : adjacentLabel.size,
+        unit: linkedLabel.unit || adjacentLabel.unit,
+        status: "outside-link", valid: false
+      } : linkedLabel;
       const expectedType = assetTypeFromUrl(absoluteHref);
       if (looksLikeAssetLink(link, absoluteHref, label)) {
         assets.push({
@@ -3132,10 +3188,13 @@
           declaredUnit: label.unit,
           validLabel: label.valid,
           labelStatus: label.status,
+          outsideLabel: adjacentLabel ? adjacentLabel.raw : "",
           verificationStatus: "not-checked"
         });
         if (!standaloneEmptyLink) {
-          if (label.status === "size-spacing") add("file-link-size-spacing", link, linkText || href, null, {
+          if (adjacentLabel) add("file-link-label-outside", link, `${linkText} ${adjacentLabel.raw}`,
+            `Move the file details into the link text: (${label.type || expectedType || "[file type]"}, ${Number.isFinite(label.size) ? `${label.size}${label.unit}` : "[file size]"}).`);
+          else if (label.status === "size-spacing") add("file-link-size-spacing", link, linkText || href, null, {
             flaggedToken: label.sizeText,
             matchText: label.sizeText,
             replacement: label.replacement,
@@ -3159,12 +3218,13 @@
             replacement: expectedType ? `(${expectedType}, ${label.size}${label.unit})` : "",
             matchIndex: Math.max(0, (linkText || "").indexOf(label.raw))
           });
-          else if (label.status === "missing-size") add("file-link-size", link, linkText || href, null, {
+          else if (label.status === "missing-size") add("file-link-size", link, linkText || href, `Add the file size after ${label.type}, using KB or MB.`, {
             flaggedToken: label.raw,
             matchText: label.raw,
             matchIndex: Math.max(0, (linkText || "").indexOf(label.raw))
           });
-          else if ((expectedType || label.type || link.hasAttribute("download")) && !label.valid) add("file-link-label", link, linkText || href);
+          else if ((expectedType || label.type || link.hasAttribute("download")) && !label.valid) add("file-link-label", link, linkText || href,
+            expectedType ? `Add (${expectedType}, [file size]) to the link text. Use KB or MB for the size.` : null);
         }
       }
       if (!standaloneEmptyLink) {
