@@ -2083,12 +2083,10 @@ function declaredBytes(asset) {
 
 function displayBytes(value) {
   if (!Number.isFinite(value)) return "unknown size";
-  // Use decimal units for new suggestions: 1,788KB rounds to 1.8MB.
+  // KB suggestions match document properties; retain the existing MB/GB display.
   if (value >= 1024 ** 3) return `${(value / 1024 ** 3).toFixed(1).replace(/\.0$/, "")}GB`;
   if (value >= 1000 ** 2) return `${(value / 1000 ** 2).toFixed(1).replace(/\.0$/, "")}MB`;
-  const kb = Math.max(1, Math.round(value / 1000));
-  // Promote a rounded 1,000KB value so suggestions stay consistent at the boundary.
-  return kb >= 1000 ? "1MB" : `${kb}KB`;
+  return `${Math.max(1, Math.round(value / 1024))}KB`;
 }
 
 function assetResponseHeader(result, field, header) {
@@ -2190,7 +2188,7 @@ function assetSizeMismatch(asset, actualSize) {
   if (labelledSize === null || !Number.isFinite(actualSize)) return false;
   // Existing labels may come from decimal or binary file properties. Accept
   // either convention within the requested tolerance, without rounding away
-  // a real discrepancy. New suggestions consistently use decimal units.
+  // a real discrepancy. KB suggestions match document properties; MB formatting stays unchanged.
   const binaryDifference = Math.abs(labelledSize - actualSize);
   if (binaryDifference <= assetSizeTolerance(asset, actualSize)) return false;
   if (asset.declaredUnit === "KB" || asset.declaredUnit === "MB") {

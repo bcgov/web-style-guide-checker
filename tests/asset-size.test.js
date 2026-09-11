@@ -123,11 +123,11 @@ for (const text of ["Application form", "Application form (PDF)", "Application f
     await context.verifyOneAsset(report, asset);
     assert.equal(report.issues.length, text.includes("200KB") ? 2 : 1);
     assert.equal(report.issues[0], original);
-    assert.equal(original.suggestion, "Add (PDF, 303KB) to the link text.");
+    assert.equal(original.suggestion, "Add (PDF, 296KB) to the link text.");
     assert.equal(original.fingerprint, fingerprint);
     assert.equal(original.evidence, evidence);
     assert.equal(original.occurrenceCount, 2);
-    if (original.matchText) assert.equal(original.replacement, "(PDF, 303KB)");
+    if (original.matchText) assert.equal(original.replacement, "(PDF, 296KB)");
   });
 }
 test("Unknown size leaves an existing complete label quiet", async () => {
@@ -161,7 +161,7 @@ for (const serialized of [false, true]) {
     const { report, asset } = fixture(context);
     await context.verifyOneAsset(report, asset);
     assert.equal(asset.actualSize, 296 * 1024);
-    assert.equal(report.issues[0].suggestion, "Add (PDF, 303KB) to the link text.");
+    assert.equal(report.issues[0].suggestion, "Add (PDF, 296KB) to the link text.");
   });
   test(`Compressed response leaves a complete label quiet (${serialized ? "frame" : "public"})`, async () => {
     const { context } = environment(response(100, { serialized, headers: { "content-encoding": "gzip" } }));
@@ -220,7 +220,7 @@ test("Identical selectors in separate editor fields update only their own findin
   const unchanged = second.report.issues[0].suggestion;
   first.report.issues.push(second.report.issues[0]);
   await context.verifyOneAsset(first.report, first.asset);
-  assert.equal(first.report.issues[0].suggestion, "Add (PDF, 303KB) to the link text.");
+  assert.equal(first.report.issues[0].suggestion, "Add (PDF, 296KB) to the link text.");
   assert.equal(first.report.issues[1].suggestion, unchanged);
 });
 test("Type mismatch findings still work", async () => {
@@ -236,7 +236,7 @@ test("The normal scan path returns the enriched original finding", async () => {
   context.injectScanner = async () => report;
   const scanned = await context.scanTab(10, {});
   assert.equal(scanned, report);
-  assert.equal(scanned.issues[0].suggestion, "Add (PDF, 303KB) to the link text.");
+  assert.equal(scanned.issues[0].suggestion, "Add (PDF, 296KB) to the link text.");
 });
 
 test("Both injected session readers preserve range and encoding headers", async () => {
@@ -281,7 +281,7 @@ test("The finding card renders the measured action shown to the author", async (
   });
   vm.runInContext(shippedFunction("renderFinding"), context);
   const html = context.renderFinding(report.issues[0]);
-  assert.match(html, /Suggested action:<\/strong> Add \(PDF, 303KB\) to the link text\./);
+  assert.match(html, /Suggested action:<\/strong> Add \(PDF, 296KB\) to the link text\./);
   assert.doesNotMatch(html, /504KB/);
 });
 
@@ -321,7 +321,7 @@ test("Birth-form response without length or range support supplies a measured su
   await context.verifyOneAsset(report, asset);
   assert.equal(asset.actualSize, 183657);
   assert.equal(report.issues[0], original);
-  assert.equal(original.suggestion, "Add (PDF, 184KB) to the link text.");
+  assert.equal(original.suggestion, "Add (PDF, 179KB) to the link text.");
   assert.deepEqual(requests.map(item => item.method), ["HEAD", "GET"]);
   assert.equal(requests[1].headers.Range, "bytes=0-0");
   assert.equal(requests[1].redirect, "error");
@@ -347,7 +347,7 @@ test("Byte-counted sizes also correct existing inaccurate labels", async () => {
   const { report, asset } = fixture(context, "Form (PDF, 299KB)");
   await context.verifyOneAsset(report, asset);
   assert.equal(report.issues.length, 1);
-  assert.equal(report.issues[0].suggestion, "Change 299KB to 184KB.");
+  assert.equal(report.issues[0].suggestion, "Change 299KB to 179KB.");
 });
 
 test("Known lengths, ordinary link checks and signed-in requests do not start size downloads", async () => {
@@ -423,7 +423,7 @@ test("Compressed full responses use decoded stream bytes instead of transfer len
   const { report, asset } = fixture(context);
   await context.verifyOneAsset(report, asset);
   assert.equal(asset.actualSize, 183657);
-  assert.equal(report.issues[0].suggestion, "Add (PDF, 184KB) to the link text.");
+  assert.equal(report.issues[0].suggestion, "Add (PDF, 179KB) to the link text.");
 });
 
 test("The download timeout interrupts a stalled size stream", async () => {
@@ -548,7 +548,7 @@ test('A different asset URL cannot overwrite a finding even if selectors collide
   const original = other.report.issues[0].suggestion;
   first.report.issues.push(other.report.issues[0]);
   await context.verifyOneAsset(first.report, first.asset);
-  assert.equal(first.report.issues[0].suggestion, 'Add (PDF, 184KB) to the link text.');
+  assert.equal(first.report.issues[0].suggestion, 'Add (PDF, 179KB) to the link text.');
   assert.equal(other.report.issues[0].suggestion, original);
 });
 
@@ -571,7 +571,7 @@ test('Outside label with the wrong size gets one finding to move and correct it'
   assert.equal(report.issues.length, 1);
   assert.equal(report.issues[0].title, 'Correct the size and move the file details');
   assert.equal(report.issues[0].suggestion,
-    'Change 299KB to 184KB. Move (PDF, 184KB) into the link text.');
+    'Change 299KB to 179KB. Move (PDF, 179KB) into the link text.');
 });
 
 test('Outside labels within tolerance keep the displayed size and remove unit spacing', async () => {
@@ -593,11 +593,11 @@ test('Unknown size preserves an outside label with a placement finding only', as
   assert.doesNotMatch(report.issues[0].suggestion, /unverified|could not|change/i);
 });
 
-test('New suggestions use whole decimal KB and MB rounded to the nearest tenth', () => {
+test('KB suggestions match document properties and MB suggestions retain tenths', () => {
   const { context } = environment(null);
   for (const [bytes, expected] of [
-    [1499, '1KB'], [1500, '2KB'], [183657, '184KB'],
-    [999499, '999KB'], [999500, '1MB'], [1000000, '1MB'],
+    [1499, '1KB'], [1535, '1KB'], [1536, '2KB'], [183657, '179KB'],
+    [999499, '976KB'], [999500, '976KB'], [1000000, '1MB'],
     [1749999, '1.7MB'], [1750000, '1.8MB'], [1788000, '1.8MB'], [1834000, '1.8MB']
   ]) assert.equal(context.displayBytes(bytes), expected, String(bytes));
 });
@@ -699,7 +699,7 @@ test('CMS Lite editor flags a size mismatch for chunked managed and direct asset
     await context.verifyOneAsset(report, asset);
     assert.equal(asset.actualSize, 311000, route);
     assert.equal(report.issues.length, 1);
-    assert.equal(report.issues[0].suggestion, 'Change 532KB to 311KB.');
+    assert.equal(report.issues[0].suggestion, 'Change 532KB to 304KB.');
     assert.equal(report.issues[0].evidence, 'Form (PDF, 532KB)');
     assert.equal(report.issues[0].editorSource.editorKey, 'body-field');
     assert.equal(requests.length, 2);
@@ -715,7 +715,7 @@ test('CMS Lite editor updates a missing-size finding from a complete download', 
   const { report, asset } = editorFixture(context, origin + '/assets/gov/form.pdf', 'Form (PDF)');
   await context.verifyOneAsset(report, asset);
   assert.equal(report.issues.length, 1);
-  assert.equal(report.issues[0].suggestion, 'Add (PDF, 311KB) to the link text.');
+  assert.equal(report.issues[0].suggestion, 'Add (PDF, 304KB) to the link text.');
 });
 
 test('Editor GET headers replace old HEAD headers for range totals and content type', async () => {
@@ -738,7 +738,7 @@ test('Compressed editor responses use decoded file bytes', async () => {
   const { report, asset } = editorFixture(context, origin + '/assets/gov/form.pdf');
   await context.verifyOneAsset(report, asset);
   assert.equal(asset.actualSize, 311000);
-  assert.equal(report.issues[0].suggestion, 'Change 532KB to 311KB.');
+  assert.equal(report.issues[0].suggestion, 'Change 532KB to 304KB.');
 });
 
 test('Editor failures and incomplete downloads preserve an existing size silently', async () => {
@@ -787,12 +787,12 @@ test('Editor fallback timeout stops a stalled stream', async () => {
 });
 
 test('Combined correction shows a clear title and two escaped numbered actions', async () => {
-  const { context } = environment(response(184000));
+  const { context } = environment(response(183657));
   const { report, asset } = outsideFixture(context, '(PDF, 299KB)');
   await context.verifyOneAsset(report, asset);
   assert.equal(report.issues[0].title, 'Correct the size and move the file details');
   assert.deepEqual(Array.from(report.issues[0].suggestionSteps), [
-    'Change 299KB to 184KB.', 'Move (PDF, 184KB) into the link text.'
+    'Change 299KB to 179KB.', 'Move (PDF, 179KB) into the link text.'
   ]);
   Object.assign(context, {
     state: { activeReport: { settings: { profile: 'cms-lite', scope: 'content' } } },
@@ -803,7 +803,27 @@ test('Combined correction shows a clear title and two escaped numbered actions',
   });
   vm.runInContext(shippedFunction('renderFinding'), context);
   const html = context.renderFinding(report.issues[0]);
-  assert.match(html, /<ol><li>Change 299KB to 184KB\.<\/li><li>Move \(PDF, 184KB\) into the link text\.<\/li><\/ol>/);
+  assert.match(html, /<ol><li>Change 299KB to 179KB\.<\/li><li>Move \(PDF, 179KB\) into the link text\.<\/li><\/ol>/);
   report.issues[0].suggestionSteps = ['<img src=x onerror=alert(1)>'];
   assert.match(context.renderFinding(report.issues[0]), /&lt;img/);
+});
+
+test('Screenshot case: 832734 measured bytes recommend 813KB', async () => {
+  const { context } = environment(response(832734));
+  const { report, asset } = fixture(context, 'Adult Application for Change of Name (PDF, 963KB)');
+  await context.verifyOneAsset(report, asset);
+  assert.equal(report.issues.length, 1);
+  assert.equal(report.issues[0].suggestion, 'Change 963KB to 813KB.');
+  assert.equal(context.displayBytes(asset.actualSize), '813KB');
+  const corrected = fixture(context, 'Adult Application for Change of Name (PDF, 813KB)');
+  await context.verifyOneAsset(corrected.report, corrected.asset);
+  assert.equal(corrected.report.issues.length, 0);
+});
+
+test('KB suggestions round to the nearest whole KB on both sides of the midpoint', () => {
+  const { context } = environment(null);
+  for (const [bytes, label] of [[812 * 1024 + 511, '812KB'], [812 * 1024 + 512, '813KB'],
+    [813 * 1024 + 511, '813KB'], [813 * 1024 + 512, '814KB']]) {
+    assert.equal(context.displayBytes(bytes), label);
+  }
 });
