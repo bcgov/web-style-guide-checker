@@ -3,6 +3,7 @@
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const vm = require("node:vm");
 
 const root = path.resolve(__dirname, "..");
 const read = name => fs.readFileSync(path.join(root, name), "utf8");
@@ -180,7 +181,22 @@ assert.match(script, /intranet\.qa\.gov\.bc\.ca\/assets\/download[\s\S]*intranet
 assert.match(script, /function checkCmsLiteManagedAssetLink\(/, "CMS Lite managed asset link checks must compare publishing environments");
 assert.match(script, /function checkCmsLiteManagedAssetSource\(/, "CMS Lite managed assets must have a narrowly scoped editor-session resolver when HEAD is unsupported");
 assert.match(script, /checkCmsLiteManagedAssetSource[\s\S]*method: "GET"[\s\S]*Range: "bytes=0-0"/, "CMS Lite managed asset resolution must use only a ranged GET on the known download route");
-assert.match(script, /content-range[\s\S]*totalFromRange[\s\S]*contentLength/, "Ranged CMS Lite asset checks must retain the total file size rather than the one-byte response length");
+// Check the result of parsing a partial response without depending on local
+// variable names or their order in the implementation.
+const assetSizeHelperStart = script.indexOf("function assetResponseHeader(");
+const assetSizeHelperEnd = script.indexOf("async function measurePublicAssetSize(", assetSizeHelperStart);
+assert.ok(assetSizeHelperStart >= 0 && assetSizeHelperEnd > assetSizeHelperStart, "Asset size helpers must be available");
+const assetSizeContext = {};
+vm.runInNewContext(script.slice(assetSizeHelperStart, assetSizeHelperEnd), assetSizeContext);
+const partialAssetResponse = {
+  code: 206,
+  headers: { contentLength: "1", contentRange: "bytes 0-0/311000", contentEncoding: "" }
+};
+assert.equal(assetSizeContext.verifiedAssetSize(partialAssetResponse), 311000,
+  "Ranged CMS Lite asset checks must retain the total file size rather than the one-byte response length");
+assert.equal(assetSizeContext.verifiedAssetSize({
+  ...partialAssetResponse, headers: { ...partialAssetResponse.headers, contentRange: "" }
+}), null, "A partial response without a total must leave the file size unknown");
 assert.match(script, /cmsLiteManagedAssetGuid\(checkUrl\)[\s\S]*checkCmsLiteManagedAssetSource\(report, checkUrl, 8000\)/, "CMS Lite asset metadata checks must reuse the scoped editor-session resolver");
 assert.match(script, /checkCmsLiteManagedAssetSource[\s\S]*parsed\.origin !== location\.origin[\s\S]*assets\\\/download/, "CMS Lite managed asset GETs must remain same-origin and restricted to GUID download routes");
 assert.match(script, /function cmsLiteEditorHomeLink\(/, "The open CMS Lite editor must establish access to the CMS Lite home origin without requiring a HEAD request");
