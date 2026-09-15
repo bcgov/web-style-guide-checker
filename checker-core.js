@@ -24,6 +24,8 @@
     "page-title-long": ["Page information", "check", "Shorten the page title", "The guide recommends keeping page titles under 70 characters.", "Keep the title concise while retaining the words people need to identify the page.", "headings"],
     "page-title-punctuation": ["Page information", "fix", "Remove punctuation from the page title", "Page titles should not end in punctuation unless they are questions.", "Remove the ending punctuation.", "headings"],
     "meta-description": ["Page information", "check", "Add a metadata description", "Service pages should include a unique description for search results.", "Add a concise description that distinguishes this page from related pages.", "plain"],
+    "page-update-age": ["Page information", "review", "Review content last updated over a year ago", "The page's displayed update date is more than a year old.", "Review the page to confirm the information is still accurate and useful. Update the content where needed.", "plain"],
+    "page-update-overdue": ["Page information", "fix", "Review and update content last updated over 3 years ago", "The page's displayed update date is more than 3 years old.", "Review the page's accuracy, links and instructions. Update the content where needed.", "plain"],
     "document-language": ["Accessibility", "fix", "Identify the page language", "Language markup helps browsers and assistive technology pronounce content correctly.", "Add a valid lang attribute to the html element.", "formatting"],
     "main-landmark": ["Accessibility", "fix", "Add a main content landmark", "A main landmark helps people using assistive technology move directly to the page content.", "Use one main element, or one element with role=\"main\", around the primary content.", "formatting"],
     "skip-link-target": ["Accessibility", "fix", "Fix the skip link", "A skip link must move keyboard focus to a real location on the page.", "Update the skip link so its fragment points to the main content.", "links"],
@@ -1422,6 +1424,65 @@
     return { text: match[0], date: parsed };
   }
 
+  function displayedPageUpdate(doc, root) {
+    const excluded = "nav,[role='navigation'],footer,aside,dialog,[role='dialog'],[aria-modal='true'],blockquote,pre,code,script,style,template,noscript";
+    const heading = contextualPageH1(doc, root);
+    if (!heading || !isVisible(heading) || heading.closest(excluded)) return null;
+    const nextHeading = Array.from(doc.querySelectorAll("h1,h2,h3,h4,h5,h6"))
+      .find(item => isVisible(item) && Boolean(heading.compareDocumentPosition(item) & 4));
+    const eligible = element => isVisible(element) && !element.closest(excluded)
+      && Boolean(heading.compareDocumentPosition(element) & 4)
+      && (!nextHeading || Boolean(element.compareDocumentPosition(nextHeading) & 4));
+
+    // CMS Lite's date is outside the authored body on some templates. Read the
+    // displayed page marker separately, without adding it to writing checks.
+    let candidates = Array.from(doc.querySelectorAll(".last_Updated_Text")).filter(eligible);
+    if (!candidates.length) {
+      // Other sites: only accept a standalone label immediately after the H1
+      // (possibly outside its wrappers), never an arbitrary date in body copy.
+      let current = heading;
+      while (current && current !== doc.body && !candidates.length) {
+        let sibling = current.nextElementSibling;
+        while (sibling && (!isVisible(sibling) || !normalizeSpace(sibling.innerText || sibling.textContent))) sibling = sibling.nextElementSibling;
+        if (sibling) {
+          if (eligible(sibling)) candidates = [sibling];
+          break;
+        }
+        current = current.parentElement;
+      }
+    }
+
+    const months = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
+    const dates = candidates.map(element => {
+      const text = normalizeSpace(element.innerText || element.textContent);
+      const label = /^Last updated(?: on)?\s*:?\s+(.+?)\.?$/i.exec(text);
+      if (!label) return null;
+      const named = /^(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2}),\s+(\d{4})$/i.exec(label[1]);
+      const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(label[1]);
+      if (!named && !iso) return null;
+      const year = Number(named ? named[3] : iso[1]);
+      const month = named ? months.indexOf(named[1].toLowerCase()) : Number(iso[2]) - 1;
+      const day = Number(named ? named[2] : iso[3]);
+      const date = new Date(year, month, day);
+      // Reject invalid dates instead of allowing JavaScript to roll them over.
+      if (date.getFullYear() !== year || date.getMonth() !== month || date.getDate() !== day) return null;
+      return { element, text, date, dateText: label[1] };
+    });
+    if (!dates.length || dates.some(item => !item)) return null;
+    if (dates.some(item => item.date.getTime() !== dates[0].date.getTime())) return null;
+    return dates[0];
+  }
+
+  function moreThanCalendarYearsOld(date, now, years) {
+    const year = date.getFullYear() + years;
+    const month = date.getMonth();
+    const lastDay = new Date(year, month + 1, 0).getDate();
+    // A February 29 update has its anniversary on February 28 in non-leap years.
+    const anniversary = new Date(year, month, Math.min(date.getDate(), lastDay));
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    return anniversary < today;
+  }
+
   function movedNoticeMatch(root) {
     if (!root) return null;
     const expression = /\b(?:this\s+(?:page|content|information)\s+has\s+moved|we[’']?ve\s+moved\s+this\s+(?:page|content|information)|(?:page|content|information)\s+has\s+moved\s+to)\b/i;
@@ -2328,6 +2389,18 @@
       inspectHeadingText(titleTarget, title, Boolean(allCapsHeadingDetails(title)));
       if (profile !== "cms-lite" && !doc.querySelector("meta[name='description'][content]:not([content=''])")) add("meta-description", doc.documentElement, "No metadata description found");
       if (scope === "whole" && !normalizeSpace(doc.documentElement.getAttribute("lang"))) add("document-language", doc.documentElement, "The html element has no lang attribute");
+      const pageUpdate = !editorRegion && hostname !== "cmslite.gov.bc.ca" ? displayedPageUpdate(doc, root) : null;
+      const now = new Date();
+      if (pageUpdate && moreThanCalendarYearsOld(pageUpdate.date, now, 1)) {
+        // Emit one finding. A separate rule identifies the newly overdue page
+        // without carrying forward decisions on its earlier Review finding.
+        const updateRule = moreThanCalendarYearsOld(pageUpdate.date, now, 3) ? "page-update-overdue" : "page-update-age";
+        add(updateRule, pageUpdate.element, pageUpdate.text, null, {
+          matchText: pageUpdate.dateText,
+          matchIndex: pageUpdate.text.indexOf(pageUpdate.dateText),
+          location: "Page update date"
+        });
+      }
       const movedNotice = movedNoticeMatch(root);
       const lastUpdated = movedNotice ? lastUpdatedDetails(doc) : null;
       if (movedNotice && lastUpdated) {

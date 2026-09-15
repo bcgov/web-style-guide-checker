@@ -17,6 +17,7 @@ The checker supports content review. It does not replace editorial, accessibilit
 - Reviews findings by issue type or in the order they appear on the page
 - Separates authored CMS Lite content, including supported accordions and supplemental components, from shared templates
 - Checks headings, links, documents, images, formatting, plain language and selected accessibility concerns
+- Flags displayed page update dates as **Review** after one calendar year and **Fix** after three calendar years
 - Reviews long paragraphs, substantial content without heading breaks and difficult sections as separate findings so page-wide averages do not hide them; alerts and supported accordions are analysed as separate content segments
 - Includes a small high-confidence Proofreading category for obvious patterns without using AI or a general spelling service
 - Reviews updated guidance for government names, headings, alt text, dates, times, measurements, currency, education terms and Canadian spelling
@@ -67,6 +68,20 @@ The extension recognizes these sites as CMS Lite:
 On published and QA pages, a CMS Lite content scan reviews the page title and authored page content. It also includes supported authored accordions, alerts, right-column and supplemental components that are present in the published page markup, including collapsed accordion content. Shared navigation, footer, breadcrumbs and generated template components are excluded. The delivered template and code can be included from **More scan options**.
 
 On `cmslite.gov.bc.ca` editing screens, the checker scans non-empty CKEditor fields instead of the surrounding CMS interface. Findings identify the CMS Lite tab, repeated component when applicable and field, such as **Topic → Body** or **Alerts → Alert 1 → Message**. **Show on page** opens the matching CMS Lite tab and collapsed component before scrolling to and highlighting the editor. A published or QA scan is still useful for checks that depend on the final rendered page.
+
+### Page update dates
+
+Page scans check CMS Lite's displayed **Last updated** date, including when it sits outside the authored body. Other sites are supported when a standalone **Last updated** label immediately follows the H1 or its title wrappers. Recognized dates use a full English month name, such as **April 25, 2023**, or **YYYY-MM-DD**.
+
+The checker uses the reviewer's current local date and raises one finding based on the displayed date's age:
+
+- Up to and including one calendar year: no age finding
+- Over one year, up to and including three calendar years: **Review**
+- Over three calendar years: **Fix**
+
+For a February 29 update, anniversaries fall on February 28 in non-leap years. Both findings show the displayed date and ask the reviewer to check the content and make any necessary updates. The severity reflects the maintenance priority; the displayed date alone does not establish whether the content is inaccurate. A page that crosses the three-year threshold receives a new **Fix** finding even if its earlier **Review** finding was resolved or ignored.
+
+This check skips missing, hidden, invalid, ambiguous and future dates, CMS Lite editor fields and section-only scans. It uses visible page content, without requesting a page or relying on server modification dates.
 
 ## Allowed terms
 
