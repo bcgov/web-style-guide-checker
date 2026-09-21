@@ -289,6 +289,28 @@
     return resolved;
   }
 
+  function minimizeMaximizedEditors(doc) {
+    if (!doc || !doc.querySelectorAll) return 0;
+    const controls = Array.from(doc.querySelectorAll(".cke_button__bcgovmaximize"));
+    let minimized = 0;
+
+    controls.forEach(control => {
+      const classList = control.classList;
+      const active = Boolean(
+        (classList && classList.contains("cke_button_on")) ||
+        normalizeSpace(control.getAttribute && control.getAttribute("aria-pressed")).toLowerCase() === "true" ||
+        normalizeSpace(control.getAttribute && control.getAttribute("title")).toLowerCase() === "minimize"
+      );
+      if (!active || typeof control.click !== "function") return;
+      try {
+        control.click();
+        minimized += 1;
+      } catch (_) { }
+    });
+
+    return minimized;
+  }
+
   global.BCWebStyleGuideCmsLite = {
     normalizeSpace,
     sourceTextareaForFrame,
@@ -296,6 +318,7 @@
     editorKey,
     locationFor,
     findEditorFrame,
-    activateEditor
+    activateEditor,
+    minimizeMaximizedEditors
   };
 })(globalThis);

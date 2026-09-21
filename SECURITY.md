@@ -2,12 +2,13 @@
 
 ## Supported versions
 
-The B.C. Web Style Guide Checker is currently a pilot. Security updates are provided for the current preview release.
+The B.C. Web Style Guide Checker is currently a pilot. Version 1.3.2 remains usable, but the checker recommends updating to the current preview release.
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 1.3.2   | :white_check_mark: |
-| 1.3.1 and earlier   | :x:                |
+| Version | Status |
+| ------- | ------ |
+| 1.3.3 | Current |
+| 1.3.2 | Supported; update recommended |
+| 1.3.1 and earlier | Unsupported |
 
 People using an earlier preview should update to the current release before continuing.
 

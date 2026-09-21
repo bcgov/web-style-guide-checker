@@ -273,6 +273,8 @@ assert.equal(helpers.indexInsideUrl("Read https://example.com/and/or/index", "Re
 assert.equal(helpers.indexInsideUrl("Choose and/or apply", "Choose and/or apply".indexOf("and/or")), false);
 assert.equal(helpers.isWifiVariant("WIFI"), true);
 assert.equal(helpers.isWifiVariant("Wi-Fi"), false);
+assert.equal(helpers.acronymContextExcluded("In CMS Lite, add an anchor.", 3, "CMS"), true);
+assert.equal(helpers.acronymContextExcluded("The CMS renewal begins this year.", 4, "CMS"), false);
 [
   "Monday-Friday", "9 am - 5 pm", "9:00 A.M. – 4:30 P.M.", "12 noon – 1:00 PM", "9 a.m. – noon", "midnight – 6:30 a.m.",
   "May 1-June 2", "May 1-5", "2019-2020", "sections 3-5", "5%-10%", "5°C-10°C", "123 - 456"

@@ -168,7 +168,7 @@
     "moved-page-notice": ["Page information", "review", "Review the old moved-page notice", "A moved-content notice is usually temporary. If it remains long after the page was updated, people may still be reaching outdated content.", "Confirm whether the old page should now redirect to the replacement page, or update the notice if it still needs to remain available.", "plain"]
   };
 
-  const RULE_VERSION = "1.3.2";
+  const RULE_VERSION = "1.3.3";
   const PER_RULE_FINDING_LIMIT = 500;
 
   const BUILT_IN_TERMS = [
@@ -2007,6 +2007,7 @@
     const text = String(value || "");
     const upper = String(token || "").toUpperCase();
     if (isCommonAllCapsWord(upper)) return true;
+    if (upper === "CMS" && /^CMS\s+Lite\b/i.test(text.slice(index))) return true;
     const emailExpression = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi;
     let email;
     while ((email = emailExpression.exec(text))) if (index >= email.index && index < email.index + email[0].length) return true;
@@ -3335,7 +3336,8 @@
 
     const lists = Array.from(root.querySelectorAll("ul,ol")).filter(inScanArea).filter(isMeaningfulList);
     lists.forEach(list => {
-      const navigationalList = Boolean(list.closest("nav,[role='navigation']"));
+      const onThisPageList = isOnThisPageList(list, onThisPagePattern, root, inScanArea);
+      const navigationalList = Boolean(list.closest("nav,[role='navigation']")) || onThisPageList;
       let depth = 1;
       let ancestor = list.parentElement && list.parentElement.closest("ul,ol");
       while (ancestor) { depth += 1; ancestor = ancestor.parentElement && ancestor.parentElement.closest("ul,ol"); }
@@ -3350,8 +3352,7 @@
       const precedingBlock = precedingBlocks[precedingBlocks.length - 1] || null;
       const precedingParagraph = precedingBlock && precedingBlock.tagName === "P" ? precedingBlock : null;
       const precedingText = precedingParagraph ? normalizeSpace(precedingParagraph.textContent) : "";
-      const onThisPageList = isOnThisPageList(list, onThisPagePattern, root, inScanArea);
-      if (englishLanguage && !navigationalList && !onThisPageList && items.length >= 2 && precedingParagraph && precedingText && !/:$/.test(precedingText)) {
+      if (englishLanguage && !navigationalList && items.length >= 2 && precedingParagraph && precedingText && !/:$/.test(precedingText)) {
         add("list-introduction", precedingParagraph, precedingText);
       }
       items.forEach(item => {

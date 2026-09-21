@@ -4,7 +4,13 @@ All notable public changes to the B.C. Web Style Guide Checker will be recorded 
 
 ## Unreleased
 
+## 1.3.3 — 2026-09-21
+
 - Added page update date findings with **Review** after one calendar year and **Fix** after three calendar years, including CMS Lite dates outside the authored body and clearly labelled dates immediately after the H1 on other sites
+- Automatically restored maximized CMS Lite editors to their embedded view when the checker side panel opens or closes in supported Chrome and Edge versions
+- Recognized **CMS** without an acronym finding when it appears as part of the product name **CMS Lite**
+- Classified recognized **On this page** lists as navigation before list checks so long navigation lists do not receive content-list findings
+- Updated the extension, rules, package and lifecycle policy to 1.3.3 while keeping 1.3.2 usable with an update recommendation
 
 ## 1.3.2 — 2026-09-03
 
