@@ -4,6 +4,8 @@ All notable public changes to the B.C. Web Style Guide Checker will be recorded 
 
 ## Unreleased
 
+- Added page update date findings with **Review** after one calendar year and **Fix** after three calendar years, including CMS Lite dates outside the authored body and clearly labelled dates immediately after the H1 on other sites
+
 ## 1.3.2 — 2026-09-03
 
 - Added a 168-hour retention limit for single-page reports and made each successful rescan replace the earlier saved report for the same canonical page while preserving decisions and notes for findings that remain

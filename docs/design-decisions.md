@@ -67,6 +67,7 @@ Help a reviewer understand a webpage, decide what needs attention and finish an 
 - Use **Fix** only when the checker can identify a clear problem and a safe correction.
 - Use **Check** when a pattern probably conflicts with the guide but may have a valid exception.
 - Use **Review** when meaning, audience knowledge or professional context requires human judgement.
+- For displayed page update dates, use age to set maintenance priority: **Review** after one calendar year and **Fix** after three calendar years. Both findings require a content review and any necessary updates; age alone does not establish that the information is inaccurate.
 - Show the complete surrounding evidence and highlight the exact wording under review.
 - Keep allowed terms exact, rule-specific and unable to disable unrelated checks.
 - Gate English writing and readability rules to English-language pages.
