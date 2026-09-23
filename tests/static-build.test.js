@@ -163,6 +163,7 @@ assert.match(script, /function remoteLinkKey\(/, "QA and live destinations must 
 assert.match(script, /link\.qaFamily \? link\.href : \(link\.checkUrl \|\| link\.href\)/, "QA destinations must not collapse into an explicit live link with the same path");
 assert.match(script, /function prepareRemoteLink\(/, "Network checks must filter fragment and non-web links before fetching");
 assert.match(script, /rawHref\.startsWith\("#"\)/, "In-page fragment links must not be network checked");
+assert.match(script, /destination\.href\.endsWith\("#"\)/, "An absolute same-page URL with an empty fragment must not be network checked as a working page");
 assert.match(script, /Check whether links work/, "Link-check interface must use plain-language wording");
 assert.match(script, /live-not-found/, "QA link checks must distinguish a missing live equivalent");
 assert.match(script, /sign-in/, "Network checks must distinguish destinations that may require sign-in");
@@ -359,6 +360,8 @@ assert.match(core, /const RULE_VERSION = "1\.3\.3"/);
 assert.match(core, /const PER_RULE_FINDING_LIMIT = 500;/, "One issue type must retain up to 500 findings before a safety limit applies");
 assert.doesNotMatch(core, /perRuleLimit = 25|PER_RULE_FINDING_LIMIT = 25/, "The former silent 25-finding cap must not return");
 assert.match(core, /const onThisPageList = isOnThisPageList\([\s\S]*const navigationalList = [^;]*\|\| onThisPageList;[\s\S]*add\("list-long"/, "On this page lists must be classified as navigation before long-list checks run");
+assert.match(core, /function emptySamePageFragment\([\s\S]*add\("empty-fragment-link"/, "Empty same-page fragments must receive a local finding");
+assert.match(core, /acronymDefinitionStyleInText[\s\S]*"alternative"[\s\S]*add\("acronym-definition-format"/, "Alternative acronym definitions must be recognized before receiving a format-specific finding");
 assert.match(core, /findingLimits:[\s\S]*truncatedRules/, "Reports must identify every issue type affected by the safety limit");
 assert.match(script, /findingCoverageText\(report\)/, "The interface and exports must explain finding completeness");
 assert.match(core, /‘BC’ by itself cannot be allowed/, "Bare BC must be rejected as an allowed term");
@@ -417,8 +420,9 @@ assert.match(core, /\["assistance",\s*"help"\]/, "The guide's assistance → hel
 assert.match(core, /\["administer",\s*"manage"\]/, "Administer must use a context-preserving alternative");
 assert.match(core, /SIMPLE_PHRASE_REPLACEMENTS[\s\S]*\["administered", "managed"\]/, "Controlled complex-phrase replacements must preserve verb tense");
 assert.match(core, /"#cmf-ui-page-navigation"/, "CMS Lite template page navigation must be excluded from authored-content checks");
+assert.match(core, /"\.accordion-btn-container"/, "CMS Lite's generated accordion controls must be excluded from authored links and link checks");
 assert.doesNotMatch(core, /The final semicolon is also unnecessary sentence punctuation|The content looks like a list on screen but is not marked up as a semantic list|Browsers normally collapse consecutive spaces on screen|This marker represents a single non-breaking space in the published source/, "Finding cards must not repeat explanations already supplied by the rule and evidence");
-assert.match(script, /const markerOnlyMatch = new Set\(\["double-space", "non-breaking-space", "link-trailing-space", "semicolon"\]\)/, "Evidence markers must not be repeated in a separate flagged-wording callout");
+assert.match(script, /const markerOnlyMatch = new Set\(\["double-space", "non-breaking-space", "link-trailing-space", "semicolon", "acronym-definition-format"\]\)/, "Evidence markers must not be repeated in a separate flagged-wording callout");
 ["main-landmark", "skip-link-target", "disclosure-state", "broken-image", "staging-url"].forEach(rule => assert.match(core, new RegExp(`"${rule}"`), `Missing structural rule: ${rule}`));
 
 const css = read("sidepanel.css");

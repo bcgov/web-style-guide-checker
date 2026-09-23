@@ -693,7 +693,8 @@ function prepareRemoteLink(link, pageUrl) {
   if (!/^https?:/i.test(href)) return null;
   try {
     const destination = new URL(href);
-    if (destination.hash && canonicalUrl(destination.href) === canonicalUrl(pageUrl || "")) return null;
+    const samePageFragment = destination.hash || destination.href.endsWith("#");
+    if (samePageFragment && canonicalUrl(destination.href) === canonicalUrl(pageUrl || "")) return null;
   } catch (_) {}
   const publicEnvironmentPair = publicCmsEnvironmentPair(href, pageUrl);
   const liveEquivalent = publicEnvironmentPair ? publicEnvironmentPair.live : qaProductionEquivalent(href);
@@ -4384,7 +4385,7 @@ function renderFinding(finding) {
   const note = auditNote(finding);
   const feedbackCount = feedbackNotesForFinding(finding).length;
   const showResponsibility = !state.activeReport || state.activeReport.settings.profile !== "cms-lite" || state.activeReport.settings.scope === "whole";
-  const markerOnlyMatch = new Set(["double-space", "non-breaking-space", "link-trailing-space", "semicolon"]).has(finding.ruleId);
+  const markerOnlyMatch = new Set(["double-space", "non-breaking-space", "link-trailing-space", "semicolon", "acronym-definition-format"]).has(finding.ruleId);
   return `
     <article class="finding ${escapeHtml(finding.severity)} ${escapeHtml(status)}${note.important ? " is-important" : ""}" data-fingerprint="${escapeHtml(finding.fingerprint)}" tabindex="-1">
       <div class="finding-top">
@@ -6308,7 +6309,7 @@ const STRUCTURE_RULES = new Set([
 
 const PLAIN_LANGUAGE_RULES = new Set([
   "paragraph-long", "sentence-long", "reading-level", "section-reading-level", "complex-phrase", "filler-phrase",
-  "passive-voice", "negative-contraction", "undefined-acronym", "latin-abbreviation", "canadian-spelling",
+  "passive-voice", "negative-contraction", "undefined-acronym", "acronym-definition-format", "latin-abbreviation", "canadian-spelling",
   "canadian-spelling-context", "formal-sentence-starter", "acronym-in-heading"
 ]);
 
@@ -6319,7 +6320,7 @@ const ACCESSIBILITY_REVIEW_FIRST = new Set([
 const ACCESSIBILITY_NEEDS = new Set(["contrast", "contrast-unverified", "broken-image", "image-alt-meaningless"]);
 const ACCESSIBILITY_CONTEXTUAL_ALT = new Set(["image-alt-empty", "image-alt-length", "image-alt-prefix"]);
 
-const LINKS_REVIEW_FIRST = new Set(["broken-http-link", "broken-anchor", "staging-url", "empty-link"]);
+const LINKS_REVIEW_FIRST = new Set(["broken-http-link", "broken-anchor", "empty-fragment-link", "staging-url", "empty-link"]);
 const LINKS_NEEDS = new Set([
   "generic-link", "split-link", "email-link-text", "phone-unlinked", "phone-link-format", "file-link-label",
   "file-link-label-outside", "file-link-type", "file-link-size", "file-link-label-format", "file-link-size-spacing", "file-link-type-mismatch",

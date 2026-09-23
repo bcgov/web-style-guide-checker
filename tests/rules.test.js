@@ -315,6 +315,18 @@ function has(report, ruleId) {
   report = await scan(page, '<p>The CMS renewal project begins this year.</p>');
   assert.equal(report.issues.some(issue => issue.ruleId === "undefined-acronym" && issue.flaggedToken === "CMS"), true, "CMS outside the name CMS Lite must still be reviewed on first use");
 
+  report = await scan(page, '<p>B.C. resident newborns must be enrolled in the Medical Services Plan, or MSP.</p>');
+  assert.equal(has(report, "undefined-acronym"), false, "A comma-or introduction defines the acronym and must not be described as undefined");
+  assert.equal(has(report, "acronym-definition-format"), true, "A defined acronym using comma-or wording should receive the specific format finding");
+  const acronymFormat = report.issues.find(issue => issue.ruleId === "acronym-definition-format");
+  assert.equal(acronymFormat.severity, "check");
+  assert.equal(acronymFormat.matchText, ", or MSP");
+  assert.deepEqual(acronymFormat.diagnostics, [], "The evidence and exact correction are sufficient without a repetitive diagnostic");
+  assert.equal(acronymFormat.suggestion, "Change “, or MSP” to “(MSP)”.");
+  report = await scan(page, '<p>B.C. resident newborns must be enrolled in the Medical Services Plan (MSP).</p>');
+  assert.equal(has(report, "undefined-acronym"), false);
+  assert.equal(has(report, "acronym-definition-format"), false, "The recommended parenthetical format must pass");
+
   report = await scan(page, '<p><a href="tel:+18442275422">1-844-227-5422</a> <a href="tel:911">9-1-1</a> <a href="tel:18442275422">1-844-227-5422</a></p>');
   assert.equal(report.issues.filter(issue => issue.ruleId === "phone-link-format").length, 1);
   assert.match(report.issues.find(issue => issue.ruleId === "phone-link-format").evidence, /tel:18442275422/);
@@ -530,6 +542,21 @@ function has(report, ruleId) {
   report = await scan(page, "<p><a href='/one'>Find out how</a> <a href='/two'>Find out how to respond to a jury summons</a></p>");
   assert.equal(report.issues.filter(issue => issue.ruleId === "generic-link").length, 1);
   assert.equal(report.issues.find(issue => issue.ruleId === "generic-link").evidence, "Find out how");
+
+  const qaPageUrl = "https://www2.qa.gov.bc.ca/gov/content/life-events/birth-adoption/births/birth-registration-clone-86501";
+  report = await scan(page, '<div class="accordion-btn-container"><a class="accordion-btn show-btn" href="">Expand All</a> | <a class="accordion-btn hide-btn" href="">Collapse All</a></div><div class="accordion"><div class="panel"><p><a href="/gov/content/help">Authored help link</a></p></div></div>', { profile: "cms-lite", pageUrlOverride: qaPageUrl });
+  assert.equal(report.pageDetails.links.some(link => /^(?:Expand|Collapse) All$/i.test(link.text)), false, "Generated CMS Lite accordion controls must be excluded from the link inventory");
+  assert.equal(report.pageDetails.links.some(link => link.text === "Authored help link"), true, "Authored links inside accordion panels must remain available for checking");
+  report = await scan(page, '<p><a href="#">Return to this page</a></p>', { pageUrlOverride: qaPageUrl });
+  assert.equal(report.issues.filter(issue => issue.ruleId === "empty-fragment-link").length, 1, "A literal # link must be reported");
+  assert.equal(has(report, "broken-anchor"), false, "An empty fragment needs its specific finding instead of a missing-target finding");
+  report = await scan(page, `<p><a href="${qaPageUrl}#">Return to this page</a></p>`, { pageUrlOverride: qaPageUrl });
+  assert.equal(report.issues.filter(issue => issue.ruleId === "empty-fragment-link").length, 1, "An absolute same-page URL ending in # must be reported");
+  report = await scan(page, '<p><a href="#registration">Registration details</a></p><h2 id="registration">Registration details</h2>', { pageUrlOverride: qaPageUrl });
+  assert.equal(has(report, "empty-fragment-link"), false);
+  assert.equal(has(report, "broken-anchor"), false, "A valid named same-page fragment must pass");
+  report = await scan(page, '<p><a href="#missing-section">Missing section</a></p>', { pageUrlOverride: qaPageUrl });
+  assert.equal(has(report, "broken-anchor"), true, "A named fragment without a matching target must keep the existing broken-anchor finding");
 
   report = await scan(page, "<ul><li>First item</li><li>Second item</li></ul><p><a class='btn btn-primary' href='/help'>Get help during an evacuation</a></p><ul></ul>");
   assert.equal(report.issues.some(issue => issue.ruleId === "list-introduction" && /Get help during an evacuation/.test(issue.evidence)), false, "Empty CMS/editor lists must not create list-introduction findings");
