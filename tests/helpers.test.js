@@ -62,6 +62,10 @@ const strongerException = { id: "x-2", ruleId: "bc-abbreviation", phrase: "Stron
 assert.equal(helpers.exceptionAtIndex([strongerException], "bc-abbreviation", "Use StrongerBC today", "Use StrongerBC today".indexOf("BC"), "example.com").id, "x-2");
 
 assert.equal(helpers.canonicalUrl("https://example.com/page#section"), "https://example.com/page");
+assert.equal(helpers.emptySamePageFragment("#", "https://example.com/page"), true);
+assert.equal(helpers.emptySamePageFragment("https://example.com/page#", "https://example.com/page"), true);
+assert.equal(helpers.emptySamePageFragment("https://example.com/other#", "https://example.com/page"), false);
+assert.equal(helpers.emptySamePageFragment("#section", "https://example.com/page"), false);
 assert.equal(helpers.detectProfile("https://www2.gov.bc.ca/gov/content/example", "auto"), "cms-lite");
 assert.equal(helpers.detectProfile("https://www2.qa.gov.bc.ca/gov/content/example", "auto"), "cms-lite");
 assert.equal(helpers.detectProfile("https://intranet.gov.bc.ca/example", "auto"), "cms-lite");
@@ -140,6 +144,10 @@ assert.equal(helpers.acronymDefinedInText("Provincial Sales Tax (PST)", "PST"), 
 assert.equal(helpers.acronymDefinedInText("Free Trade Agreement (FTA)", "FTAs"), true);
 assert.equal(helpers.acronymDefinedInText("Free Trade Agreements (FTAs)", "FTAs"), true);
 assert.equal(helpers.acronymDefinedInText("Recreation Sites and Trails B.C. (RSTBC)", "RSTBC"), true);
+assert.equal(helpers.acronymDefinitionStyleInText("Medical Services Plan, or MSP", "MSP"), "alternative");
+assert.equal(helpers.acronymDefinedInText("Medical Services Plan, or MSP", "MSP"), true);
+assert.equal(helpers.acronymDefinitionStyleInText("Medical Services Plan (MSP)", "MSP"), "parenthetical");
+assert.equal(helpers.acronymDefinedInText("Choose Medical Services Plan or MSP", "MSP"), false, "Only the explicit comma-or definition pattern should be inferred as a definition");
 assert.equal(helpers.acronymDefinedInText("Find PST requirements", "PST"), false);
 assert.equal(helpers.acronymDefinedInText("PST is Provincial Sales Tax (PST)", "PST"), false);
 assert.equal(helpers.acronymDefinedInText("WorkSafeBC (WSBC) guidance", "PST"), false);
@@ -273,6 +281,8 @@ assert.equal(helpers.indexInsideUrl("Read https://example.com/and/or/index", "Re
 assert.equal(helpers.indexInsideUrl("Choose and/or apply", "Choose and/or apply".indexOf("and/or")), false);
 assert.equal(helpers.isWifiVariant("WIFI"), true);
 assert.equal(helpers.isWifiVariant("Wi-Fi"), false);
+assert.equal(helpers.acronymContextExcluded("In CMS Lite, add an anchor.", 3, "CMS"), true);
+assert.equal(helpers.acronymContextExcluded("The CMS renewal begins this year.", 4, "CMS"), false);
 [
   "Monday-Friday", "9 am - 5 pm", "9:00 A.M. – 4:30 P.M.", "12 noon – 1:00 PM", "9 a.m. – noon", "midnight – 6:30 a.m.",
   "May 1-June 2", "May 1-5", "2019-2020", "sections 3-5", "5%-10%", "5°C-10°C", "123 - 456"

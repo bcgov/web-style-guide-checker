@@ -63,6 +63,26 @@ assert.doesNotMatch(rendered, /<img\b/i, "Hostile page text must not create an i
 assert.doesNotMatch(rendered, /onerror\s*=\s*["']/i, "Hostile page text must not create an event-handler attribute");
 assert.match(rendered, /&lt;img/, "Hostile markup must remain visible as escaped text");
 
+context.hostileText = "";
+const acronymFinding = context.renderFinding({
+  ruleId: "acronym-definition-format",
+  severity: "check",
+  fingerprint: "acronym-format",
+  title: "Put the acronym in parentheses",
+  responsibility: "Content",
+  why: "The Web Style Guide places an acronym in parentheses immediately after the full term.",
+  location: "Medical Services Plan",
+  matchText: ", or MSP",
+  evidence: "B.C. resident newborns must be enrolled in the Medical Services Plan, or MSP.",
+  diagnostics: [],
+  suggestion: "Change “, or MSP” to “(MSP)”.",
+  selector: "p",
+  occurrenceCount: 1
+});
+assert.doesNotMatch(acronymFinding, /Flagged wording/, "The acronym format card must rely on highlighted evidence instead of repeating a flagged-wording callout");
+assert.doesNotMatch(acronymFinding, /What does not match/, "The acronym format card must not repeat its explanation in a diagnostic block");
+assert.match(acronymFinding, /Change “, or MSP” to “\(MSP\)”\./, "The acronym format card must provide the exact correction once");
+
 const metadata = context.metadataDefinition(hostile, hostile);
 assert.doesNotMatch(metadata, /<img\b/i, "Hostile metadata must not create markup");
 assert.match(metadata, /&lt;img/);

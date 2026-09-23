@@ -49,6 +49,8 @@ assert.equal(
 );
 assert.equal(helpers.qaProductionEquivalent("https://other.qa.gov.bc.ca/example"), "");
 assert.equal(helpers.prepareRemoteLink({ rawHref: "#donate", href: "https://cmslite.gov.bc.ca/page#donate" }, "https://cmslite.gov.bc.ca/page"), null);
+assert.equal(helpers.prepareRemoteLink({ rawHref: "#", href: "https://www2.qa.gov.bc.ca/gov/content/example#" }, "https://www2.qa.gov.bc.ca/gov/content/example"), null);
+assert.equal(helpers.prepareRemoteLink({ rawHref: "https://www2.qa.gov.bc.ca/gov/content/example#", href: "https://www2.qa.gov.bc.ca/gov/content/example#" }, "https://www2.qa.gov.bc.ca/gov/content/example"), null, "An absolute same-page URL with an empty fragment must not be mistaken for a remotely verified link");
 assert.equal(helpers.prepareRemoteLink({ rawHref: "mailto:name@gov.bc.ca", href: "mailto:name@gov.bc.ca" }, "https://www2.gov.bc.ca/page"), null);
 assert.equal(helpers.prepareRemoteLink({ rawHref: "tel:+12505550123", href: "tel:+12505550123" }, "https://www2.gov.bc.ca/page"), null);
 assert.equal(helpers.prepareRemoteLink({ rawHref: "/page#part", href: "https://www2.gov.bc.ca/page#part" }, "https://www2.gov.bc.ca/page"), null);

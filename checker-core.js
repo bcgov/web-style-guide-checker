@@ -57,6 +57,7 @@
     "passive-voice": ["Plain language", "review", "Check for passive voice", "Passive wording can make it unclear who is responsible. The highlighted words may be only one passive part of an otherwise clear sentence.", "Name the person or organization doing the action when that improves clarity. For example, change ‘Applications can be sent by email’ to ‘Send applications by email.’", "grammar"],
     "negative-contraction": ["Plain language", "check", "Avoid a negative contraction", "Negative contractions can be misread as their opposite.", "Write out the negative form, such as ‘do not’ or ‘cannot’.", "grammar"],
     "undefined-acronym": ["Plain language", "review", "Define the acronym on first use", "Write a term in full the first time, followed by its abbreviation in parentheses, unless the short form is widely better known.", "Define it on first use or confirm it is better known than the long form.", "abbreviations"],
+    "acronym-definition-format": ["Plain language", "check", "Put the acronym in parentheses", "The Web Style Guide places an acronym in parentheses immediately after the full term.", "Use the full term followed by the acronym in parentheses.", "abbreviations"],
     "bc-abbreviation": ["Capitalization", "check", "Write B.C. with periods", "The province abbreviation uses periods except in brand and company names.", "Change ‘BC’ to ‘B.C.’ unless it is part of a formal brand such as BC Hydro or BC Ferries.", "abbreviations"],
     "province-abbreviation": ["Capitalization", "check", "Check the province or territory abbreviation", "N.B., N.L., N.S., N.T. and P.E.I. use periods in B.C. government content.", "Add the required periods when this abbreviation names a province or territory.", "abbreviations"],
     "government-capitalization": ["Capitalization", "check", "Use lower case for ‘government’", "Use lower case for government in general or descriptive references. Capitalize it only as part of a full formal name.", "Use ‘government’ unless the complete phrase is an official name, such as ‘Government of British Columbia’.", "capitalization"],
@@ -95,6 +96,7 @@
     "file-link-size-mismatch": ["Links", "check", "Correct the file size in the link text", "The file size in the link text does not match the size returned by the server.", "Update the displayed file size after confirming the linked asset is the intended file.", "links"],
     "punctuation-only-link": ["Links", "fix", "Remove the punctuation-only link", "A link made only from punctuation has no useful purpose when it is read on its own.", "Move the punctuation outside the link, or include it in the neighbouring descriptive link if both go to the same destination.", "links"],
     "linked-period": ["Links", "check", "Move punctuation outside the link", "Ending punctuation should not be included in linked text.", "End the link before the punctuation mark.", "links"],
+    "empty-fragment-link": ["Links", "fix", "Add a destination to the link", "The link ends with # but does not include an anchor ID. It returns people to the top of the current page instead of a named section.", "Add the intended anchor name after #, or replace the link with its actual destination.", "links"],
     "broken-anchor": ["Links", "fix", "Fix the anchor link", "The link points to a location that does not exist on this page.", "Update the fragment identifier or add the matching target.", "links"],
     "broken-http-link": ["Links", "fix", "Fix the broken link", "The destination returned a 404 or 410 response when the link status was checked.", "Update or remove the link, then run the link-status check again.", "links"],
     "http-link-server-error": ["Links", "review", "Check the unavailable link", "The destination returned a server error when the link status was checked.", "Try the link manually and update or remove it if the destination remains unavailable.", "links"],
@@ -168,7 +170,7 @@
     "moved-page-notice": ["Page information", "review", "Review the old moved-page notice", "A moved-content notice is usually temporary. If it remains long after the page was updated, people may still be reaching outdated content.", "Confirm whether the old page should now redirect to the replacement page, or update the notice if it still needs to remain available.", "plain"]
   };
 
-  const RULE_VERSION = "1.3.2";
+  const RULE_VERSION = "1.3.3";
   const PER_RULE_FINDING_LIMIT = 500;
 
   const BUILT_IN_TERMS = [
@@ -237,6 +239,7 @@
   const CMS_LITE_EXCLUDED_SELECTORS = [
     ".last_Updated_Text",
     "#cmf-ui-page-navigation",
+    ".accordion-btn-container",
     "[data-elastic-exclude]",
     "[class*='feedback' i]",
     "nav",
@@ -837,6 +840,17 @@
       return url.href;
     } catch (_) {
       return String(value || "").split("#")[0];
+    }
+  }
+
+  function emptySamePageFragment(value, pageUrl) {
+    const raw = String(value || "").trim();
+    if (!raw.endsWith("#")) return false;
+    if (raw === "#") return true;
+    try {
+      return canonicalUrl(new URL(raw, pageUrl).href) === canonicalUrl(pageUrl);
+    } catch (_) {
+      return false;
     }
   }
 
@@ -1504,30 +1518,54 @@
     return match ? match.index + match[1].length : -1;
   }
 
-  function acronymDefinedInText(value, acronym) {
+  function acronymDefinitionStyleInText(value, acronym) {
     const text = normalizeSpace(value);
-    if (!text || !acronym) return false;
+    if (!text || !acronym) return "";
     const base = acronymBase(acronym);
     const escaped = escapeRegExp(base);
     const plural = String(acronym || "").endsWith("s") ? "s?" : "";
     const parenthetical = new RegExp("\\(\\s*" + escaped + plural + "\\s*\\)").exec(text);
     const firstUse = new RegExp("(^|[^A-Za-zÀ-ÖØ-öø-ÿ0-9])(" + escaped + plural + ")(?=$|[^A-Za-zÀ-ÖØ-öø-ÿ0-9])").exec(text);
-    if (!parenthetical || !firstUse) return false;
-    const acronymInsideParentheses = parenthetical.index + parenthetical[0].search(new RegExp(escaped));
-    if (firstUse.index + firstUse[1].length !== acronymInsideParentheses) return false;
-    const before = text.slice(0, parenthetical.index).trim();
+    if (!firstUse) return "";
+    const acronymIndex = firstUse.index + firstUse[1].length;
+    let before = "";
+    let style = "";
+    if (parenthetical) {
+      const acronymInsideParentheses = parenthetical.index + parenthetical[0].search(new RegExp(escaped));
+      if (acronymIndex === acronymInsideParentheses) {
+        before = text.slice(0, parenthetical.index).trim();
+        style = "parenthetical";
+      }
+    }
+    if (!style) {
+      const beforeAcronym = text.slice(0, acronymIndex);
+      const alternative = /,\s+or\s+$/i.exec(beforeAcronym);
+      if (alternative) {
+        before = beforeAcronym.slice(0, alternative.index).trim();
+        style = "alternative";
+      }
+    }
+    if (!style) return "";
     const longForm = before.match(/([A-Za-zÀ-ÖØ-öø-ÿ][A-Za-zÀ-ÖØ-öø-ÿ0-9.’'/-]*(?:\s+(?:&|and|of|the|for|to|in|[A-Za-zÀ-ÖØ-öø-ÿ][A-Za-zÀ-ÖØ-öø-ÿ0-9.’'/-]*)){1,12})$/i);
-    return Boolean(longForm && words(longForm[1]).length >= 2);
+    return longForm && words(longForm[1]).length >= 2 ? style : "";
   }
 
-  function acronymDefinedAcrossParts(parts, partIndex, matchIndex, acronym) {
-    if (!Array.isArray(parts) || partIndex < 0 || partIndex >= parts.length) return false;
+  function acronymDefinedInText(value, acronym) {
+    return Boolean(acronymDefinitionStyleInText(value, acronym));
+  }
+
+  function acronymDefinitionStyleAcrossParts(parts, partIndex, matchIndex, acronym) {
+    if (!Array.isArray(parts) || partIndex < 0 || partIndex >= parts.length) return "";
     const current = String(parts[partIndex] || "");
     let end = matchIndex + String(acronym || "").length;
     const closingParenthesis = current.slice(end).match(/^\s*\)/);
     if (closingParenthesis) end += closingParenthesis[0].length;
     const prefix = parts.slice(0, partIndex).concat(current.slice(0, end)).join(" ");
-    return acronymDefinedInText(prefix.slice(-600), acronym);
+    return acronymDefinitionStyleInText(prefix.slice(-600), acronym);
+  }
+
+  function acronymDefinedAcrossParts(parts, partIndex, matchIndex, acronym) {
+    return Boolean(acronymDefinitionStyleAcrossParts(parts, partIndex, matchIndex, acronym));
   }
 
   function editorAcronymFindingIncluded(finding, earlierEditorTexts, seenAcronyms) {
@@ -2007,6 +2045,7 @@
     const text = String(value || "");
     const upper = String(token || "").toUpperCase();
     if (isCommonAllCapsWord(upper)) return true;
+    if (upper === "CMS" && /^CMS\s+Lite\b/i.test(text.slice(index))) return true;
     const emailExpression = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi;
     let email;
     while ((email = emailExpression.exec(text))) if (index >= email.index && index < email.index + email[0].length) return true;
@@ -3059,9 +3098,22 @@
       const element = parent.closest("h1,h2,h3,h4,h5,h6,p,li,dd,dt,figcaption,blockquote") || parent;
       const elementText = normalizeSpace(element.textContent || occurrence.node.nodeValue || displayedAcronym);
       if (isPostalAcronymContext(acronym, elementText, element)) return;
-      if (acronymDefinedInText(elementText, displayedAcronym) || acronymDefinedAcrossParts(acronymTextParts, occurrence.nodeIndex, occurrence.index, displayedAcronym)) return;
       const exactIndex = exactTokenIndex(elementText, displayedAcronym);
       const termIndex = Math.max(0, exactIndex);
+      const definitionStyle = acronymDefinitionStyleInText(elementText, displayedAcronym)
+        || acronymDefinitionStyleAcrossParts(acronymTextParts, occurrence.nodeIndex, occurrence.index, displayedAcronym);
+      if (definitionStyle === "alternative") {
+        const alternativePhrase = `, or ${displayedAcronym}`;
+        const alternativeIndex = elementText.toLowerCase().indexOf(alternativePhrase.toLowerCase());
+        add("acronym-definition-format", element || root, elementText,
+          `Change “${alternativePhrase}” to “(${displayedAcronym})”.`, {
+          matchText: alternativePhrase,
+          contextText: elementText,
+          matchIndex: Math.max(0, alternativeIndex)
+        });
+        return;
+      }
+      if (definitionStyle) return;
       if (exactIndex >= 0 && builtInTermAtIndex(elementText, exactIndex)) return;
       add("undefined-acronym", element || root, elementText, null, {
         flaggedToken: displayedAcronym,
@@ -3313,7 +3365,9 @@
           add("linked-period", link, linkText);
         }
       }
-      if (href.startsWith("#") && href.length > 1) {
+      if (emptySamePageFragment(href, pageUrl)) {
+        add("empty-fragment-link", link, linkText + " → " + href);
+      } else if (href.startsWith("#") && href.length > 1) {
         const target = fragmentTarget(doc, href);
         if (!target) {
           const suggestion = suggestedAnchorForText(linkText, headings);
@@ -3335,7 +3389,8 @@
 
     const lists = Array.from(root.querySelectorAll("ul,ol")).filter(inScanArea).filter(isMeaningfulList);
     lists.forEach(list => {
-      const navigationalList = Boolean(list.closest("nav,[role='navigation']"));
+      const onThisPageList = isOnThisPageList(list, onThisPagePattern, root, inScanArea);
+      const navigationalList = Boolean(list.closest("nav,[role='navigation']")) || onThisPageList;
       let depth = 1;
       let ancestor = list.parentElement && list.parentElement.closest("ul,ol");
       while (ancestor) { depth += 1; ancestor = ancestor.parentElement && ancestor.parentElement.closest("ul,ol"); }
@@ -3350,8 +3405,7 @@
       const precedingBlock = precedingBlocks[precedingBlocks.length - 1] || null;
       const precedingParagraph = precedingBlock && precedingBlock.tagName === "P" ? precedingBlock : null;
       const precedingText = precedingParagraph ? normalizeSpace(precedingParagraph.textContent) : "";
-      const onThisPageList = isOnThisPageList(list, onThisPagePattern, root, inScanArea);
-      if (englishLanguage && !navigationalList && !onThisPageList && items.length >= 2 && precedingParagraph && precedingText && !/:$/.test(precedingText)) {
+      if (englishLanguage && !navigationalList && items.length >= 2 && precedingParagraph && precedingText && !/:$/.test(precedingText)) {
         add("list-introduction", precedingParagraph, precedingText);
       }
       items.forEach(item => {
@@ -3649,7 +3703,9 @@
       endsStylePunctuation,
       linkPunctuationIssue,
       listEndingNeedsRemoval,
+      acronymDefinitionStyleInText,
       acronymDefinedInText,
+      acronymDefinitionStyleAcrossParts,
       acronymDefinedAcrossParts,
       editorAcronymFindingIncluded,
       acronymBase,
@@ -3683,6 +3739,7 @@
       isCmsLiteTemplateImage,
       findingFingerprint,
       canonicalUrl,
+      emptySamePageFragment,
       detectProfile,
       hashString
     }
