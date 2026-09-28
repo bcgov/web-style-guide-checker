@@ -57,7 +57,6 @@ vm.runInContext(`${source.slice(stateStart, stateEnd)}\n${source.slice(retention
     settings: { scope: "content", canControlColour: true },
     exportPreset: "full",
     customSheets: [],
-    includeReviewed: false,
     savedAt: new Date().toISOString()
   };
   await context.batchTest.loadState();

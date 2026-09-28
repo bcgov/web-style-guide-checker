@@ -118,13 +118,17 @@ Detailed findings are the authoritative evidence layer. Grouped and site-wide sh
 
 ## Privacy and permissions
 
-Content checks run locally using fixed JavaScript rules. Page content, findings and reports are not sent to an external analysis service, AI system or the maintainers. Information leaves the checker only when the tester chooses to copy, export or include it in feedback. The extension retrieves a small release-status file without including page content and reuses the last validated policy for up to 24 hours.
+The checker is intended for government web content that the reviewer is authorized to access, including published, draft, unpublished and signed-in web pages. Do not use it to scan repositories, databases or other systems mainly used to store or manage [personal information](https://www2.gov.bc.ca/gov/content?id=45F56451625849E49141D4AF85D8EEC2).
+
+Page analysis runs locally using fixed JavaScript rules. Page content, findings and reports are not sent to an external analysis service, AI system or the maintainers. The checker makes network requests when needed to check links and to retrieve a small release-status file; the release-status request does not include page content and the last validated policy is reused for up to 24 hours.
+
+Feedback is not sent automatically. The extension saves feedback notes locally and creates a pre-addressed email draft for the tester to review and send from their email application. Copying and exporting findings are also user initiated. Exports may contain snippets of page content and should be handled like other government work files.
 
 Reports, decisions, allowed terms, feedback notes, settings and review position are stored in local extension storage that is restricted to trusted extension pages. A saved single-page report expires after 7 days, and the newest successful scan of the same page replaces the earlier report. Decisions and notes are retained only while their findings remain in a saved report. Unsent feedback remains until sent or deleted; sent feedback expires after 30 days. Incomplete batch state expires after 7 days and completed batch state after 30 days. Settings provides separate controls for deleting each category of saved data.
 
 Link and asset checks contact destination websites directly, which receive a normal browser request. Ordinary public requests omit browser credentials. For supported CMS Lite, QA, SharePoint and intranet destinations, the checker can use access already established in the current browser session without reading or storing sign-in information. A managed CMS Lite asset check may briefly read the response from the asset link to recognize the B.C. government “Asset Not Found” page. Authenticated URLs that look like state-changing actions are not requested. In-page fragments are checked locally, and links containing embedded credentials or explicit local, private, link-local or reserved destinations are not requested. Redirects are followed when the extension has website access to the resulting destination; a redirect whose final destination cannot be safely verified is reported as uncertain rather than broken. The browser asks only for access to websites discovered by the selected page or batch scan. Batch scans open temporary background tabs in the browser's normal browsing context. Local `file:` pages are not supported and receive a specific explanation in the scan view.
 
-CSV exports prefix cells that could otherwise be interpreted as spreadsheet formulas. Workbook and CSV output should still be handled according to the sensitivity of the scanned content.
+CSV exports prefix cells that could otherwise be interpreted as spreadsheet formulas. Workbook and CSV output should be handled according to the sensitivity of the scanned content.
 
 ## Repository structure
 
