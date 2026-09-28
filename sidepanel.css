@@ -126,16 +126,10 @@ p { margin-bottom: 12px; }
 }
 
 .brand-mark {
-  display: grid;
+  display: block;
   width: 22px;
   height: 22px;
   flex: 0 0 auto;
-  place-items: center;
-  color: var(--navy);
-  background: var(--white);
-  border-radius: var(--radius-xs);
-  font-size: 12px;
-  font-weight: 700;
 }
 
 .app-identity { min-width: 0; flex: 1; }
@@ -565,12 +559,30 @@ dialog form { padding: 18px; }
 .sheet-dialog { margin: auto auto 12px; }
 .dialog-heading { align-items: center; margin-bottom: 12px; }
 .dialog-heading h2 { margin: 0; }
+
+#permission-dialog .dialog-heading {
+  position: sticky;
+  top: -18px;
+  z-index: 10;
+  margin: -18px -18px 18px;
+  padding: 18px;
+  background: var(--white);
+  border-bottom: 1px solid var(--line);
+}
+
 .dialog-actions { justify-content: flex-end; margin-top: 16px; }
 .filters { display: grid; gap: 12px; }
 .filters label { color: var(--navy); font-weight: 700; }
 .filters select { display: block; width: 100%; margin-top: 5px; }
+.permission-divider {
+  width: 100%;
+  margin: 12px 0 4px;
+  border: 0;
+  border-top: 1px solid var(--line);
+}
 select, textarea, input[type="text"] { width: 100%; padding: 9px 10px; color: var(--ink); background: var(--white); border: 1px solid var(--line-strong); border-radius: var(--radius-sm); }
 textarea { resize: vertical; }
+
 
 .menu-actions { display: grid; gap: 4px; }
 .menu-action { display: block; width: 100%; min-height: 58px; padding: 9px 10px; color: var(--ink); text-align: left; background: var(--white); border: 0; border-bottom: 1px solid var(--line); }
@@ -796,7 +808,6 @@ body[data-surface="workspace"] .preview-lifecycle-banner {
   body[data-surface="panel"] .brand-mark {
     width: 20px;
     height: 20px;
-    font-size: 11px;
   }
 
   /* Keep this text available to assistive technology while removing

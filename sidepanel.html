@@ -8,7 +8,7 @@
   </head>
   <body data-surface="panel">
     <header class="app-header">
-      <span class="brand-mark" aria-hidden="true">B</span>
+      <img class="brand-mark" src="icons/icon-32.png" alt="">
       <div class="app-identity">
         <strong>B.C. Web Style Guide Checker</strong>
         <span id="active-page-label">Ready to review a page</span>
@@ -272,7 +272,6 @@
                 <label class="check-row"><input id="batch-custom-metadata" type="checkbox" data-sheet="Metadata"> Metadata</label>
                 <label class="check-row"><input id="batch-custom-scan-log" type="checkbox" data-sheet="Scan log" checked> Scan log</label>
               </fieldset>
-              <label class="check-row"><input id="batch-include-reviewed" type="checkbox"> Include ignored and resolved findings</label>
             </div>
           </details>
 
@@ -455,14 +454,39 @@
     <dialog id="permission-dialog">
       <form method="dialog">
         <div class="dialog-heading"><h2>Privacy and website access</h2><button id="permission-close" class="icon-button" type="button" aria-label="Close privacy and website access settings">×</button></div>
-        <p>Content checks run locally in your browser. Page content, findings and reports are not sent to external analysis services or AI systems.</p>
-        <p>Information leaves the checker only when needed to check links, retrieve release status, or when you choose to copy, export or manually submit information as feedback.</p>
-        <p>Link checking sends a normal browser request to each destination website. A limited list of supported internal links may use your current browser access. The checker does not read or store passwords, cookies or sign-in tokens.</p>
-        <p>Links that cannot be checked safely are not requested automatically.</p>
-        <p>Single-page reports expire after 7 days. A successful rescan replaces the previous saved report.</p>
+        <h3>What you can scan</h3>
+        <p>You can scan government web content you are authorized to access. This includes:</p>
+        <ul>
+          <li>Published web pages</li>
+          <li>Draft or unpublished web pages</li>
+          <li>Web pages that require you to sign in</li>
+        </ul>
+        <p><strong>Do not</strong> scan repositories, databases or other systems mainly used to store or manage <a href="https://www2.gov.bc.ca/gov/content?id=45F56451625849E49141D4AF85D8EEC2" target="_blank" rel="noopener noreferrer">personal information</a>.</p>
+
+        <h3>What stays on your device</h3>
+        <p>Page analysis happens locally in your browser. Page content, findings and reports are not sent to external analysis or AI services.</p>
+        <p>The checker does not read or store your passwords or sign-in tokens.</p>
+
+        <h3>When information is sent</h3>
+        <p>The checker sends information only when needed to check links and check whether your version is current.</p>
+        <p>The checker does not send feedback automatically. It creates an email for you to review and send yourself.</p>
+        <p>Copying or exporting findings is also user initiated. Exports may contain snippets of page content and should be handled like other government work files.</p>
+
+        <h3>How long reports are saved</h3>
+        <p>Single-page reports expire after 7 days. A successful rescan replaces the previous saved report. Downloadable batch exports expire after 30 days.</p>
+
+        <h3>How link checking works</h3>
+        <p>The checker sends a standard browser request to each link it can safely check.</p>
+        <p>Some supported government links may use your existing signed-in browser session. The checker does not collect or store your sign-in information.</p>
+        <p>Links that cannot be checked safely are not requested automatically.</p><br>
+
+	<hr class="permission-divider">
+        <h3>Allow website access</h3>
         <div class="permission-options">
           <button id="permission-linked" class="button primary" type="button">Allow linked sites on this page</button>
-          <p>Your browser will show which websites the checker is asking to access.</p>
+          <p>Before allowing access, review which websites your browser is requesting.</p>
+	<hr class="permission-divider">
+        <h3>Remove website access</h3>
           <button id="permission-revoke" class="button tertiary" type="button">Remove all website access</button>
         </div>
         <p id="permission-status" class="hint" aria-live="polite"></p>

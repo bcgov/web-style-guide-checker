@@ -110,8 +110,11 @@ assert.match(readme, /Apache License 2\.0/, "The README must identify the source
 assert.doesNotMatch(readme, /source-code licence before inviting reuse/, "The README must not retain the pre-licence warning");
 assert.match(designDecisions, /residual risk that a public hostname or opaque redirect can resolve internally/i, "The accepted network-check residual risk must be documented");
 assert.match(designDecisions, /Never treat the extension's own workspace as a page to scan/, "The workspace source-page routing decision must be documented");
-assert.match(html, /Page content, findings and reports are not sent to external analysis services or AI systems/, "The permission explanation must disclose local processing clearly");
-assert.match(html, /Information leaves the checker only when needed to check links, retrieve release status, or when you choose to copy, export or manually submit information as feedback/, "The privacy notice must disclose every intentional information transfer");
+assert.match(html, /Page analysis happens locally in your browser/, "The permission explanation must disclose local processing clearly");
+assert.match(html, /Page content, findings and reports are not sent to external analysis or AI services/, "The privacy notice must disclose that page analysis is not sent to external services");
+assert.match(html, /The checker sends information only when needed to check links and check whether your version is current/, "The privacy notice must disclose automatic network requests");
+assert.match(html, /The checker does not send feedback automatically\. It creates an email for you to review and send yourself/, "The privacy notice must explain that feedback requires the user to send the prepared email");
+assert.match(html, /Copying or exporting findings is also user initiated/, "The privacy notice must explain that copying and exporting are user initiated");
 assert.match(html, /Links that cannot be checked safely are not requested automatically/, "The privacy notice must explain the link-safety outcome accurately");
 assert.match(html, /Single-page reports expire after 7 days/, "The user-facing retention period must use plain-language days");
 assert.doesNotMatch(html, /id="permission-all"|Allow access to all websites/, "The pilot must not offer an all-sites permission option");
@@ -236,8 +239,8 @@ assert.match(script, /name:\s*"Site-wide findings"/, "Batch workbooks must inclu
 assert.match(script, /Review first/, "Exports must use the agreed attention labels");
 assert.match(script, /Nothing flagged/, "Exports must use neutral nothing-flagged language");
 assert.doesNotMatch(script, /<pane ySplit=/, "Workbook exports must not freeze panes");
-assert.match(html, /A limited list of supported internal links may use your current browser access/, "Privacy wording must explain supported signed-in link checks");
-assert.match(html, /does not read or store passwords, cookies or sign-in tokens/, "Privacy wording must explain that sign-in information is not read or stored");
+assert.match(html, /Some supported government links may use your existing signed-in browser session/, "Privacy wording must explain supported signed-in link checks");
+assert.match(html, /The checker does not collect or store your sign-in information/, "Privacy wording must explain that sign-in information is not collected or stored");
 assert.match(readme, /managed CMS Lite asset check[\s\S]*Asset Not Found/, "Detailed privacy documentation must disclose the limited managed-asset response read");
 assert.match(html, /value="custom">Customize workbook</, "Export presets must keep detailed sheet selection behind a Customize option");
 const currentPresetHtml = (html.match(/<select id="current-export-preset">([\s\S]*?)<\/select>/) || [])[1] || "";

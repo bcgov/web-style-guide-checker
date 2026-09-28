@@ -51,7 +51,6 @@ function initialBatchState() {
     settings: { scope: "content", canControlColour: true, optionalChecks: { nonBreakingSpace: true, passiveVoice: true } },
     exportPreset: "full",
     customSheets: [],
-    includeReviewed: false,
     downloaded: false,
     downloadFilename: "",
     downloadedAt: ""
@@ -271,7 +270,7 @@ function cacheElements() {
     "current-export-preset", "current-export-preset-description", "current-export-custom", "current-export-reviewed", "current-export-status", "current-export-confirmation",
     "current-custom-summary", "current-custom-issues", "current-custom-findings", "current-custom-page-details", "current-custom-links", "current-custom-metadata",
     "check-links-and-download-current", "download-current-workbook", "download-current-action-csv", "copy-detailed-findings",
-    "batch-csv-button", "batch-urls", "batch-validation", "batch-scope", "batch-colour-control", "batch-check-links", "batch-link-access-note", "batch-include-reviewed", "batch-export-preset", "batch-export-description", "batch-export-custom",
+    "batch-csv-button", "batch-urls", "batch-validation", "batch-scope", "batch-colour-control", "batch-check-links", "batch-link-access-note", "batch-export-preset", "batch-export-description", "batch-export-custom",
     "batch-custom-summary", "batch-custom-pages", "batch-custom-site-wide", "batch-custom-issues-page", "batch-custom-findings", "batch-custom-links", "batch-custom-metadata", "batch-custom-scan-log",
     "batch-start-button", "batch-pause-button", "batch-cancel-button", "batch-progress-panel", "batch-progress-label",
     "batch-progress-count", "batch-progress", "batch-link-finish-actions", "batch-link-access-button", "batch-finish-without-links", "batch-download-status", "batch-error", "batch-error-message", "batch-results",
@@ -906,7 +905,6 @@ async function loadState() {
       settings: savedBatch.settings || state.batch.settings,
       exportPreset: savedBatch.exportPreset === "custom" ? "custom" : "full",
       customSheets: Array.isArray(savedBatch.customSheets) ? savedBatch.customSheets : [],
-      includeReviewed: Boolean(savedBatch.includeReviewed),
       downloaded: Boolean(savedBatch.downloaded),
       downloadFilename: savedBatch.downloadFilename || "",
       downloadedAt: savedBatch.downloadedAt || ""
@@ -936,7 +934,6 @@ function batchStorageValue() {
     settings: batch.settings,
     exportPreset: batch.exportPreset,
     customSheets: batch.customSheets,
-    includeReviewed: batch.includeReviewed,
     downloaded: batch.downloaded,
     downloadFilename: batch.downloadFilename,
     downloadedAt: batch.downloadedAt,
@@ -7771,7 +7768,6 @@ function applyBatchStateToControls() {
   elements["batch-colour-control"].checked = batch.settings ? batch.settings.canControlColour !== false : true;
   elements["batch-check-links"].checked = Boolean(batch.checkLinks);
   elements["batch-export-preset"].value = batch.exportPreset === "custom" ? "custom" : "full";
-  elements["batch-include-reviewed"].checked = Boolean(batch.includeReviewed);
   const custom = new Set(batch.customSheets || []);
   document.querySelectorAll("#batch-export-custom [data-sheet]").forEach(input => { input.checked = custom.has(input.dataset.sheet); });
 }
@@ -7783,8 +7779,7 @@ function batchExportSnapshotFromUi() {
     checkLinks: elements["batch-check-links"].checked,
     linkPermissionMode: batchLinkPermissionModeFromUi(),
     exportPreset: preset,
-    customSheets: preset === "custom" ? Array.from(batchCustomSheetNames()) : [],
-    includeReviewed: elements["batch-include-reviewed"].checked
+    customSheets: preset === "custom" ? Array.from(batchCustomSheetNames()) : []
   };
 }
 
@@ -7987,7 +7982,6 @@ async function startBatchScan() {
     settings: snapshot.settings,
     exportPreset: snapshot.exportPreset,
     customSheets: snapshot.customSheets,
-    includeReviewed: snapshot.includeReviewed,
     downloaded: false,
     downloadFilename: "",
     downloadedAt: ""
@@ -8071,7 +8065,7 @@ async function downloadBatchWorkbook({ auto = false } = {}) {
   const records = batchPageRecords(batch.records);
   if (!records.length) { showToast("Run a batch scan before exporting."); return false; }
   const preset = auto ? batch.exportPreset : (elements["batch-export-preset"].value === "custom" ? "custom" : "full");
-  const includeReviewed = auto ? batch.includeReviewed : elements["batch-include-reviewed"].checked;
+  const includeReviewed = false;
   const customSheets = preset === "custom" ? new Set(auto ? batch.customSheets : Array.from(batchCustomSheetNames())) : null;
   const filename = `bc-web-style-batch-${new Date().toISOString().slice(0, 10)}.xlsx`;
   const downloaded = downloadWorkbook(batchWorkbookSheets(records, includeReviewed, preset, customSheets), filename);
