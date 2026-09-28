@@ -126,16 +126,10 @@ p { margin-bottom: 12px; }
 }
 
 .brand-mark {
-  display: grid;
+  display: block;
   width: 22px;
   height: 22px;
   flex: 0 0 auto;
-  place-items: center;
-  color: var(--navy);
-  background: var(--white);
-  border-radius: var(--radius-xs);
-  font-size: 12px;
-  font-weight: 700;
 }
 
 .app-identity { min-width: 0; flex: 1; }
@@ -814,7 +808,6 @@ body[data-surface="workspace"] .preview-lifecycle-banner {
   body[data-surface="panel"] .brand-mark {
     width: 20px;
     height: 20px;
-    font-size: 11px;
   }
 
   /* Keep this text available to assistive technology while removing
