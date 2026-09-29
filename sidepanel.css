@@ -401,7 +401,7 @@ mark { padding: 0 2px; color: var(--ink); background: #ffe19b; }
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-sm);
 }
-.small-button:hover { 
+.small-button:hover {
   background: var(--blue-light); 
 }
 .finding-actions .small-button {
