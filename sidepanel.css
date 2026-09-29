@@ -16,6 +16,8 @@
 
 :root {
   --app-header-height: 47px;
+  --surface-color-primary-button-default: #013366;
+  --surface-color-primary-button-hover: #1e5189;
   --navy: #013366;
   --navy-dark: #152441;
   --navy-hover: #093e74;
@@ -217,8 +219,8 @@ legend, .field-label { display: block; margin-bottom: 7px; color: var(--navy); f
   border-radius: var(--radius-sm);
   font-weight: 700;
 }
-.button.primary { color: var(--white); background: var(--navy); }
-.button.primary:hover { background: var(--navy-hover); }
+.button.primary { color: var(--white); background: var(--surface-color-primary-button-default); border-color: transparent; }
+.button.primary:hover { background: var(--surface-color-primary-button-hover); }
 .button.secondary { color: var(--navy); background: var(--white); }
 .button.secondary:hover, .button.tertiary:hover { background: var(--blue-light); }
 .button.tertiary { color: var(--navy); background: var(--white); border-color: var(--line-strong); }
