@@ -16,8 +16,6 @@
 
 :root {
   --app-header-height: 47px;
-  --surface-color-primary-button-default: #013366;
-  --surface-color-primary-button-hover: #1e5189;
   --navy: #013366;
   --navy-dark: #152441;
   --navy-hover: #093e74;
@@ -219,8 +217,8 @@ legend, .field-label { display: block; margin-bottom: 7px; color: var(--navy); f
   border-radius: var(--radius-sm);
   font-weight: 700;
 }
-.button.primary { color: var(--white); background: var(--surface-color-primary-button-default); border-color: transparent; }
-.button.primary:hover { background: var(--surface-color-primary-button-hover); }
+.button.primary { color: var(--white); background: var(--bcds-surface-color-primary-button-default); border-color: transparent; }
+.button.primary:hover { background: var(--bcds-surface-color-primary-button-hover); }
 .button.secondary { color: var(--navy); background: var(--white); }
 .button.secondary:hover, .button.tertiary:hover { background: var(--blue-light); }
 .button.tertiary { color: var(--navy); background: var(--white); border-color: var(--line-strong); }
@@ -403,7 +401,9 @@ mark { padding: 0 2px; color: var(--ink); background: #ffe19b; }
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-sm);
 }
-.small-button:hover { background: var(--blue-light); }
+.small-button:hover { 
+  background: var(--blue-light); 
+}
 .finding-actions .small-button {
   min-height: 40px;
   padding: 7px 9px;
@@ -412,7 +412,13 @@ mark { padding: 0 2px; color: var(--ink); background: #ffe19b; }
   border: 1px solid var(--navy);
   border-radius: var(--radius-sm);
 }
-.finding-actions .locate-button { grid-column: 1 / -1; color: var(--white); background: var(--navy); border-color: var(--navy); font-weight: 700; }
+
+.finding-actions .small-button:hover {
+  background: var(--blue-light);
+}
+
+.finding-actions .locate-button { grid-column: 1 / -1; color: var(--white); background: var(--bcds-surface-color-primary-button-default); border-color: transparent; font-weight: 700; }
+.finding-actions .locate-button:hover { background: var(--bcds-surface-color-primary-button-hover); border-color: transparent; }
 .finding-actions .note-button, .finding-actions .exception-button { border-color: var(--line-strong); }
 .finding-feedback-action { display: inline-block; margin-top: 10px; font-size: 13px; }
 .action-confirmation { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; padding: 9px 10px; background: var(--success-bg); border-left: 4px solid var(--success); }
