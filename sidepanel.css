@@ -402,7 +402,7 @@ mark { padding: 0 2px; color: var(--ink); background: #ffe19b; }
   border-radius: var(--radius-sm);
 }
 .small-button:hover {
-  background: var(--blue-light); 
+  background: var(--blue-light);
 }
 .finding-actions .small-button {
   min-height: 40px;
