@@ -20,7 +20,7 @@ const COMPLETE_BATCH_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 const ARCHIVED_FEEDBACK_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 const MAX_BATCH_URLS = 100;
 const BATCH_TIMEOUT_MS = 45000;
-const FEEDBACK_RECIPIENTS = ["julia.ready@gov.bc.ca", "karmen.abrahams-munroe@gov.bc.ca"];
+const FEEDBACK_RECIPIENTS = ["BC.WebStyleGuideChecker@gov.bc.ca"];
 const FEEDBACK_TYPES = {
   incorrect: "Incorrect or confusing finding",
   missed: "Missed issue",

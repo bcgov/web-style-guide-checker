@@ -50,7 +50,7 @@ function validHttpsUrl(value, { download = false } = {}) {
     if (download && url.protocol === "mailto:") {
       const recipient = decodeURIComponent(url.pathname).toLowerCase();
 
-      if (recipient !== "karmen.abrahams-munroe@gov.bc.ca") return "";
+      if (recipient !== "bc.webstyleguidechecker@gov.bc.ca") return "";
 
       return url.href;
     }

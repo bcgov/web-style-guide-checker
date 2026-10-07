@@ -270,8 +270,7 @@ assert.match(script, /function captureFeedbackContext\(/, "Feedback must capture
 assert.match(script, /function feedbackReportText\(/, "Feedback must provide a readable bulk report");
 assert.match(script, /function createFeedbackEmail\(/, "Feedback must provide an explicit email-draft action");
 assert.match(script, /function downloadTextFile\(/, "Long feedback reports must be downloadable for attachment");
-assert.match(script, /julia\.ready@gov\.bc\.ca/, "Julia must receive prepared feedback emails");
-assert.match(script, /karmen\.abrahams-munroe@gov\.bc\.ca/, "Karmen must receive prepared feedback emails");
+assert.match(script, /const FEEDBACK_RECIPIENTS = \["BC\.WebStyleGuideChecker@gov\.bc\.ca"\]/, "Prepared feedback emails must use the shared inbox");
 assert.match(script, /Web Style Guide Checker feedback — v/, "Feedback email subjects must use the agreed syntax");
 assert.match(script, /document\.body\.dataset\.surface = workspaceSurface/, "Panel and workspace layouts must be explicit");
 assert.match(script, /function isExtensionWorkspaceTab\(/, "The side panel must recognize its own full-tab workspace");
