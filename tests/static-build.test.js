@@ -167,7 +167,7 @@ assert.match(script, /link\.qaFamily \? link\.href : \(link\.checkUrl \|\| link\
 assert.match(script, /function prepareRemoteLink\(/, "Network checks must filter fragment and non-web links before fetching");
 assert.match(script, /rawHref\.startsWith\("#"\)/, "In-page fragment links must not be network checked");
 assert.match(script, /destination\.href\.endsWith\("#"\)/, "An absolute same-page URL with an empty fragment must not be network checked as a working page");
-assert.match(script, /Check whether links work/, "Link-check interface must use plain-language wording");
+assert.match(script, /const linkCheckButtonLabel[^\n]*"Check links"/, "Link-check button must use plain-language wording");
 assert.match(script, /live-not-found/, "QA link checks must distinguish a missing live equivalent");
 assert.match(script, /sign-in/, "Network checks must distinguish destinations that may require sign-in");
 assert.match(script, /const LINK_RESULT_GROUPS = \[[\s\S]*key: "problems"[\s\S]*key: "review"[\s\S]*key: "working"/, "Link results must be grouped into Problems, Needs review and Working sections");
@@ -311,8 +311,8 @@ assert.match(script, /selectedReviewOrder\(\) === "page"/, "Findings must suppor
 assert.match(script, /continueAfterAllowedTerm/, "Allowed terms must rebase the active review queue");
 assert.match(script, /function orderedReviewFindings\(/, "Guided review must use an explicit continuous review sequence");
 assert.match(script, /items\.slice\(\)\.sort\(\(first, second\) =>[\s\S]*first\.pageOrder/, "Page-order review must sort individual findings by document order");
-assert.match(html, /<input type="radio" name="review-order" value="type" checked> By issue type<\/label>/, "The issue-type order label must describe its behaviour");
-assert.match(html, /<input type="radio" name="review-order" value="page"> In page order<\/label>/, "The page-order label must describe its behaviour");
+assert.match(html, /<input type="radio" name="review-order" value="type"> By issue type<\/label>/, "Issue-type order must remain available as an alternative");
+assert.match(html, /<input type="radio" name="review-order" value="page" checked> In page order<\/label>/, "New reviews must default to page order");
 assert.match(script, /state\.guidedIndex === 0/, "Previous must remain available until the start of the continuous sequence");
 assert.match(script, /chrome\.permissions\.request\(\{ origins \}\)/, "Link checking must request access to linked sites");
 assert.match(script, /state:\s*"permission-denied"/, "Declined link access must be reported clearly");
@@ -430,7 +430,8 @@ assert.match(script, /const markerOnlyMatch = new Set\(\["double-space", "non-br
 const css = read("sidepanel.css");
 assert.match(css, /\.optional-check-row > span, \.optional-check-row strong, \.optional-check-row small \{ display: block; \}/, "Optional-check descriptions must appear beneath their labels");
 assert.match(css, /@media \(max-width: 520px\) \{[\s\S]*body\[data-surface="panel"\] \{[\s\S]*--app-header-height: 38px/, "Narrow panels must use the compact header height");
-assert.match(css, /body\[data-surface="panel"\] \.app-identity strong,[\s\S]*body\[data-surface="panel"\] #scope-heading \{[\s\S]*clip: rect\(0, 0, 0, 0\)/, "Duplicated narrow-panel headings must remain available to assistive technology");
+assert.match(css, /body\[data-surface="panel"\] \.app-identity strong \{[^}]*clip: rect\(0, 0, 0, 0\)/, "The duplicated narrow-panel product name must remain available to assistive technology");
+assert.doesNotMatch(css, /#scope-heading\s*\{/, "The scan heading must use the visible heading styles at every width");
 assert.match(css, /body\[data-surface="panel"\] \.finding,[\s\S]*body\[data-surface="panel"\] \.action-confirmation \{[^}]*scroll-margin-top: calc\(var\(--app-header-height\) \+ 39px\)/, "Narrow-panel findings and confirmations must clear the compact tabs and their border");
 assert.match(css, /body\[data-surface="panel"\] \.finding-top \{[^}]*display: flex/, "Narrow-panel review labels must remain beside the finding title");
 assert.match(css, /body\[data-surface="panel"\] \.badges \{[^}]*margin-top: 0/, "Narrow-panel review labels must not consume a separate row");

@@ -2210,6 +2210,15 @@
     };
   }
 
+  function diagnosticItemsFor(items) {
+    return Array.isArray(items) ? items.filter(item => item && typeof item === "object").map(item => ({
+      kind: String(item.kind || ""),
+      label: String(item.label || ""),
+      target: String(item.target || ""),
+      detail: String(item.detail || "")
+    })) : [];
+  }
+
   function createExternalFinding(ruleId, pageUrl, supplied) {
     const rule = RULES[ruleId];
     if (!rule) return null;
@@ -2234,6 +2243,7 @@
       matchText: data.matchText || "",
       replacement: data.replacement || "",
       diagnostics: Array.isArray(data.diagnostics) ? data.diagnostics : [],
+      diagnosticItems: diagnosticItemsFor(data.diagnosticItems),
       suggestedTarget: data.suggestedTarget || "",
       proposedPhrase: "",
       exceptionEligible: false,
@@ -2357,6 +2367,7 @@
         matchText,
         replacement: meta.replacement || "",
         diagnostics: Array.isArray(meta.diagnostics) ? meta.diagnostics : [],
+        diagnosticItems: diagnosticItemsFor(meta.diagnosticItems),
         suggestedTarget: meta.suggestedTarget || "",
         proposedPhrase: meta.proposedPhrase || "",
         matchIndex: meta.matchIndex,
@@ -2538,35 +2549,56 @@
         links = list && /^(UL|OL)$/.test(list.tagName) ? Array.from(list.querySelectorAll("a[href^='#']")) : [];
       }
       const diagnostics = [];
+      const diagnosticItems = [];
       const linkedH2s = new Set();
       links.forEach((link, index) => {
         const href = link.getAttribute("href") || "";
         const target = fragmentTarget(doc, href);
         const targetHeading = headingForFragmentTarget(target);
         const linkText = normalizeSpace(link.textContent);
+        const label = `Link ${index + 1}: ${linkText || "[No link text]"}`;
+        const recordDetail = (kind, detail) => diagnosticItems.push({ kind, label, target: href, detail });
         if (!targetHeading) {
           diagnostics.push(`Link ${index + 1}, “${linkText}”, points to ${href || "an empty target"}, but no heading exists there.`);
+          recordDetail(target ? "target-not-heading" : "missing-target", target
+            ? "The target exists, but it is not a heading."
+            : !href || href === "#" ? "This link does not name a page section." : "No matching destination on this page.");
           return;
         }
         const targetText = normalizeSpace(targetHeading.textContent);
         if (targetHeading.tagName !== "H2") {
           diagnostics.push(`Link ${index + 1}, “${linkText}”, points to ${targetHeading.tagName} “${targetText}”. ‘On this page’ links should point to H2 headings.`);
+          recordDetail("wrong-heading-level", `Targets ${targetHeading.tagName}${targetText !== linkText ? ` “${targetText}”` : ""}.`);
           return;
         }
         if (!eligibleH2s.includes(targetHeading)) {
           diagnostics.push(`Link ${index + 1}, “${linkText}”, points to H2 “${targetText}”, which is not an eligible authored section heading.`);
+          recordDetail("excluded-heading", `Targets H2 “${targetText}”, outside the eligible authored section headings.`);
           return;
         }
-        if (linkedH2s.has(targetHeading)) diagnostics.push(`Link ${index + 1} repeats the link to H2 “${targetText}”.`);
+        if (linkedH2s.has(targetHeading)) {
+          diagnostics.push(`Link ${index + 1} repeats the link to H2 “${targetText}”.`);
+          recordDetail("repeated-target", `Repeats an earlier link to H2 “${targetText}”.`);
+        }
         linkedH2s.add(targetHeading);
         const expectedPosition = eligibleH2s.indexOf(targetHeading);
-        if (expectedPosition !== index) diagnostics.push(`Link ${index + 1}, “${linkText}”, points to H2 “${targetText}”, which is section ${expectedPosition + 1} in page order.`);
-        if (comparisonText(linkText) !== comparisonText(targetText)) diagnostics.push(`Link ${index + 1} says “${linkText}”; its H2 says “${targetText}”.`);
+        if (expectedPosition !== index) {
+          diagnostics.push(`Link ${index + 1}, “${linkText}”, points to H2 “${targetText}”, which is section ${expectedPosition + 1} in page order.`);
+          recordDetail("wrong-order", `Targets H2 “${targetText}”, section ${expectedPosition + 1} in page order.`);
+        }
+        if (comparisonText(linkText) !== comparisonText(targetText)) {
+          diagnostics.push(`Link ${index + 1} says “${linkText}”; its H2 says “${targetText}”.`);
+          recordDetail("text-mismatch", `The H2 heading says “${targetText}”.`);
+        }
       });
       eligibleH2s.forEach(heading => {
-        if (!linkedH2s.has(heading)) diagnostics.push(`Missing link for H2 “${normalizeSpace(heading.textContent)}” (${anchorIdForHeading(heading) ? `#${anchorIdForHeading(heading)}` : "no anchor found"}).`);
+        if (!linkedH2s.has(heading)) {
+          const target = anchorIdForHeading(heading);
+          diagnostics.push(`Missing link for H2 “${normalizeSpace(heading.textContent)}” (${target ? `#${target}` : "no anchor found"}).`);
+          diagnosticItems.push({ kind: "missing-link", label: normalizeSpace(heading.textContent), target: target ? `#${target}` : "", detail: target ? "This H2 heading has no link in ‘On this page’." : "This H2 heading has no link in ‘On this page’ and no anchor was found." });
+        }
       });
-      if (diagnostics.length) add("on-this-page-links", onThisPage, `${diagnostics.length} mismatch${diagnostics.length === 1 ? "" : "es"} across ${links.length} links and ${eligibleH2s.length} eligible H2 headings`, null, { diagnostics });
+      if (diagnostics.length) add("on-this-page-links", onThisPage, `${diagnostics.length} mismatch${diagnostics.length === 1 ? "" : "es"} across ${links.length} links and ${eligibleH2s.length} eligible H2 headings`, null, { diagnostics, diagnosticItems });
     }
 
     const elementTexts = textElements(root, inScanArea);
@@ -3373,7 +3405,11 @@
           const suggestion = suggestedAnchorForText(linkText, headings);
           add("broken-anchor", link, linkText + " → " + href,
             suggestion ? `Change the target to #${suggestion.id}, which is attached to the heading “${suggestion.text}”.` : null,
-            suggestion ? { suggestedTarget: `#${suggestion.id}`, diagnostics: [`Matching heading found: “${suggestion.text}”.`] } : null);
+            {
+              suggestedTarget: suggestion ? `#${suggestion.id}` : "",
+              diagnostics: suggestion ? [`Matching heading found: “${suggestion.text}”.`] : [],
+              diagnosticItems: [{ kind: "missing-target", label: linkText || "[No link text]", target: href, detail: "No matching destination on this page." }]
+            });
         }
       }
     });
@@ -3388,6 +3424,7 @@
     });
 
     const lists = Array.from(root.querySelectorAll("ul,ol")).filter(inScanArea).filter(isMeaningfulList);
+    const listIntroductionParagraphs = new WeakSet();
     lists.forEach(list => {
       const onThisPageList = isOnThisPageList(list, onThisPagePattern, root, inScanArea);
       const navigationalList = Boolean(list.closest("nav,[role='navigation']")) || onThisPageList;
@@ -3405,7 +3442,8 @@
       const precedingBlock = precedingBlocks[precedingBlocks.length - 1] || null;
       const precedingParagraph = precedingBlock && precedingBlock.tagName === "P" ? precedingBlock : null;
       const precedingText = precedingParagraph ? normalizeSpace(precedingParagraph.textContent) : "";
-      if (englishLanguage && !navigationalList && items.length >= 2 && precedingParagraph && precedingText && !/:$/.test(precedingText)) {
+      if (englishLanguage && !navigationalList && items.length >= 2 && precedingParagraph && precedingText && !/:$/.test(precedingText) && !listIntroductionParagraphs.has(precedingParagraph)) {
+        listIntroductionParagraphs.add(precedingParagraph);
         add("list-introduction", precedingParagraph, precedingText);
       }
       items.forEach(item => {

@@ -45,11 +45,8 @@
       <section id="current-view" class="app-view" role="tabpanel" aria-labelledby="current-mode-tab">
         <section id="scan-settings" class="scan-card" aria-labelledby="scope-heading">
           <div class="scan-intro">
-            <div>
-              <p class="eyebrow">Check this page</p>
-              <h1 id="scope-heading">Choose what to review</h1>
-            </div>
-            <span id="profile-badge" class="profile-badge">Detecting site</span>
+            <h1 id="scope-heading">Check this page</h1>
+            <span id="profile-badge" class="scan-profile">Detecting site</span>
           </div>
 
           <div id="cms-lite-settings" class="profile-callout" hidden>
@@ -73,9 +70,9 @@
             </label>
           </fieldset>
 
-          <label id="colour-control-row" class="check-row">
+          <label id="colour-control-row" class="check-row scan-colour-control">
             <input id="colour-control" type="checkbox" checked>
-            <span>Content editors can change colours and styling</span>
+            <span><strong>Check colour contrast</strong><small>Include when editors can change colours and styling.</small></span>
           </label>
           <p id="scope-note" class="hint"></p>
 
@@ -129,8 +126,8 @@
                 <fieldset id="sort-order" class="review-order">
                   <legend>Review order</legend>
                   <div class="review-order-options">
-                    <label class="review-order-option"><input type="radio" name="review-order" value="type" checked> By issue type</label>
-                    <label class="review-order-option"><input type="radio" name="review-order" value="page"> In page order</label>
+                    <label class="review-order-option"><input type="radio" name="review-order" value="page" checked> In page order</label>
+                    <label class="review-order-option"><input type="radio" name="review-order" value="type"> By issue type</label>
                   </div>
                 </fieldset>
                 <button id="review-issues-button" class="button primary" type="button">Review issues</button>
@@ -162,6 +159,7 @@
               <p id="workspace-review-note" class="workspace-review-note" hidden>This review is open in a separate tab. Use <strong>Show in source tab</strong> to return to the scanned page.</p>
               <div id="guided-finding"></div>
               <nav class="finding-navigation" aria-label="Finding navigation">
+                <div id="review-toast" class="review-toast" role="status" aria-live="polite" hidden></div>
                 <button id="guided-previous" class="button secondary" type="button">Previous</button>
                 <button id="guided-next" class="button primary" type="button">Next</button>
                 <button id="next-issue-type" class="text-button next-type" type="button">Skip remaining findings of this type</button>
@@ -187,30 +185,31 @@
         <header class="feedback-heading">
           <button id="feedback-back-button" class="text-button back-button" type="button">← Back</button>
           <div class="feedback-title-row">
-            <div><p class="eyebrow">Beta testing</p><h1 id="feedback-heading">Feedback notes</h1></div>
+            <h1 id="feedback-heading">Feedback notes</h1>
             <span id="feedback-ready-count" class="profile-badge">0 saved</span>
           </div>
-          <p>Add notes while you test. Unsent notes stay on this device until you send or delete them. Sent notes are removed after 30 days.</p>
+          <p>Save notes about findings, missed issues or ideas.</p>
           <button id="add-feedback-button" class="button secondary" type="button">Add feedback</button>
         </header>
 
-        <div id="feedback-empty" class="empty-state">
-          <strong>No feedback notes yet.</strong><br>Add a note about a missed issue, an incorrect result, an extension problem or an idea.
-        </div>
-        <div id="feedback-list" class="feedback-list"></div>
-
         <section id="feedback-send-panel" class="feedback-send-panel" aria-labelledby="send-feedback-heading">
-          <p class="eyebrow">Send your feedback</p>
           <h2 id="send-feedback-heading">Email your saved notes</h2>
           <p id="feedback-send-status"><strong>0 notes are saved on this device.</strong> They have not been sent.</p>
-          <p>If your notes do not fit in one email, the checker keeps the rest for the next one.</p>
           <button id="create-feedback-email" class="button primary" type="button">Create feedback email</button>
           <div class="feedback-export-actions">
             <button id="copy-feedback-report" class="text-button" type="button">Copy report</button>
             <button id="export-feedback-csv" class="text-button" type="button">Export CSV</button>
           </div>
-          <p class="feedback-reminder">Sent notes remain available below for 30 days and do not take up space in the next feedback email.</p>
         </section>
+
+        <details id="pending-feedback" class="feedback-notes-disclosure">
+          <summary>Unsent feedback <span id="pending-feedback-count">(0)</span></summary>
+          <p>Unsent notes stay on this device until you send or delete them.</p>
+          <div id="feedback-empty" class="empty-state">
+            <strong>No unsent feedback notes.</strong><br>Select Add feedback to save a new note.
+          </div>
+          <div id="feedback-list" class="feedback-list"></div>
+        </details>
 
         <details id="archived-feedback" class="archived-feedback" hidden>
           <summary>Sent feedback <span id="archived-feedback-count"></span></summary>

@@ -181,6 +181,38 @@ async function scan(page, html, options = {}) {
   assert.ok(jumpFinding);
   assert.equal(jumpFinding.diagnostics.some(message => /points to H3 “Documents”/.test(message)), true);
 
+  const mixedJumpLinks = await scan(page, `
+    <main><h1>Application guide</h1><h2 id="contents">On this page</h2><ul>
+      <li><a href="#access">Access</a></li>
+      <li><a href="#documents">Documents</a></li>
+      <li><a href="#note">Note</a></li>
+      <li><a href="#beta">Different label</a></li>
+      <li><a href="#beta">Beta</a></li>
+      <li><a href="#contents">On this page</a></li>
+    </ul><h2 id="alpha">Alpha</h2><p>Alpha content.</p>
+      <h2 id="beta">Beta</h2><p>Beta content.</p>
+      <h2 id="gamma">Gamma</h2><p>Gamma content.</p>
+      <h3 id="documents">Documents</h3><p id="note">A non-heading target exists here.</p>
+    </main>`);
+  const mixedJumpFinding = mixedJumpLinks.issues.find(issue => issue.ruleId === "on-this-page-links");
+  assert.ok(mixedJumpFinding);
+  const diagnosticKinds = new Set(mixedJumpFinding.diagnosticItems.map(item => item.kind));
+  ["missing-target", "target-not-heading", "wrong-heading-level", "excluded-heading", "repeated-target", "wrong-order", "text-mismatch", "missing-link"].forEach(kind => {
+    assert.ok(diagnosticKinds.has(kind), `Compact mismatch evidence must retain ${kind}`);
+  });
+  assert.equal(mixedJumpFinding.diagnosticItems.length, mixedJumpFinding.diagnostics.length, "Every mismatch must retain both compact and full diagnostic evidence");
+  assert.match(mixedJumpFinding.diagnosticItems.find(item => item.target === "#access").detail, /No matching destination/);
+  assert.match(mixedJumpFinding.diagnosticItems.find(item => item.target === "#note").detail, /target exists/);
+  assert.equal(mixedJumpLinks.issues.some(issue => issue.ruleId === "broken-anchor" && /#note/.test(issue.evidence)), false, "An existing non-heading target must not become a missing-anchor finding");
+  const missingAccessTarget = mixedJumpLinks.issues.find(issue => issue.ruleId === "broken-anchor" && /#access/.test(issue.evidence));
+  assert.equal(missingAccessTarget.diagnosticItems[0].target, "#access");
+  assert.match(missingAccessTarget.diagnosticItems[0].detail, /No matching destination/);
+
+  const suggestedJumpTarget = await scan(page, '<main><h1>Access guide</h1><p><a href="#access">Access</a></p><h2 id="access-details">Access</h2><p>Access details.</p></main>');
+  const suggestedJumpFinding = suggestedJumpTarget.issues.find(issue => issue.ruleId === "broken-anchor");
+  assert.equal(suggestedJumpFinding.suggestedTarget, "#access-details", "The proposed target must remain separate from the missing current target");
+  assert.equal(suggestedJumpFinding.diagnosticItems[0].target, "#access");
+
   const cmsComponents = await scan(page, `
     <main class="topicMain__container"><h1>CMS Lite content</h1>
       <section id="cmf-ui-supplementary-content"><h2>Help &amp; Support</h2><p>Supplemental authored content.</p></section>

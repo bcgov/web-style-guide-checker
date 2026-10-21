@@ -279,8 +279,8 @@ function cacheElements() {
     "permission-dialog", "permission-close", "permission-linked", "permission-revoke", "permission-status", "settings-permission-button",
     "page-review-data-count", "batch-data-count", "unsent-feedback-data-count", "sent-feedback-data-count", "allowed-terms-data-count", "page-preferences-data-count", "data-management-status",
     "clear-page-reviews", "clear-batch-data", "clear-unsent-feedback", "clear-sent-feedback", "clear-allowed-terms", "clear-page-preferences",
-    "note-dialog", "note-form", "note-finding-name", "note-important", "note-text", "note-cancel", "toast",
-    "feedback-view", "feedback-back-button", "feedback-ready-count", "add-feedback-button", "feedback-empty", "feedback-list", "feedback-send-panel", "feedback-send-status",
+    "note-dialog", "note-form", "note-finding-name", "note-important", "note-text", "note-cancel", "toast", "review-toast",
+    "feedback-view", "feedback-back-button", "feedback-ready-count", "add-feedback-button", "feedback-empty", "feedback-list", "feedback-send-panel", "feedback-send-status", "pending-feedback-count",
     "create-feedback-email", "copy-feedback-report", "export-feedback-csv", "archived-feedback", "archived-feedback-count", "archived-feedback-list",
     "feedback-dialog", "feedback-form", "feedback-dialog-heading", "feedback-dialog-close", "feedback-type", "feedback-text", "feedback-important",
     "feedback-context-section", "feedback-include-context", "feedback-context-preview", "feedback-cancel", "feedback-email-dialog", "feedback-email-message", "feedback-email-close",
@@ -818,10 +818,14 @@ async function requestPagePermission(url) {
 }
 
 function showToast(message) {
-  elements.toast.textContent = message;
-  elements.toast.hidden = false;
+  const reviewToast = elements["review-toast"];
+  const target = reviewToast && reviewToast.parentElement.getClientRects().length ? reviewToast : elements.toast;
+  elements.toast.hidden = true;
+  if (reviewToast) reviewToast.hidden = true;
+  target.textContent = message;
+  target.hidden = false;
   clearTimeout(showToast.timeout);
-  showToast.timeout = setTimeout(() => { elements.toast.hidden = true; }, 1800);
+  showToast.timeout = setTimeout(() => { target.hidden = true; }, 1800);
 }
 
 function retainedFeedbackNotes(notes, now = Date.now()) {
@@ -1045,21 +1049,20 @@ function updateSettingsExplanation() {
   elements["standard-scope-settings"].hidden = isCmsLite;
   elements["cms-whole-scan"].disabled = cmsEditor;
   elements["colour-control-row"].hidden = settings.scope === "whole" || isCmsLite;
+  elements["scope-note"].hidden = !isCmsLite && settings.scope === "content";
   if (cmsEditor) {
-    elements["scope-note"].textContent = "Checks the editable CMS Lite fields. Check the QA or live page for the full page structure, metadata and colour contrast.";
+    elements["scope-note"].textContent = "Check the QA or live page for page structure, metadata and colour contrast.";
   } else if (settings.scope === "whole") {
-    elements["scope-note"].textContent = "Checks the full page, including navigation, footer, controls and colour contrast.";
+    elements["scope-note"].textContent = "Includes colour contrast checks.";
   } else if (isCmsLite) {
-    elements["scope-note"].textContent = "Checks the page title and editable content. Site-wide template elements and colour contrast are not included.";
+    elements["scope-note"].textContent = "The page template and colour contrast are excluded.";
   } else {
-    elements["scope-note"].textContent = settings.canControlColour
-      ? "Checks the page title and main content, including colour contrast."
-      : "Checks the page title and main content. Colour contrast is not included.";
+    elements["scope-note"].textContent = "";
   }
-  elements["section-scope-label"].textContent = state.selectedSection
+  elements["section-scope-label"].textContent = settings.scope === "whole" ? "Whole page selected" : state.selectedSection
     ? `${state.selectedSection.level} — ${state.selectedSection.text}`
-    : "Entire editable content selected";
-  elements["clear-section-button"].hidden = !state.selectedSection;
+    : isCmsLite ? "All editable content" : "All page content";
+  elements["clear-section-button"].hidden = settings.scope === "whole" || !state.selectedSection;
   elements["choose-section-button"].disabled = settings.scope === "whole";
 }
 
@@ -1395,7 +1398,7 @@ async function syncActiveTab() {
     if (elements["status-filter"]) elements["status-filter"].value = "open";
     if (elements["severity-filter"]) elements["severity-filter"].value = "all";
     if (elements["category-filter"]) elements["category-filter"].value = "all";
-    setReviewOrder("type");
+    setReviewOrder("page");
     if (elements["important-filter"]) elements["important-filter"].checked = false;
     state.activePageKey = nextPageKey;
   }
@@ -3973,8 +3976,11 @@ function renderCurrentReport() {
   const openTotal = counts.fix + counts.check + counts.review;
   const selectedSeverity = elements["severity-filter"].value || "all";
   elements.counts.innerHTML = [
-    ["all", openTotal, "All"], ["fix", counts.fix, "Fix"], ["check", counts.check, "Check"], ["review", counts.review, "Review"]
-  ].map(([severity, count, label]) => `<button class="severity-filter${selectedSeverity === severity ? " is-selected" : ""}" type="button" data-severity="${severity}" aria-pressed="${selectedSeverity === severity}"><strong>${count}</strong><span>${label}</span></button>`).join("");
+    ["all", openTotal, "All", "All open findings."],
+    ["fix", counts.fix, "Fix", "Potential issues flagged for correction."],
+    ["check", counts.check, "Check", "Findings that need a closer check."],
+    ["review", counts.review, "Review", "Findings that need editorial judgement."]
+  ].map(([severity, count, label, description]) => `<button class="severity-filter${selectedSeverity === severity ? " is-selected" : ""}" type="button" data-severity="${severity}" aria-pressed="${selectedSeverity === severity}" aria-label="Show ${severity === "all" ? "all " : ""}${count} ${severity === "all" ? "" : `${label} `}finding${count === 1 ? "" : "s"}" aria-description="${description}" title="${description}"><strong>${count}</strong><span class="severity-label">${label}</span></button>`).join("");
   elements["findings-tab-count"].textContent = `(${openTotal})`;
   elements["reviewed-count"].textContent = String(counts.ignored + counts.resolved);
   const existingCategory = elements["category-filter"].value || "all";
@@ -4016,12 +4022,12 @@ function findingAmount(finding) {
 
 function selectedReviewOrder() {
   const selected = elements["sort-order"] && elements["sort-order"].querySelector('input[name="review-order"]:checked');
-  return selected && selected.value === "page" ? "page" : "type";
+  return selected && selected.value === "type" ? "type" : "page";
 }
 
 function setReviewOrder(value) {
   if (!elements["sort-order"]) return;
-  const order = value === "page" ? "page" : "type";
+  const order = value === "type" ? "type" : "page";
   elements["sort-order"].querySelectorAll('input[name="review-order"]').forEach(input => {
     input.checked = input.value === order;
   });
@@ -4347,18 +4353,36 @@ function evidenceTextForExport(finding) {
 }
 
 function renderedEvidence(finding) {
+  const missingAnchor = finding.ruleId === "broken-anchor" && Array.isArray(finding.diagnosticItems)
+    ? finding.diagnosticItems.find(item => item && item.kind === "missing-target") : null;
+  if (missingAnchor) return `<div class="evidence" style="overflow-wrap:anywhere; min-width:0;"><p>${highlightedEvidence(finding)}</p><p class="anchor-evidence-status">${escapeHtml(missingAnchor.detail)}</p></div>`;
   const structured = structuredEvidenceParts(finding);
   if (structured) {
-    const links = structured.links.map((link, index) => `
-      <div style="${index ? "margin-top:0.8rem;" : ""} min-width:0;">
-        ${link.label ? `<div style="font-weight:600;">${escapeHtml(link.label)}</div>` : ""}
-        <div style="white-space:normal; overflow-wrap:anywhere; word-break:break-word; min-width:0; max-width:100%;">${escapeHtml(link.text)}</div>
-        ${link.url ? `<div style="margin-top:0.15rem; color:#4a5568; white-space:normal; overflow-wrap:anywhere; word-break:break-word; min-width:0; max-width:100%;">${escapeHtml(link.url)}</div>` : ""}
+    const links = structured.links.map(link => `
+      <div class="structured-evidence-link">
+        ${link.label ? `<strong>${escapeHtml(link.label)}</strong>` : ""}
+        <div>${escapeHtml(link.text)}</div>
+        ${link.url ? `<span class="evidence-url">${escapeHtml(link.url)}</span>` : ""}
       </div>`).join("");
     return `<div class="evidence" style="overflow-wrap:anywhere; min-width:0;">
-      <div style="white-space:normal; overflow-wrap:anywhere; word-break:break-word;">${escapeHtml(structured.summary)}</div>
-      ${links ? `<div style="border-top:1px solid #d6dbe1; margin-top:0.7rem; padding-top:0.7rem;">${links}</div>` : ""}
+      <p>${escapeHtml(structured.summary)}</p>
+      ${links ? `<div class="structured-evidence-links">${links}</div>` : ""}
     </div>`;
+  }
+  const evidence = String(finding.evidence || "");
+  if (evidence.length > 240) {
+    const match = String(finding.matchText || finding.flaggedToken || "");
+    const requestedIndex = Number.isInteger(finding.evidenceMatchIndex) && finding.evidenceMatchIndex >= 0
+      ? finding.evidenceMatchIndex : Number.isInteger(finding.matchIndex) ? finding.matchIndex : -1;
+    const matchIndex = match && Number.isInteger(requestedIndex) && requestedIndex >= 0 && evidence.slice(requestedIndex, requestedIndex + match.length).toLowerCase() === match.toLowerCase()
+      ? requestedIndex : match ? evidence.toLowerCase().indexOf(match.toLowerCase()) : -1;
+    const start = matchIndex >= 0 ? Math.max(0, matchIndex - 80) : 0;
+    const end = Math.min(evidence.length, Math.max(start + 200, matchIndex + match.length));
+    if (start > 0 || end < evidence.length) {
+      const prefix = start > 0 ? "… " : "";
+      const preview = `${prefix}${evidence.slice(start, end)}${end < evidence.length ? " …" : ""}`;
+      return `<div class="evidence" style="overflow-wrap:anywhere; min-width:0;"><p>${highlightedEvidence({ ...finding, evidence: preview, evidenceMatchIndex: matchIndex >= 0 ? matchIndex - start + prefix.length : -1, matchIndex: -1 })}</p><details class="evidence-details"><summary>Read full evidence</summary><p>${highlightedEvidence(finding)}</p></details></div>`;
+    }
   }
   return `<p class="evidence" style="overflow-wrap:anywhere; min-width:0;">${highlightedEvidence(finding)}</p>`;
 }
@@ -4379,6 +4403,24 @@ function editorDataAttributes(item) {
   return `data-editor-region="${Number(item && item.editorRegion) || ""}" data-editor-id="${escapeHtml(textareaId)}"`;
 }
 
+function renderedFindingDiagnostics(finding) {
+  const items = Array.isArray(finding.diagnosticItems) ? finding.diagnosticItems.filter(item => item && typeof item === "object" && !(finding.ruleId === "broken-anchor" && item.kind === "missing-target")) : [];
+  const targetInAction = finding.suggestedTarget && [finding.suggestion, ...(Array.isArray(finding.suggestionSteps) ? finding.suggestionSteps : [])].join(" ").includes(finding.suggestedTarget);
+  const diagnostics = Array.isArray(finding.diagnostics) ? finding.diagnostics.filter(item => !(finding.ruleId === "broken-anchor" && targetInAction && /^Matching heading found:/.test(item))) : [];
+  if (!items.length && !diagnostics.length) return "";
+  const groups = new Map();
+  items.forEach(item => {
+    const label = String(item.label || "");
+    const target = String(item.target || "");
+    const key = JSON.stringify([label, target]);
+    if (!groups.has(key)) groups.set(key, { label, target, details: new Set() });
+    if (item.detail) groups.get(key).details.add(String(item.detail));
+  });
+  const rows = Array.from(groups.values()).map(item => `<li><div class="diagnostic-item-heading"><strong>${escapeHtml(item.label)}</strong>${item.target ? `<code>${escapeHtml(item.target)}</code>` : ""}</div>${Array.from(item.details).map(detail => `<p>${escapeHtml(detail)}</p>`).join("")}</li>`).join("");
+  const additional = items.length && finding.ruleId === "on-this-page-links" ? [] : diagnostics;
+  return `<section class="finding-diagnostics" aria-label="Details to review"><strong>${finding.ruleId === "on-this-page-links" ? "Links and headings to review" : "Details to review"}</strong>${rows ? `<ul class="finding-diagnostic-items">${rows}</ul>` : ""}${additional.length ? `<ul class="finding-diagnostic-list">${additional.map(item => `<li>${escapeHtml(item)}</li>`).join("")}</ul>` : ""}</section>`;
+}
+
 function renderFinding(finding) {
   const status = effectiveStatus(finding);
   const canReview = status === "open";
@@ -4386,29 +4428,31 @@ function renderFinding(finding) {
   const feedbackCount = feedbackNotesForFinding(finding).length;
   const showResponsibility = !state.activeReport || state.activeReport.settings.profile !== "cms-lite" || state.activeReport.settings.scope === "whole";
   const markerOnlyMatch = new Set(["double-space", "non-breaking-space", "link-trailing-space", "semicolon", "acronym-definition-format"]).has(finding.ruleId);
+  const match = String(finding.matchText || finding.flaggedToken || "");
+  const evidenceContainsMatch = match && String(finding.evidence || "").toLowerCase().includes(match.toLowerCase());
+  const showReplacement = finding.replacement && !markerOnlyMatch
+    && ![finding.suggestion, ...(Array.isArray(finding.suggestionSteps) ? finding.suggestionSteps : [])].join(" ").includes(finding.replacement);
+  const showSuggestedTarget = finding.suggestedTarget && ![finding.suggestion, ...(Array.isArray(finding.suggestionSteps) ? finding.suggestionSteps : [])].join(" ").includes(finding.suggestedTarget);
   return `
     <article class="finding ${escapeHtml(finding.severity)} ${escapeHtml(status)}${note.important ? " is-important" : ""}" data-fingerprint="${escapeHtml(finding.fingerprint)}" tabindex="-1">
       <div class="finding-top">
         <h3>${note.important ? `<span class="important-star" aria-label="Important">★</span>` : ""}${escapeHtml(finding.title)}</h3>
         <div class="badges">
           <span class="badge ${escapeHtml(finding.severity)}">${escapeHtml(sentenceLabel(finding.severity))}</span>
-          ${showResponsibility ? `<span class="badge owner">${escapeHtml(finding.responsibility)}</span>` : ""}
           ${status !== "open" ? `<span class="badge status">${escapeHtml(sentenceLabel(status))}</span>` : ""}
         </div>
       </div>
-      <p><strong>What to review</strong><br>${escapeHtml(finding.why)}</p>
-      ${finding.location ? `<p class="finding-location"><strong>Where on the page:</strong> ${escapeHtml(finding.location)}</p>` : ""}
-      ${renderedContrastDetails(finding)}
-      ${(finding.matchText || finding.flaggedToken) && !markerOnlyMatch ? `<p class="match-callout"><strong>Flagged wording:</strong> <mark>${escapeHtml(finding.matchText || finding.flaggedToken)}</mark>${finding.replacement ? ` → ${escapeHtml(finding.replacement)}` : ""}</p>` : ""}
-      ${finding.exceptionEligible && finding.proposedPhrase && finding.proposedPhrase !== finding.flaggedToken ? `<p class="term-context"><strong>Exact-term option:</strong> “${escapeHtml(finding.proposedPhrase)}”</p>` : ""}
-      ${finding.evidence ? `<div><strong>Evidence</strong>${renderedEvidence(finding)}</div>` : ""}
-      ${finding.suggestedTarget ? `<p class="target-suggestion"><strong>Suggested target:</strong> <code>${escapeHtml(finding.suggestedTarget)}</code></p>` : ""}
-      ${finding.diagnostics && finding.diagnostics.length ? `<div class="finding-diagnostics"><strong>What does not match</strong><ul>${finding.diagnostics.map(item => `<li>${escapeHtml(item)}</li>`).join("")}</ul></div>` : ""}
+      <p class="finding-explanation">${escapeHtml(finding.why)}</p>
       ${finding.occurrenceCount > 1 ? `<p class="occurrences">${finding.occurrenceCount} identical occurrences</p>` : ""}
+      ${match && !markerOnlyMatch && !evidenceContainsMatch ? `<p class="match-callout"><strong>Flagged wording:</strong> <mark>${escapeHtml(match)}</mark></p>` : ""}
+      ${finding.evidence || finding.evidenceLines?.length ? `<div class="finding-evidence"><strong>Evidence</strong>${renderedEvidence(finding)}</div>` : ""}
+      ${renderedContrastDetails(finding)}
+      ${renderedFindingDiagnostics(finding)}
       ${Array.isArray(finding.suggestionSteps) && finding.suggestionSteps.length
         ? `<div class="suggestion"><strong>Suggested actions:</strong><ol>${finding.suggestionSteps.map(step => `<li>${escapeHtml(step)}</li>`).join("")}</ol></div>`
         : `<p class="suggestion"><strong>Suggested action:</strong> ${escapeHtml(finding.suggestion)}</p>`}
-      ${note.text ? `<div class="audit-note"><strong>Audit note</strong><p>${escapeHtml(note.text)}</p></div>` : ""}
+      ${showReplacement ? `<p class="term-context"><strong>Suggested wording:</strong> ${escapeHtml(finding.replacement)}</p>` : ""}
+      ${showSuggestedTarget ? `<p class="target-suggestion"><strong>Suggested target:</strong> <code>${escapeHtml(finding.suggestedTarget)}</code></p>` : ""}
       <div class="finding-footer">
         <div class="finding-actions">
           ${finding.selector ? `<button
@@ -4419,11 +4463,23 @@ function renderFinding(finding) {
              ${workspaceSurface ? "Show in source tab" : "Show again on page"}
 </button>` : ""}
           ${canReview ? `<button class="small-button decision-button resolve-button" type="button" data-status="resolved">Mark resolved</button><button class="small-button decision-button" type="button" data-status="ignored">Ignore finding</button>` : `<button class="small-button reopen-button" type="button">Reopen finding</button>`}
-          ${canReview && finding.exceptionEligible ? `<button class="small-button exception-button" type="button">${finding.ruleId === "proofreading-pubic" ? "Ignore on this page" : "Always allow exact term"}</button>` : ""}
-          <button class="small-button note-button" type="button">${note.text || note.important ? "Edit note or importance" : "Add note or importance"}</button>
         </div>
-      <div class="reference-guidance"><strong>Reference guidance:</strong> <a href="${escapeHtml(finding.sourceUrl)}" target="_blank" rel="noreferrer">${escapeHtml(finding.sourceLabel)} — B.C. Web Style Guide</a></div>        <button class="text-button finding-feedback-action" type="button">${feedbackCount ? "Edit feedback about this result" : "Add feedback about this result"}</button>
       </div>
+      <section class="finding-details" aria-label="Details and tools">
+        <h4>Details and tools</h4>
+        <dl class="finding-detail-list">
+          ${finding.location ? `<div class="finding-location"><dt>Location:</dt> <dd>${escapeHtml(finding.location)}</dd></div>` : ""}
+          ${showResponsibility && finding.responsibility ? `<div class="finding-responsibility"><dt>Review area:</dt> <dd>${escapeHtml(finding.responsibility)}</dd></div>` : ""}
+          ${finding.exceptionEligible && finding.proposedPhrase && finding.proposedPhrase !== finding.flaggedToken ? `<div><dt>Exact-term option:</dt> <dd>“${escapeHtml(finding.proposedPhrase)}”</dd></div>` : ""}
+          ${note.text ? `<div class="audit-note"><dt>Note:</dt> <dd>${escapeHtml(note.text)}</dd></div>` : ""}
+          <div class="reference-guidance"><dt>Reference:</dt> <dd><a href="${escapeHtml(finding.sourceUrl)}" target="_blank" rel="noreferrer">${escapeHtml(finding.sourceLabel)} — B.C. Web Style Guide</a></dd></div>
+        </dl>
+        <div class="finding-secondary-actions">
+          <button class="text-button note-button" type="button" aria-label="${note.text || note.important ? "Edit note or importance" : "Add note or importance"}">${note.text || note.important ? "Edit note" : "Add note"}</button>
+          <button class="text-button finding-feedback-action" type="button" aria-label="${feedbackCount ? `Edit feedback about this result (${feedbackCount} saved)` : "Add feedback about this result"}">${feedbackCount ? `Edit feedback (${feedbackCount})` : "Add feedback"}</button>
+          ${canReview && finding.exceptionEligible ? `<button class="text-button exception-button" type="button">${finding.ruleId === "proofreading-pubic" ? "Ignore on this page" : "Always allow exact term"}</button>` : ""}
+        </div>
+      </section>
     </article>`;
 }
 
@@ -4487,8 +4543,11 @@ function renderReviewView() {
     button.setAttribute("aria-selected", String(selected));
     button.tabIndex = selected ? 0 : -1;
   });
-  elements["list-controls"].hidden = state.reviewView !== "review";
   const findingDetail = state.reviewView === "review" && state.reviewMode === "detail";
+  const showListControls = state.reviewView === "review" && (!findingDetail || workspaceSurface);
+  elements["list-controls"].hidden = !showListControls;
+  const summary = document.querySelector(".review-summary");
+  if (summary) summary.hidden = !showListControls;
   elements["list-review-panel"].hidden = state.reviewView !== "review" || (findingDetail && !workspaceSurface);
   elements["guided-review-panel"].hidden = !findingDetail;
   elements["page-details-panel"].hidden = state.reviewView !== "details";
@@ -4697,11 +4756,11 @@ function renderPageDetails(section = "overview") {
   const linkCheckText = linkCheck
     ? linkCheck.state === "permission-denied"
       ? `Website access declined · 0 of ${linkCheck.totalFound || 0} checked`
-      : `${linkCheck.completed || 0} of ${linkCheck.totalFound || 0} checked · ${resultCategoryCounts.problems || 0} problems · ${resultCategoryCounts.review || 0} need review · ${resultCategoryCounts.working || 0} working`
+      : `${linkCheck.completed || 0} of ${linkCheck.totalFound || 0} checked${linkCheck.state === "paused" ? " · Paused" : linkCheck.state === "running" ? " · Checking" : linkCheck.state === "stopped" ? " · Stopped" : ""}`
     : "Not checked yet";
   const renderLinkResult = result => `
     <li class="link-result ${escapeHtml(result.status)}">
-      <div class="link-result-heading"><span class="status-label ${escapeHtml(result.status)}">${escapeHtml(linkResultLabel(result.status))}</span>${result.code ? `<strong>HTTP ${result.code}</strong>` : ""}${result.link.occurrences > 1 ? `<span>${result.link.occurrences} occurrences</span>` : ""}</div>
+      <div class="link-result-heading"><span class="status-label ${escapeHtml(result.status)}">${escapeHtml(linkResultLabel(result.status))}</span>${result.code ? `<strong>HTTP ${escapeHtml(result.code)}</strong>` : ""}${result.link.occurrences > 1 ? `<span>${escapeHtml(result.link.occurrences)} occurrences</span>` : ""}</div>
       <strong>${escapeHtml(result.link.text || "[No accessible name]")}</strong>
       ${result.link.location ? `<span class="link-redirect">Under: ${escapeHtml(result.link.location)}</span>` : ""}
       <span class="link-destination">${escapeHtml(result.link.href)}</span>
@@ -4710,7 +4769,7 @@ function renderPageDetails(section = "overview") {
       ${result.liveCheckedUrl ? `<span class="link-redirect">Live: ${escapeHtml(result.liveStatus === "ok" ? "Working" : result.liveStatus === "broken" ? "Not found" : sentenceLabel(result.liveStatus))}${result.liveCode ? ` · HTTP ${escapeHtml(result.liveCode)}` : ""}</span>` : result.qaLive && result.checkedUrl ? `<span class="link-redirect">Checked live version: ${escapeHtml(result.checkedUrl)}</span>` : result.redirected && result.finalUrl && result.finalUrl !== result.link.href ? `<span class="link-redirect">Redirects to ${escapeHtml(result.finalUrl)}</span>` : ""}
       ${result.status === "session-ok" && result.accessMode === "current-session" && !result.qaCheckedUrl ? `<span class="link-redirect">${result.link.cmsLiteEditorLink ? "Verified using the open CMS Lite editor session." : "Verified using your current browser access. Other users may have different access."}</span>` : ""}
       ${result.error ? `<span class="link-error">${escapeHtml(result.error)}</span>` : ""}
-      <div class="link-result-actions">${result.link.selector ? `<button class="button tertiary compact detail-jump" type="button" data-selector="${escapeHtml(result.link.selector)}" ${editorDataAttributes(result.link)}>${workspaceSurface ? "Show in source tab" : "Show on page"}</button>` : ""}<button class="button tertiary compact open-background-link" type="button" data-url="${escapeHtml(result.link.href)}">Open in background</button></div>
+      <div class="link-result-actions">${result.link.selector ? `<button class="text-button detail-jump" type="button" data-selector="${escapeHtml(result.link.selector)}" ${editorDataAttributes(result.link)}>${workspaceSurface ? "Show in source tab" : "Show on page"}</button>` : ""}<button class="text-button open-background-link" type="button" data-url="${escapeHtml(result.link.href)}">Open in background</button></div>
     </li>`;
   const linkResultGroups = linkCheck && Array.isArray(linkCheck.results) ? LINK_RESULT_GROUPS.map(group => {
     const statusGroups = group.buckets.map(bucket => {
@@ -4723,10 +4782,9 @@ function renderPageDetails(section = "overview") {
     const count = resultCategoryCounts[group.key] || 0;
     return `<section class="link-result-category ${escapeHtml(group.key)}" aria-label="${escapeHtml(group.label)}">
       <div class="link-result-category-heading">
-        <div><strong>${escapeHtml(group.label)}</strong><span>${escapeHtml(group.description)}</span></div>
+        <div><h3>${escapeHtml(group.label)}<span class="link-result-category-count">(${count})</span></h3><p>${escapeHtml(group.description)}</p></div>
         <div class="link-result-category-heading-actions">
           <button class="text-button link-result-category-toggle" type="button" data-link-category-toggle="${escapeHtml(group.key)}" data-link-category-label="${escapeHtml(group.label)}" aria-expanded="false" aria-label="Expand all ${escapeHtml(group.label)} results">Expand all</button>
-          <span class="link-result-category-count">${count}</span>
         </div>
       </div>
       <div class="link-result-category-groups">${statusGroups.join("")}</div>
@@ -4766,10 +4824,32 @@ function renderPageDetails(section = "overview") {
 
   if (section === "links") {
     const linkCheckButtonLabel = linkCheck && linkCheck.state === "permission-denied" ? "Allow access and check links" : linkCheck ? "Check again" : "Check links";
-    const permissionHelp = linkCheck && linkCheck.state === "permission-denied"
+    const permissionWarning = linkCheck && linkCheck.state === "permission-denied"
       ? `<p class="detail-help permission-warning"><strong>No links were checked.</strong> Select “Allow access and check links” and approve the browser prompt.</p>`
-      : `<p class="detail-help">CMS Lite links are checked in QA and live when applicable.<br><br>Most other links are checked without signing in. For supported internal sites, the checker can use your current browser access. It does not read or store your sign-in information.</p>`;
-    elements["page-details"].innerHTML = `${back}<h2>Links and assets</h2><section class="link-check-panel"><div><strong>Check whether links work</strong><span>${linkCheckText}</span></div>${linkCheck ? `<progress class="link-check-progress" max="${Math.max(1, linkCheck.totalFound || 1)}" value="${linkCheck.completed || 0}">${linkCheck.completed || 0} of ${linkCheck.totalFound || 0}</progress>` : ""}<div class="link-check-actions">${state.linkCheckRunning ? `<button class="button secondary compact link-check-pause" type="button">${state.linkCheckPaused ? "Resume" : "Pause"}</button><button class="button tertiary compact link-check-stop" type="button">Stop</button>` : `<button class="button primary compact link-check-button" type="button">${linkCheckButtonLabel}</button>`}<button class="button secondary compact manage-permissions-button" type="button">Website access</button></div>${permissionHelp}</section>${linkCheck ? (linkResultGroups || `<div class="empty-state">No individual link results are available.</div>`) : `<div class="empty-state">Check the links to see each destination and its result.</div>`}<details class="detail-section"><summary>All page links (${details.links.length})</summary><ul class="detail-list">${details.links.length ? details.links.map(link => { const asset = assetBySelector.get(assetKey(link)); const verification = asset ? ` · asset ${String(asset.verificationStatus || "not checked").replace(/-/g, " ")}${asset.actualSize ? ` · ${displayBytes(asset.actualSize)}` : ""}` : ""; return `<li><button class="detail-jump" type="button" data-selector="${escapeHtml(link.selector)}" ${editorDataAttributes(link)}><strong>${escapeHtml(link.text || "[No accessible name]")}</strong><br><span class="component-note">${escapeHtml(link.location || "Page content")} · ${escapeHtml(link.href)}${escapeHtml(verification)}</span></button></li>`; }).join("") : `<li class="detail-empty-row">No visible links found.</li>`}</ul></details>`;
+      : "";
+    const linkHelpOpen = Boolean(elements["page-details"].querySelector(".link-check-help")?.open);
+    const allPageLinks = details.links.map(link => {
+      const asset = assetBySelector.get(assetKey(link));
+      const verification = asset ? ` · Asset ${String(asset.verificationStatus || "not checked").replace(/-/g, " ")}${asset.actualSize ? ` · ${displayBytes(asset.actualSize)}` : ""}` : "";
+      return `<li><button class="detail-jump page-link-item" type="button" data-selector="${escapeHtml(link.selector)}" ${editorDataAttributes(link)}><strong>${escapeHtml(link.text || "[No accessible name]")}</strong><span class="page-link-url">${escapeHtml(link.href)}</span><span class="page-link-meta">${escapeHtml(link.location || "Page content")}${escapeHtml(verification)}</span></button></li>`;
+    }).join("");
+    elements["page-details"].innerHTML = `${back}<h2>Links and assets</h2>
+      <section class="link-check-panel" aria-label="Link checking">
+        <div class="link-check-toolbar">
+          <div class="link-check-actions">${state.linkCheckRunning ? `<button class="button secondary compact link-check-pause" type="button">${state.linkCheckPaused ? "Resume" : "Pause"}</button><button class="button tertiary compact link-check-stop" type="button">Stop</button>` : `<button class="button primary compact link-check-button" type="button">${linkCheckButtonLabel}</button>`}</div>
+          <p class="link-check-status" role="status">${escapeHtml(linkCheckText)}</p>
+        </div>
+        ${linkCheck && ["running", "paused"].includes(linkCheck.state) ? `<progress class="link-check-progress" aria-label="Links checked" max="${Math.max(1, linkCheck.totalFound || 1)}" value="${linkCheck.completed || 0}">${linkCheck.completed || 0} of ${linkCheck.totalFound || 0}</progress>` : ""}
+        ${permissionWarning}
+        <details class="link-check-help"${linkHelpOpen ? " open" : ""}>
+          <summary>How link checks and access work</summary>
+          <p>CMS Lite links are checked in QA and live when applicable.</p>
+          <p>Most other links are checked without signing in. For supported internal sites, the checker can use your current browser access. It does not read or store your sign-in information.</p>
+          <button class="text-button manage-permissions-button" type="button">Manage website access</button>
+        </details>
+      </section>
+      ${linkCheck && linkCheck.state !== "permission-denied" ? linkResultGroups || `<p class="link-results-empty">${linkCheck.totalFound ? "No individual link results are available." : "No web links to check."}</p>` : ""}
+      <details class="detail-section"><summary>All page links (${details.links.length})</summary><ul class="detail-list">${allPageLinks || `<li class="detail-empty-row">No visible links found.</li>`}</ul></details>`;
     return;
   }
 
@@ -5885,7 +5965,8 @@ function renderFeedback() {
   elements["feedback-header-count"].textContent = String(readyCount);
   elements["feedback-header-count"].hidden = readyCount === 0;
   elements["feedback-ready-count"].textContent = `${readyCount} unsent${archived.length ? ` · ${archived.length} sent` : ""}`;
-  elements["feedback-empty"].hidden = state.feedbackNotes.length > 0;
+  elements["feedback-empty"].hidden = readyCount > 0;
+  elements["pending-feedback-count"].textContent = `(${readyCount})`;
   elements["feedback-list"].innerHTML = feedbackGroups(ready);
   if (plan.oversized) {
     elements["feedback-send-status"].innerHTML = `<strong>Send feedback before continuing.</strong> The first unsent note is too large to fit safely in one complete email. Edit that note to shorten it.`;

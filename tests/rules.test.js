@@ -170,6 +170,21 @@ function has(report, ruleId) {
 
   report = await scan(page, "<p>Choose the service that applies</p><ul><li>Apply online</li><li>Call the office</li></ul>");
   assert.equal(has(report, "list-introduction"), true);
+  for (const sharedIntroduction of [
+    "<p id='intro'>Choose the service that applies</p><ul><li>Apply online<ul><li>New applications</li><li>Renewals</li></ul></li><li>Call the office</li></ul>",
+    "<p id='intro'>Choose the service that applies</p><ul><li>Apply online</li><li>Call the office</li></ul><ul><li>Visit a counter</li><li>Mail the form</li></ul>"
+  ]) {
+    report = await scan(page, sharedIntroduction);
+    const introductions = report.issues.filter(issue => issue.ruleId === "list-introduction");
+    assert.equal(introductions.length, 1, "Lists sharing an introduction must create only one paragraph finding");
+    assert.equal(introductions[0].occurrenceCount, 1, "A shared paragraph must not be reported as identical occurrences");
+    assert.equal(report.totals["list-introduction"], 1, "Finding totals must count the paragraph once as well");
+  }
+  report = await scan(page, "<p id='first'>Choose the service that applies</p><ul><li>Apply online</li><li>Call the office</li></ul><p id='second'>Choose the service that applies</p><ul><li>Visit a counter</li><li>Mail the form</li></ul>");
+  assert.equal(report.issues.filter(issue => issue.ruleId === "list-introduction").length, 2, "Separate paragraphs with the same text must retain separate findings");
+  assert.equal(report.totals["list-introduction"], 2);
+  report = await scan(page, "<p id='outer'>Choose a service</p><ul><li>Apply online<p id='inner'>Choose an application type</p><ul><li>New applications</li><li>Renewals</li></ul></li><li>Call the office</li></ul>");
+  assert.deepEqual(report.issues.filter(issue => issue.ruleId === "list-introduction").map(issue => issue.selector).sort(), ["#inner", "#outer"], "A nested list with its own introduction must retain that finding");
   report = await scan(page, "<p>Choose a service:</p><ul><li>Apply online</li><li>Call the office</li></ul>");
   assert.equal(has(report, "list-introduction"), false);
   report = await scan(page, "<p>Learn about construction services</p><ul><li><a href='/construction'>Construction and rehabilitation contracting</a></li></ul>");
