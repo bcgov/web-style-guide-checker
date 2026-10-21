@@ -4127,6 +4127,7 @@ function renderFindings() {
   }
   elements.findings.innerHTML = groups.map(group => `
     <button class="issue-row ${escapeHtml(group.severity)}${group.ruleId === state.selectedRuleId ? " is-selected" : ""}${state.skippedRuleIds.has(group.ruleId) ? " is-skipped" : ""}" type="button" data-rule-id="${escapeHtml(group.ruleId)}">
+      ${findingCategoryIcon(group.category)}
       <span>
         <span class="issue-row-title">${escapeHtml(group.title)}</span>
         <span class="issue-row-meta"><span>${escapeHtml(sentenceLabel(group.severity))}</span><span aria-hidden="true">·</span><span>${escapeHtml(group.category)}</span>${state.skippedRuleIds.has(group.ruleId) ? `<span aria-label="Some findings skipped for this review">· Some skipped for this review</span>` : ""}${group.important || group.notes ? `<span class="issue-row-icons"><span aria-label="${group.important ? "Important" : ""}">${group.important ? "★" : ""}</span><span aria-label="${group.notes ? "Has audit note" : ""}">${group.notes ? "●" : ""}</span></span>` : ""}</span>
@@ -4626,14 +4627,43 @@ function toggleLinkResultCategory(button) {
   syncLinkResultCategoryToggle(category);
 }
 
+function findingCategoryIcon(category) {
+  const sections = {
+    "Accessibility": "accessibility",
+    "Capitalization": "capitalization",
+    "Content design": "overlays",
+    "Formatting": "formatting",
+    "Headings": "headings",
+    "Images": "images",
+    "Links": "links",
+    "Lists": "lists",
+    "Numbers and dates": "calendar",
+    "Page information": "metadata",
+    "Plain language": "plain-language",
+    "Proofreading": "proofreading",
+    "Punctuation": "punctuation",
+    "Tables": "tables"
+  };
+  return detailCardIcon(sections[category] || "metadata");
+}
+
 function detailCardIcon(section) {
   const shapes = {
     headings: '<path d="M6 5v14M18 5v14M6 12h12"/>',
     images: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/>',
-    links: '<path d="m10 13 4-4m-6 6-1 1a4 4 0 0 1-6-6l4-4a4 4 0 0 1 6 0m2 2 1-1a4 4 0 0 1 6 6l-4 4a4 4 0 0 1-6 0"/>',
+    links: '<path d="M10 8H7a4 4 0 0 0 0 8h3m4-8h3a4 4 0 0 1 0 8h-3M8 12h8"/>',
     metadata: '<path d="M14 3H5v18h14V8l-5-5Zm0 0v5h5M8 12h8M8 16h6"/>',
     statistics: '<path d="M4 4v16h16M8 16v-4m5 4V8m5 8V5"/>',
-    overlays: '<path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5"/>'
+    overlays: '<path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5"/>',
+    accessibility: '<circle cx="12" cy="4" r="2"/><path d="m4 8 8 2 8-2m-8 2v5m0 0-4 6m4-6 4 6"/>',
+    capitalization: '<path d="M3 5h12M9 5v14m6-9h6m-3 0v9"/>',
+    formatting: '<path d="M4 6h16M4 10h10M4 14h16M4 18h10"/>',
+    "plain-language": '<path d="M5 4h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-6 4V6a2 2 0 0 1 2-2ZM7 9h10M7 13h6"/>',
+    lists: '<circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/><path d="M9 6h11M9 12h11M9 18h11"/>',
+    calendar: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4m10-4v4M3 10h18M8 14h2m4 0h2m-8 3h2"/>',
+    proofreading: '<path d="m4 11 4 4L20 5M4 20h16"/>',
+    punctuation: '<path d="M4 6h6v6H4V6Zm6 6v2a4 4 0 0 1-4 4m8-12h6v6h-6V6Zm6 6v2a4 4 0 0 1-4 4"/>',
+    tables: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/>'
   };
   return `<svg class="detail-card-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${shapes[section] || ""}</svg>`;
 }

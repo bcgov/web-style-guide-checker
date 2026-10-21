@@ -296,36 +296,37 @@ legend, .field-label { display: block; margin-bottom: 7px; color: var(--navy); f
 .finding-coverage strong, .finding-coverage span { display: block; }
 .finding-coverage span { margin-top: 3px; }
 
-.findings-heading { display: flex; align-items: end; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding: 14px 12px 6px; }
-.findings-heading h2 { margin: 0; font-size: 16px; }
+.findings-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin: 16px 0 12px; padding: 12px; background: var(--surface-soft); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line-strong); }
+.findings-heading h2 { margin: 0; font-size: 18px; }
 .findings-heading span { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; }
 
-.findings { border-top: 1px solid var(--line); }
+.findings { display: grid; gap: 8px; margin: 0 12px; }
 .issue-row {
   position: relative;
   display: grid;
   width: 100%;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 10px;
   align-items: center;
   min-height: 62px;
-  padding: 9px 13px 9px 16px;
+  padding: 11px 12px;
   color: var(--ink);
   text-align: left;
   background: var(--white);
-  border: 0;
-  border-bottom: 1px solid var(--line);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--review);
+  border-radius: var(--radius-sm);
 }
-.issue-row::before { position: absolute; inset: 8px auto 8px 0; width: 4px; background: var(--review); content: ""; }
-.issue-row.fix::before { background: var(--fix); }
-.issue-row.check::before { background: var(--check); }
-.issue-row.review::before { background: var(--review); }
+.issue-row.fix { border-left-color: var(--fix); }
+.issue-row.check { border-left-color: var(--check); }
+.issue-row.review { border-left-color: var(--review); }
 .issue-row:hover { background: var(--blue-light); }
 .issue-row:focus-visible { z-index: 1; }
 .issue-row.is-selected { background: var(--blue-light); box-shadow: inset 0 0 0 2px var(--blue); }
 .issue-row.is-skipped { background: var(--surface-soft); }
+.issue-row > .detail-card-icon { width: 20px; height: 20px; }
 .issue-row-title { display: block; color: var(--navy); font-size: 14px; font-weight: 700; line-height: 1.25; }
-.issue-row-meta { display: flex; gap: 5px; align-items: center; margin-top: 4px; color: var(--muted); font-size: 11px; }
+.issue-row-meta { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; margin-top: 4px; color: var(--muted); font-size: 11px; }
 .issue-row-count { display: grid; min-width: 30px; height: 30px; place-items: center; color: var(--navy); background: var(--surface); border-radius: 999px; font-weight: 700; }
 .issue-row-icons { color: var(--check); letter-spacing: 2px; }
 
