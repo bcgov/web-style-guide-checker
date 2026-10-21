@@ -104,28 +104,17 @@
         </section>
 
         <section id="current-results" hidden>
-          <div class="page-context">
-            <div class="page-context-copy">
-              <strong id="scan-context-title">Saved page scan</strong>
-              <span id="scan-context-details"></span>
-            </div>
-            <div class="page-context-actions">
-              <button id="csv-button" class="button tertiary compact" type="button">Export</button>
-            </div>
-          </div>
-
-          <div id="stale-report-banner" class="notice warning" hidden role="status">
-            <strong id="stale-report-title">This saved review may be out of date.</strong>
-            <span id="stale-report-message">The saved findings may no longer match the current page.</span>
-            <button id="stale-rescan-button" class="text-button" type="button">Rescan page</button>
-          </div>
-
           <div class="review-shell">
             <div class="review-sticky">
               <div class="review-tabs" role="tablist" aria-label="Current page views">
                 <button id="findings-review-tab" class="review-tab is-active" type="button" data-review-view="review" role="tab" aria-controls="list-review-panel guided-review-panel" aria-selected="true">Findings <span id="findings-tab-count"></span></button>
                 <button id="details-review-tab" class="review-tab" type="button" data-review-view="details" role="tab" aria-controls="page-details-panel" aria-selected="false" tabindex="-1">Page details</button>
               </div>
+            </div>
+            <div id="stale-report-banner" class="notice warning" hidden role="status">
+              <strong id="stale-report-title">This saved review may be out of date.</strong>
+              <span id="stale-report-message">The saved findings may no longer match the current page.</span>
+              <button id="stale-rescan-button" class="text-button" type="button">Rescan page</button>
             </div>
             <div class="review-summary">
               <div id="list-controls" class="finding-controls">
@@ -137,11 +126,13 @@
 
             <section id="list-review-panel" class="review-panel" role="tabpanel" aria-labelledby="findings-review-tab">
               <section class="review-launch" aria-label="Start reviewing findings">
-                <label for="sort-order">Review order</label>
-                <select id="sort-order">
-                  <option value="type">By issue type</option>
-                  <option value="page">In page order</option>
-                </select>
+                <fieldset id="sort-order" class="review-order">
+                  <legend>Review order</legend>
+                  <div class="review-order-options">
+                    <label class="review-order-option"><input type="radio" name="review-order" value="type" checked> By issue type</label>
+                    <label class="review-order-option"><input type="radio" name="review-order" value="page"> In page order</label>
+                  </div>
+                </fieldset>
                 <button id="review-issues-button" class="button primary" type="button">Review issues</button>
                 <div id="review-skip-summary" class="review-skip-summary" hidden>
                   <span id="review-skip-message"></span>
@@ -153,16 +144,13 @@
 
               <div class="findings-heading">
                 <div><h2>Issue types</h2><span id="showing-count"></span></div>
+                <button id="link-check-shortcut" class="button secondary compact" type="button">Check links</button>
               </div>
               <div id="findings" class="findings" aria-live="polite"></div>
 
               <button id="view-reviewed-button" class="reviewed-findings" type="button">
                 <span><strong>Reviewed findings</strong><small>View ignored and resolved items</small></span>
                 <span id="reviewed-count">0</span>
-              </button>
-              <button id="link-check-shortcut" class="link-check-shortcut" type="button">
-                <span><strong>Link status</strong><small id="link-check-shortcut-status">Not checked</small></span>
-                <span>Check links</span>
               </button>
             </section>
 
@@ -183,7 +171,7 @@
             </section>
 
             <section id="page-details-panel" class="review-panel details-panel" role="tabpanel" aria-labelledby="details-review-tab" hidden>
-              <div id="page-details"></div>
+              <div id="page-details" tabindex="-1"></div>
               <details id="manual-review" class="manual-review">
                 <summary>Manual review checklist</summary>
                 <p>These checks need your judgement.</p>
@@ -385,6 +373,7 @@
         <div class="dialog-heading"><h2>Checker menu</h2><button id="more-close" class="icon-button" type="button" aria-label="Close checker menu">×</button></div>
         <div class="menu-actions">
           <button id="rescan-button" class="menu-action" type="button"><strong>Rescan page</strong><span>Review the scan options before checking the page again</span></button>
+          <button id="export-page-button" class="menu-action" type="button"><strong>Export page results</strong><span>Download or copy this page’s scan results</span></button>
           <button id="open-workspace-button" class="menu-action" type="button"><strong>Open full-page review</strong><span>Opens this review in a new browser tab</span></button>
           <button id="open-feedback-button" class="menu-action" type="button"><strong>Feedback notes</strong><span>Collect testing notes and create one feedback email</span></button>
           <button id="open-batch-button" class="menu-action" type="button"><strong>Start a batch scan</strong><span>Check several pages and create one report</span></button>

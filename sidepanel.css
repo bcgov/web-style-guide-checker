@@ -168,7 +168,7 @@ p { margin-bottom: 12px; }
 
 .scan-card, .workspace-card { margin: 16px; padding: 18px; background: var(--white); border: 1px solid var(--line); border-radius: var(--radius-sm); box-shadow: var(--shadow-card); }
 .scan-intro, .section-heading-row, .workspace-heading, .list-heading, .progress-heading, .dialog-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-.scan-intro > div, .workspace-heading > div, .page-context-copy { min-width: 0; }
+.scan-intro > div, .workspace-heading > div { min-width: 0; }
 
 .profile-badge, .badge, .status-label, .detail-flag {
   display: inline-flex;
@@ -207,7 +207,7 @@ legend, .field-label { display: block; margin-bottom: 7px; color: var(--navy); f
 .section-scan-control { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 15px 0; padding: 11px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .section-scan-control strong, .section-scan-control small { display: block; }
 .section-scan-control small { margin-top: 2px; color: var(--muted); }
-.inline-actions, .button-row, .page-context-actions, .link-check-actions, .link-result-actions, .dialog-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.inline-actions, .button-row, .link-check-actions, .link-result-actions, .dialog-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .button-row .button { flex: 1; }
 
 .button, .audit-tools button {
@@ -247,11 +247,6 @@ legend, .field-label { display: block; margin-bottom: 7px; color: var(--navy); f
 .spinner { width: 28px; height: 28px; border: 3px solid var(--blue-soft); border-top-color: var(--navy); border-radius: 50%; animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.page-context { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; background: var(--blue-light); border-bottom: 1px solid var(--blue-soft); }
-.page-context-copy strong, .page-context-copy span { display: block; }
-.page-context-copy strong { overflow: hidden; color: var(--navy); font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
-.page-context-copy span { margin-top: 1px; color: var(--muted); font-size: 11px; }
-
 .notice { display: grid; gap: 2px; margin: 10px 12px 0; padding: 10px 12px; border-left: 4px solid var(--blue); background: var(--blue-light); }
 .notice.warning { border-left-color: var(--check); background: var(--check-bg); }
 
@@ -288,9 +283,12 @@ legend, .field-label { display: block; margin-bottom: 7px; color: var(--navy); f
 .filter-chip { min-height: 28px; flex: 0 0 auto; padding: 3px 8px; color: var(--navy); background: var(--blue-light); border: 1px solid var(--blue-soft); border-radius: 999px; font-size: 12px; }
 
 .review-panel { min-height: 180px; }
-.review-launch { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; align-items: center; margin: 12px; padding: 10px; background: var(--blue-light); border-left: 4px solid var(--gold); }
-.review-launch label { color: var(--navy); font-size: 12px; font-weight: 700; }
-.review-launch select { min-width: 0; padding: 7px 8px; }
+.review-launch { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: end; margin: 12px; padding: 10px; background: var(--blue-light); border-left: 4px solid var(--gold); }
+.review-order legend { margin-bottom: 6px; color: var(--navy); font-size: 12px; }
+.review-order-options { display: flex; flex-wrap: wrap; gap: 6px; }
+.review-order-option { display: flex; align-items: center; gap: 6px; min-height: 38px; padding: 6px 9px; color: var(--navy); background: var(--white); border: 1px solid var(--line-strong); border-radius: var(--radius-sm); font-size: 12px; cursor: pointer; }
+.review-order-option:has(input:checked) { border-color: var(--navy); box-shadow: inset 0 0 0 1px var(--navy); }
+.review-order-option input { flex: 0 0 auto; width: 16px; height: 16px; margin: 0; accent-color: var(--navy); }
 .review-launch .button { min-height: 38px; white-space: nowrap; }
 .review-skip-summary { display: flex; grid-column: 1 / -1; align-items: center; justify-content: space-between; gap: 8px; padding-top: 8px; border-top: 1px solid var(--blue-soft); color: var(--muted); font-size: 12px; }
 .review-skip-summary .text-button { flex: 0 0 auto; font-size: 12px; }
@@ -298,7 +296,7 @@ legend, .field-label { display: block; margin-bottom: 7px; color: var(--navy); f
 .finding-coverage strong, .finding-coverage span { display: block; }
 .finding-coverage span { margin-top: 3px; }
 
-.findings-heading { display: flex; align-items: end; justify-content: space-between; padding: 14px 12px 6px; }
+.findings-heading { display: flex; align-items: end; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding: 14px 12px 6px; }
 .findings-heading h2 { margin: 0; font-size: 16px; }
 .findings-heading span { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; }
 
@@ -336,10 +334,6 @@ legend, .field-label { display: block; margin-bottom: 7px; color: var(--navy); f
 .reviewed-findings strong, .reviewed-findings small { display: block; }
 .reviewed-findings small { margin-top: 2px; color: var(--muted); }
 .reviewed-findings > span:last-child { display: grid; min-width: 30px; height: 30px; place-items: center; background: var(--white); border-radius: 999px; font-weight: 700; }
-.link-check-shortcut { display: flex; width: calc(100% - 24px); margin: -8px 12px 18px; padding: 10px 12px; align-items: center; justify-content: space-between; gap: 12px; color: var(--navy); background: var(--blue-light); border: 1px solid var(--blue-soft); border-left: 4px solid var(--gold); border-radius: var(--radius-sm); text-align: left; }
-.link-check-shortcut strong, .link-check-shortcut small { display: block; }
-.link-check-shortcut small { margin-top: 2px; color: var(--muted); font-size: 12px; }
-.link-check-shortcut > span:last-child { font-weight: 700; white-space: nowrap; }
 
 .empty-state { margin: 14px 12px; padding: 18px; color: var(--muted); background: var(--surface-soft); border-left: 4px solid var(--line-strong); }
 .empty-state strong { color: var(--navy); }
@@ -446,7 +440,7 @@ mark { padding: 0 2px; color: var(--ink); background: #ffe19b; }
 .details-landing { display: grid; gap: 8px; }
 .detail-card {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 10px;
   align-items: center;
   width: 100%;
@@ -464,6 +458,7 @@ mark { padding: 0 2px; color: var(--ink); background: #ffe19b; }
 .detail-card strong { color: var(--navy); }
 .detail-card span { margin-top: 2px; color: var(--muted); font-size: 12px; }
 .detail-card-count { color: var(--navy); font-weight: 700; }
+.detail-card-icon { width: 24px; height: 24px; color: var(--navy); fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
 
 .details-overview { display: grid; grid-template-columns: repeat(2, 1fr); gap: 7px; margin: 12px 0; }
 .detail-stat { padding: 10px; background: var(--surface-soft); border: 1px solid var(--line); }
@@ -713,7 +708,6 @@ body[data-surface="workspace"] { min-width: 760px; background: var(--surface-sof
 body[data-surface="workspace"] .mode-tabs { display: flex; }
 body[data-surface="workspace"] .app-view#current-view { max-width: 1200px; margin: 0 auto; padding: 24px; }
 body[data-surface="workspace"] .scan-card { max-width: 720px; margin: 20px auto; }
-body[data-surface="workspace"] .page-context { border: 1px solid var(--line); border-bottom: 0; border-radius: var(--radius-sm) var(--radius-sm) 0 0; }
 body[data-surface="workspace"] .review-shell { background: var(--white); border: 1px solid var(--line); box-shadow: var(--shadow-card); }
 body[data-surface="workspace"] .review-sticky { top: 95px; }
 body[data-surface="workspace"] .finding,
@@ -738,8 +732,6 @@ body[data-surface="workspace"] dialog { margin: auto; }
   .app-header { padding-right: 8px; padding-left: 8px; }
   .app-identity strong { font-size: 12px; }
   .feedback-header-button { padding-right: 6px; padding-left: 6px; }
-  .page-context { align-items: flex-start; }
-  .page-context-actions { gap: 4px; }
   .severity-filter strong { font-size: 13px; }
   .review-launch { grid-template-columns: 1fr; }
   .review-launch .button { width: 100%; }
@@ -926,10 +918,6 @@ body[data-surface="workspace"] .preview-lifecycle-banner {
   }
 
   /* Reduce the amount of review chrome above the findings. */
-  body[data-surface="panel"] .page-context {
-    padding: 7px 10px;
-  }
-
   body[data-surface="panel"] .review-tabs {
     padding: 0 8px;
   }

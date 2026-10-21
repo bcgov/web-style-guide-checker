@@ -69,7 +69,7 @@ const idSet = new Set(ids);
   "feedback-dialog",
   "feedback-list",
   "link-check-shortcut",
-  "link-check-shortcut-status",
+  "export-page-button",
   "stale-report-title",
   "stale-report-message",
   "stale-rescan-button",
@@ -262,7 +262,7 @@ assert.match(script, /state\.skippedRuleIds\.add\(current\.ruleId\)/, "Skipping 
 assert.match(script, /state\.skippedFingerprints\.add\(finding\.fingerprint\)/, "Only the current and later findings of the selected type must be skipped");
 assert.match(script, /!state\.skippedFingerprints\.has\(finding\.fingerprint\)/, "Skipped findings must be removed only from the guided review queue");
 assert.match(script, /function restoreSkippedIssueTypes\(\)/, "Skipped issue types must be easy to include in the review again");
-assert.doesNotMatch(script, /function jumpIssueType\(amount\) \{\s*if \(elements\["sort-order"\]\.value === "page"\) return;/, "Issue-type skipping must also work in page-order review");
+assert.doesNotMatch(script, /function jumpIssueType\(amount\) \{\s*if \(selectedReviewOrder\(\) === "page"\) return;/, "Issue-type skipping must also work in page-order review");
 assert.match(script, /function handleTablistKeys\(/, "Tab lists must support keyboard navigation");
 assert.match(script, /auditNotesV1/, "Audit notes must use local extension storage");
 assert.match(script, /feedbackNotesV1/, "Feedback notes must use local extension storage");
@@ -307,12 +307,12 @@ const editorExcludedRules = (script.match(/const editorExcludedRules = new Set\(
 assert.doesNotMatch(editorExcludedRules, /undefined-acronym/, "CMS Lite editor aggregation must retain undefined-acronym findings");
 assert.match(script, /editorAcronymFindingIncluded\([\s\S]*earlierEditorTexts[\s\S]*seenEditorAcronyms/, "CMS Lite editor aggregation must reconcile definitions and first use across fields");
 assert.match(script, /elements\["manual-review"\]\.hidden = section !== "overview"/, "The manual checklist must appear only on the Page details overview");
-assert.match(script, /elements\["sort-order"\]\.value === "page"/, "Findings must support page-order sorting");
+assert.match(script, /selectedReviewOrder\(\) === "page"/, "Findings must support page-order sorting");
 assert.match(script, /continueAfterAllowedTerm/, "Allowed terms must rebase the active review queue");
 assert.match(script, /function orderedReviewFindings\(/, "Guided review must use an explicit continuous review sequence");
 assert.match(script, /items\.slice\(\)\.sort\(\(first, second\) =>[\s\S]*first\.pageOrder/, "Page-order review must sort individual findings by document order");
-assert.match(html, /<option value="type">By issue type<\/option>/, "The issue-type order label must describe its behaviour");
-assert.match(html, /<option value="page">In page order<\/option>/, "The page-order label must describe its behaviour");
+assert.match(html, /<input type="radio" name="review-order" value="type" checked> By issue type<\/label>/, "The issue-type order label must describe its behaviour");
+assert.match(html, /<input type="radio" name="review-order" value="page"> In page order<\/label>/, "The page-order label must describe its behaviour");
 assert.match(script, /state\.guidedIndex === 0/, "Previous must remain available until the start of the continuous sequence");
 assert.match(script, /chrome\.permissions\.request\(\{ origins \}\)/, "Link checking must request access to linked sites");
 assert.match(script, /state:\s*"permission-denied"/, "Declined link access must be reported clearly");

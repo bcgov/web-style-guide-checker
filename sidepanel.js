@@ -258,13 +258,13 @@ function cacheElements() {
   [
     "active-page-label", "return-review-button", "feedback-header-button", "feedback-header-count", "profile-badge", "colour-control-row", "colour-control", "scope-note", "scan-button", "scan-permission-button", "cache-note",
     "preview-lifecycle-banner", "preview-lifecycle-title", "preview-lifecycle-message", "preview-lifecycle-version", "preview-download-link", "preview-continue-button", "preview-check-again-button",
-    "scan-settings", "cancel-settings-button", "scan-context-title", "scan-context-details", "stale-report-banner", "stale-report-title", "stale-report-message", "stale-rescan-button",
+    "scan-settings", "cancel-settings-button", "stale-report-banner", "stale-report-title", "stale-report-message", "stale-rescan-button",
     "cms-lite-settings", "cms-whole-scan", "standard-scope-settings", "choose-section-button", "clear-section-button", "section-scope-label",
-    "current-loading", "current-error", "current-error-message", "current-results", "csv-button",
+    "current-loading", "current-error", "current-error-message", "current-results", "export-page-button",
     "counts", "rescan-button", "status-filter", "severity-filter", "category-filter", "sort-order", "important-filter", "showing-count",
     "filter-panel", "filter-count", "active-filters", "clear-filters", "open-filter-button", "filter-close",
     "list-controls", "list-review-panel", "guided-review-panel", "page-details-panel", "findings", "manual-checks",
-    "findings-tab-count", "review-issues-button", "review-skip-summary", "review-skip-message", "restore-skipped-rules", "finding-coverage", "view-reviewed-button", "reviewed-count", "link-check-shortcut", "link-check-shortcut-status", "review-back-button",
+    "findings-tab-count", "review-issues-button", "review-skip-summary", "review-skip-message", "restore-skipped-rules", "finding-coverage", "view-reviewed-button", "reviewed-count", "link-check-shortcut", "review-back-button",
     "guided-progress", "guided-finding", "guided-previous", "guided-next", "workspace-review-note", "page-details", "manual-review",
     "previous-issue-type", "next-issue-type", "current-issue-type",
     "current-export-preset", "current-export-preset-description", "current-export-custom", "current-export-reviewed", "current-export-status", "current-export-confirmation",
@@ -1395,7 +1395,7 @@ async function syncActiveTab() {
     if (elements["status-filter"]) elements["status-filter"].value = "open";
     if (elements["severity-filter"]) elements["severity-filter"].value = "all";
     if (elements["category-filter"]) elements["category-filter"].value = "all";
-    if (elements["sort-order"]) elements["sort-order"].value = "type";
+    setReviewOrder("type");
     if (elements["important-filter"]) elements["important-filter"].checked = false;
     state.activePageKey = nextPageKey;
   }
@@ -3678,6 +3678,7 @@ async function checkHttpLinks(options = {}) {
   if (!links.length) {
     report.linkCheck = { state: "complete", startedAt: new Date().toISOString(), checkedAt: new Date().toISOString(), results: [], ...summarizeLinkCheck(0, []) };
     await storeReport(report).catch(() => {});
+    if (state.activeReport === report) renderCurrentReport();
     if (!options.quiet) showToast("No web links need a network check on this page.");
     return report.linkCheck;
   }
@@ -3853,7 +3854,7 @@ function captureReviewContext() {
     status: elements["status-filter"].value,
     severity: elements["severity-filter"].value,
     category: elements["category-filter"].value,
-    sortOrder: elements["sort-order"].value,
+    sortOrder: selectedReviewOrder(),
     important: elements["important-filter"].checked,
     collapsed: Array.from(state.collapsedFindingGroups),
     skippedRuleIds: Array.from(state.skippedRuleIds),
@@ -3885,7 +3886,7 @@ function restoreReviewContext(pageKey) {
   elements["status-filter"].value = saved.status || "open";
   elements["severity-filter"].value = saved.severity || "all";
   elements["category-filter"].value = saved.category || "all";
-  elements["sort-order"].value = saved.sortOrder === "page" ? "page" : "type";
+  setReviewOrder(saved.sortOrder);
   elements["important-filter"].checked = Boolean(saved.important);
   state.collapsedFindingGroups = new Set(saved.collapsed || []);
   state.skippedRuleIds = new Set(saved.skippedRuleIds || []);
@@ -3933,7 +3934,7 @@ async function scanCurrentPage(suppliedOptions) {
     elements["status-filter"].value = preserved ? preserved.status : "open";
     elements["severity-filter"].value = preserved ? preserved.severity : "all";
     elements["category-filter"].value = preserved ? preserved.category : "all";
-    elements["sort-order"].value = preserved && preserved.sortOrder === "page" ? "page" : "type";
+    setReviewOrder(preserved && preserved.sortOrder);
     state.guidedIndex = preserved ? preserved.guidedIndex : 0;
     state.guidedFingerprint = preserved ? preserved.guidedFingerprint : "";
     state.selectedRuleId = preserved ? preserved.selectedRuleId : "";
@@ -3976,13 +3977,6 @@ function renderCurrentReport() {
   ].map(([severity, count, label]) => `<button class="severity-filter${selectedSeverity === severity ? " is-selected" : ""}" type="button" data-severity="${severity}" aria-pressed="${selectedSeverity === severity}"><strong>${count}</strong><span>${label}</span></button>`).join("");
   elements["findings-tab-count"].textContent = `(${openTotal})`;
   elements["reviewed-count"].textContent = String(counts.ignored + counts.resolved);
-  elements["scan-context-title"].textContent = report.page.title || "Current page";
-  const scopeLabel = report.settings.sectionLabel
-    ? `Section: ${report.settings.sectionLabel}`
-    : report.settings.scope === "whole" ? "Whole page" : report.settings.profile === "cms-lite" ? "Editable content" : "Page content";
-  const excludedChecks = excludedOptionalCheckLabels(report);
-  elements["scan-context-details"].textContent = `${report.settings.profileLabel} · ${scopeLabel} · ${formatDate(report.scannedAt)}${excludedChecks.length ? ` · Excluded: ${excludedChecks.join(", ")}` : ""}`;
-
   const existingCategory = elements["category-filter"].value || "all";
   const categories = Array.from(new Set(report.issues.map(finding => finding.category))).sort();
   elements["category-filter"].innerHTML = `<option value="all">All categories</option>${categories.map(category => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`).join("")}`;
@@ -4020,6 +4014,19 @@ function findingAmount(finding) {
   return Number.isFinite(finding && finding.occurrenceCount) ? finding.occurrenceCount : 1;
 }
 
+function selectedReviewOrder() {
+  const selected = elements["sort-order"] && elements["sort-order"].querySelector('input[name="review-order"]:checked');
+  return selected && selected.value === "page" ? "page" : "type";
+}
+
+function setReviewOrder(value) {
+  if (!elements["sort-order"]) return;
+  const order = value === "page" ? "page" : "type";
+  elements["sort-order"].querySelectorAll('input[name="review-order"]').forEach(input => {
+    input.checked = input.value === order;
+  });
+}
+
 function groupedFindingTypes(items = filteredFindings()) {
   const groups = new Map();
   items.forEach(finding => {
@@ -4043,7 +4050,7 @@ function groupedFindingTypes(items = filteredFindings()) {
     group.notes ||= Boolean(auditNote(finding).text);
   });
   const severityOrder = { fix: 0, check: 1, review: 2 };
-  const pageSort = elements["sort-order"] && elements["sort-order"].value === "page";
+  const pageSort = selectedReviewOrder() === "page";
   return Array.from(groups.values()).map(group => {
     if (pageSort) group.findings.sort((first, second) => (first.pageOrder ?? Number.MAX_SAFE_INTEGER) - (second.pageOrder ?? Number.MAX_SAFE_INTEGER));
     else if (group.findings.some(finding => finding.contrast && finding.contrast.signature)) group.findings.sort((first, second) =>
@@ -4058,7 +4065,7 @@ function groupedFindingTypes(items = filteredFindings()) {
 }
 
 function orderedReviewFindings(items = filteredFindings()) {
-  const pageSort = elements["sort-order"] && elements["sort-order"].value === "page";
+  const pageSort = selectedReviewOrder() === "page";
   if (pageSort) return items.slice().sort((first, second) =>
     (first.pageOrder ?? Number.MAX_SAFE_INTEGER) - (second.pageOrder ?? Number.MAX_SAFE_INTEGER)
     || (first.matchIndex ?? Number.MAX_SAFE_INTEGER) - (second.matchIndex ?? Number.MAX_SAFE_INTEGER)
@@ -4109,11 +4116,6 @@ function renderFindings() {
     ? `<strong>Some findings are not displayed.</strong><span>${escapeHtml(findingCoverageText(state.activeReport))} Counts and exports identify the incomplete issue types.</span>`
     : "";
   renderReviewLauncher(groups);
-  const linkCheck = state.activeReport && state.activeReport.linkCheck;
-  const linkCategories = linkCheck ? linkResultCategoryCounts(linkCheck.results) : null;
-  elements["link-check-shortcut-status"].textContent = linkCheck
-    ? `${linkCheck.completed || 0} checked · ${linkCategories.problems || 0} problems · ${linkCategories.review || 0} need review · ${linkCategories.working || 0} working`
-    : "Not checked · optional website access";
   if (!items.length) {
     const counts = reportCounts(state.activeReport);
     const openCount = counts.fix + counts.check + counts.review;
@@ -4565,7 +4567,7 @@ function renderGuidedReview(locate) {
   const atLastFinding = state.guidedIndex === items.length - 1;
   const nextFinding = items[state.guidedIndex + 1] || null;
   const atLastInType = !nextFinding || nextFinding.ruleId !== finding.ruleId;
-  const pageOrder = elements["sort-order"].value === "page";
+  const pageOrder = selectedReviewOrder() === "page";
   elements["guided-next"].textContent = atLastFinding ? "Return to findings" : (!pageOrder && atLastInType) ? "Next issue type" : "Next";
   elements["next-issue-type"].classList.remove("is-placeholder");
   elements["next-issue-type"].disabled = false;
@@ -4622,6 +4624,18 @@ function toggleLinkResultCategory(button) {
   const shouldOpen = groups.some(group => !group.open);
   groups.forEach(group => { group.open = shouldOpen; });
   syncLinkResultCategoryToggle(category);
+}
+
+function detailCardIcon(section) {
+  const shapes = {
+    headings: '<path d="M6 5v14M18 5v14M6 12h12"/>',
+    images: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/>',
+    links: '<path d="m10 13 4-4m-6 6-1 1a4 4 0 0 1-6-6l4-4a4 4 0 0 1 6 0m2 2 1-1a4 4 0 0 1 6 6l-4 4a4 4 0 0 1-6 0"/>',
+    metadata: '<path d="M14 3H5v18h14V8l-5-5Zm0 0v5h5M8 12h8M8 16h6"/>',
+    statistics: '<path d="M4 4v16h16M8 16v-4m5 4V8m5 8V5"/>',
+    overlays: '<path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5"/>'
+  };
+  return `<svg class="detail-card-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${shapes[section] || ""}</svg>`;
 }
 
 function metadataDefinition(label, value) {
@@ -4698,16 +4712,14 @@ function renderPageDetails(section = "overview") {
         ? "Not enough prose"
         : `Estimated grade ${report.stats.readingGrade}`;
     elements["page-details"].innerHTML = `
-      <p class="eyebrow">Review the page</p><h2>Page details</h2>
-      <p class="hint">Choose an area to review. Findings remain available in the Findings tab.</p>
       ${excludedOptionalCheckLabels(report).length ? `<p class="detail-help"><strong>Excluded from this scan:</strong> ${escapeHtml(excludedOptionalCheckLabels(report).join(", "))}.</p>` : ""}
       <div class="details-landing">
-        <button class="detail-card" type="button" data-detail-section="headings"><span><strong>Headings</strong><span>${headingIssues} heading issue${headingIssues === 1 ? "" : "s"}${generatedHeadings.length ? ` · ${generatedHeadings.length} accordion heading${generatedHeadings.length === 1 ? "" : "s"}` : ""}</span></span><span class="detail-card-count">${authoredHeadings.length}</span></button>
-        <button class="detail-card" type="button" data-detail-section="images"><span><strong>Images and alt text</strong><span>${details.counts.imagesMissingAlt} missing alt · ${details.counts.imagesEmptyAlt} empty alt</span></span><span class="detail-card-count">${details.counts.images}</span></button>
-        <button class="detail-card" type="button" data-detail-section="links"><span><strong>Links and assets</strong><span>${brokenSummary}</span></span><span class="detail-card-count">${details.counts.links}</span></button>
-        <button class="detail-card" type="button" data-detail-section="metadata"><span><strong>Metadata and SEO</strong><span>${metadataUnavailable ? "Not checked in editor mode" : metadata.description ? "Description published" : "Meta description missing"}</span></span><span class="detail-card-count">›</span></button>
-        <button class="detail-card" type="button" data-detail-section="statistics"><span><strong>Content statistics</strong><span>${report.stats.words.toLocaleString()} words · ${grade}</span></span><span class="detail-card-count">›</span></button>
-        <button class="detail-card" type="button" data-detail-section="overlays"><span><strong>Page overlays</strong><span>Label headings, alt text or link destinations on the page</span></span><span class="detail-card-count">›</span></button>
+        <button class="detail-card" type="button" data-detail-section="headings">${detailCardIcon("headings")}<span><strong>Headings</strong><span>${headingIssues} heading issue${headingIssues === 1 ? "" : "s"}${generatedHeadings.length ? ` · ${generatedHeadings.length} accordion heading${generatedHeadings.length === 1 ? "" : "s"}` : ""}</span></span><span class="detail-card-count">${authoredHeadings.length}</span></button>
+        <button class="detail-card" type="button" data-detail-section="images">${detailCardIcon("images")}<span><strong>Images and alt text</strong><span>${details.counts.imagesMissingAlt} missing alt · ${details.counts.imagesEmptyAlt} empty alt</span></span><span class="detail-card-count">${details.counts.images}</span></button>
+        <button class="detail-card" type="button" data-detail-section="links">${detailCardIcon("links")}<span><strong>Links and assets</strong><span>${brokenSummary}</span></span><span class="detail-card-count">${details.counts.links}</span></button>
+        <button class="detail-card" type="button" data-detail-section="metadata">${detailCardIcon("metadata")}<span><strong>Metadata and SEO</strong><span>${metadataUnavailable ? "Not checked in editor mode" : metadata.description ? "Description published" : "Meta description missing"}</span></span><span class="detail-card-count">›</span></button>
+        <button class="detail-card" type="button" data-detail-section="statistics">${detailCardIcon("statistics")}<span><strong>Content statistics</strong><span>${report.stats.words.toLocaleString()} words · ${grade}</span></span><span class="detail-card-count">›</span></button>
+        <button class="detail-card" type="button" data-detail-section="overlays">${detailCardIcon("overlays")}<span><strong>Page overlays</strong><span>Label headings, alt text or link destinations on the page</span></span><span class="detail-card-count">›</span></button>
       </div>`;
     return;
   }
@@ -8191,6 +8203,7 @@ function bindEvents() {
 
   elements["more-menu-button"].addEventListener("click", () => {
     elements["rescan-button"].hidden = !state.activeReport;
+    elements["export-page-button"].hidden = !state.activeReport;
     elements["more-dialog"].showModal();
   });
   elements["more-close"].addEventListener("click", () => elements["more-dialog"].close());
@@ -8201,7 +8214,7 @@ function bindEvents() {
   elements["open-batch-button"].addEventListener("click", () => { elements["more-dialog"].close(); workspaceSurface ? switchView("batch") : openWorkspace("batch"); });
   elements["open-settings-button"].addEventListener("click", () => { elements["more-dialog"].close(); workspaceSurface ? switchView("terms") : openWorkspace("terms"); });
 
-  elements["csv-button"].addEventListener("click", openCurrentExportDialog);
+  elements["export-page-button"].addEventListener("click", () => { elements["more-dialog"].close(); openCurrentExportDialog(); });
   elements["export-close"].addEventListener("click", () => elements["export-dialog"].close());
   elements["copy-detailed-findings"].addEventListener("click", copyCurrentDetailedFindings);
   elements["check-links-and-download-current"].addEventListener("click", checkLinksAndDownloadCurrentWorkbook);
@@ -8254,7 +8267,9 @@ function bindEvents() {
     state.reviewView = "details";
     state.pageDetailSection = "links";
     renderReviewView();
+    elements["page-details"].focus();
     persistReviewContext(state.activePageKey).catch(() => { });
+    checkHttpLinks();
   });
   elements["view-reviewed-button"].addEventListener("click", () => {
     elements["status-filter"].value = "reviewed";
