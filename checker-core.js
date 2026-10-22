@@ -1,6 +1,27 @@
 (function (global) {
   "use strict";
 
+  // scanPage is synchronous. Context belongs to its document and is always released.
+  const reviewScopes = new WeakMap();
+  function reviewText(element) {
+    if (!element) return "";
+    const context = reviewScopes.get(element.ownerDocument || element);
+    return context ? context.text(element) : element.textContent || "";
+  }
+  function reviewVisibleText(element) {
+    const context = element && reviewScopes.get(element.ownerDocument);
+    return context && context.roots.length ? context.text(element) : element ? element.innerText || element.textContent || "" : "";
+  }
+  function excludedFromReview(element) {
+    const context = element && reviewScopes.get(element.ownerDocument);
+    return Boolean(context && context.excluded(element));
+  }
+
+  function excludedLinkCheck(element) {
+    const context = element && reviewScopes.get(element.ownerDocument);
+    return Boolean(context && context.linkExcluded(element));
+  }
+
   const SOURCES = {
     plain: ["Writing web content", "https://www2.gov.bc.ca/gov/content/governments/services-for-government/service-experience-digital-delivery/web-content-development-guides/web-style-guide/writing-guide/writing-web-content"],
     plainLanguage: ["Plain language checklist", "https://www2.gov.bc.ca/gov/content/governments/services-for-government/service-experience-digital-delivery/web-content-development-guides/web-style-guide/writing-guide/plain-language"],
@@ -1036,7 +1057,7 @@
 
   function locationLabel(element, root) {
     if (!element || element.nodeType !== 1) return "Page";
-    if (/^H[1-6]$/.test(element.tagName)) return normalizeSpace(element.textContent) || element.tagName;
+    if (/^H[1-6]$/.test(element.tagName)) return normalizeSpace(reviewText(element)) || element.tagName;
     const headings = Array.from((root || element.ownerDocument).querySelectorAll("h1,h2,h3,h4,h5,h6"));
     let nearest = null;
     for (const heading of headings) {
@@ -1044,7 +1065,7 @@
       if (heading.compareDocumentPosition(element) & 4) nearest = heading;
       else if (nearest) break;
     }
-    if (nearest) return normalizeSpace(nearest.textContent) || nearest.tagName;
+    if (nearest) return normalizeSpace(reviewText(nearest)) || nearest.tagName;
     const landmark = element.closest("main,article,section,nav,header,footer");
     if (landmark) return landmark.tagName.toLowerCase();
     return "Page";
@@ -1077,7 +1098,7 @@
     const headings = Array.from(root.querySelectorAll("h1,h2,h3,h4,h5,h6")).filter(include);
     if (!headings.some(heading => heading.tagName === "H1")) {
       const contextual = contextualPageH1(doc, root);
-      if (contextual && (!include || isVisible(contextual))) headings.unshift(contextual);
+      if (contextual && !excludedFromReview(contextual) && (!include || isVisible(contextual))) headings.unshift(contextual);
     }
     return headings;
   }
@@ -1107,12 +1128,14 @@
     if (!element) return "";
     if (element.tagName === "LI") {
       if (element.querySelector(":scope > p,:scope > div,:scope > blockquote")) return "";
+      const context = reviewScopes.get(element.ownerDocument);
+      if (context && context.roots.length) return normalizeSpace(context.text(element, true));
       const clone = element.cloneNode(true);
       clone.querySelectorAll("ul,ol").forEach(list => list.remove());
       return normalizeSpace(clone.textContent);
     }
     if (element.tagName === "BLOCKQUOTE" && element.querySelector("p")) return "";
-    return normalizeSpace(element.textContent);
+    return normalizeSpace(reviewText(element));
   }
 
   function sectionReadingThreshold(result) {
@@ -1154,7 +1177,7 @@
   function buildContentSections(root, include, documentOrder) {
     const allowed = include || isVisible;
     const orderOf = element => documentOrder && documentOrder.has(element) ? documentOrder.get(element) : Number.MAX_SAFE_INTEGER;
-    const allHeadings = Array.from(root.querySelectorAll("h2,h3,h4,h5,h6")).filter(allowed);
+    const allHeadings = Array.from(root.querySelectorAll("h2,h3,h4,h5,h6")).filter(element => allowed(element) || (excludedFromReview(element) && isVisible(element)));
     const allContent = textElements(root, allowed).filter(element => {
       if (element.closest("nav,table,figure,address,[class*='contact' i],[class*='breadcrumb' i]")) return false;
       return true;
@@ -1169,6 +1192,7 @@
     const events = [
       ...headings.map(element => ({ type: "heading", element })),
       ...content.map(element => ({ type: "content", element })),
+      ...((reviewScopes.get(root.ownerDocument) || {}).roots || []).filter(element => root.contains(element)).map(element => ({ type: "excluded", element })),
       ...Array.from(componentSet).map(element => ({ type: "component", element }))
     ].sort((a, b) => orderOf(a.element) - orderOf(b.element));
     const sections = [];
@@ -1176,8 +1200,8 @@
     let current = { label: "Page introduction", heading: null, target: null, readabilityBlocks: [], densityTexts: [], memberElements: [], kind: "content" };
     sections.push(current);
     const continuation = () => ({
-      label: currentHeading ? normalizeSpace(currentHeading.textContent) || currentHeading.tagName : "Page introduction",
-      heading: currentHeading,
+      label: currentHeading ? normalizeSpace(reviewText(currentHeading)) || currentHeading.tagName : "Page introduction",
+      heading: currentHeading && !excludedFromReview(currentHeading) ? currentHeading : null,
       target: null,
       readabilityBlocks: [],
       densityTexts: [],
@@ -1189,11 +1213,18 @@
       if (target && !section.memberElements.includes(target)) section.memberElements.push(target);
     };
     events.forEach(event => {
+      if (event.type === "excluded") {
+        current = continuation();
+        sections.push(current);
+        return;
+      }
       if (event.type === "heading") {
         currentHeading = event.element;
         current = continuation();
-        current.target = event.element;
-        addMember(current, event.element);
+        if (!excludedFromReview(event.element)) {
+          current.target = event.element;
+          addMember(current, event.element);
+        }
         sections.push(current);
         return;
       }
@@ -1208,7 +1239,7 @@
         const labelElement = component.querySelector("summary,h2,h3,h4,[class*='title' i],[class*='heading' i]");
         const isAlert = component.matches(".alert,[role='alert']");
         sections.push({
-          label: normalizeSpace(labelElement && labelElement.textContent) || (isAlert ? "Alert" : "Accordion section"),
+          label: normalizeSpace(labelElement && reviewText(labelElement)) || (isAlert ? "Alert" : "Accordion section"),
           heading: labelElement && /^H[2-6]$/.test(labelElement.tagName) ? labelElement : null,
           target: component,
           readabilityBlocks: componentBlocks.map(item => item.text),
@@ -1430,7 +1461,7 @@
   }
 
   function lastUpdatedDetails(doc) {
-    const text = normalizeSpace(doc && doc.body ? doc.body.innerText || doc.body.textContent : "");
+    const text = normalizeSpace(doc && doc.body ? reviewVisibleText(doc.body) : "");
     const match = /\bLast updated(?: on)?\s*:?\s*(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2}),\s+(\d{4})\b/i.exec(text);
     if (!match) return null;
     const parsed = new Date(`${match[1]} ${match[2]}, ${match[3]} 12:00:00`);
@@ -1444,7 +1475,7 @@
     if (!heading || !isVisible(heading) || heading.closest(excluded)) return null;
     const nextHeading = Array.from(doc.querySelectorAll("h1,h2,h3,h4,h5,h6"))
       .find(item => isVisible(item) && Boolean(heading.compareDocumentPosition(item) & 4));
-    const eligible = element => isVisible(element) && !element.closest(excluded)
+    const eligible = element => !excludedFromReview(element) && isVisible(element) && !element.closest(excluded)
       && Boolean(heading.compareDocumentPosition(element) & 4)
       && (!nextHeading || Boolean(element.compareDocumentPosition(nextHeading) & 4));
 
@@ -1457,7 +1488,7 @@
       let current = heading;
       while (current && current !== doc.body && !candidates.length) {
         let sibling = current.nextElementSibling;
-        while (sibling && (!isVisible(sibling) || !normalizeSpace(sibling.innerText || sibling.textContent))) sibling = sibling.nextElementSibling;
+        while (sibling && (!isVisible(sibling) || !normalizeSpace(reviewVisibleText(sibling)))) sibling = sibling.nextElementSibling;
         if (sibling) {
           if (eligible(sibling)) candidates = [sibling];
           break;
@@ -1468,7 +1499,7 @@
 
     const months = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
     const dates = candidates.map(element => {
-      const text = normalizeSpace(element.innerText || element.textContent);
+      const text = normalizeSpace(reviewVisibleText(element));
       const label = /^Last updated(?: on)?\s*:?\s+(.+?)\.?$/i.exec(text);
       if (!label) return null;
       const named = /^(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2}),\s+(\d{4})$/i.exec(label[1]);
@@ -1500,13 +1531,13 @@
   function movedNoticeMatch(root) {
     if (!root) return null;
     const expression = /\b(?:this\s+(?:page|content|information)\s+has\s+moved|we[’']?ve\s+moved\s+this\s+(?:page|content|information)|(?:page|content|information)\s+has\s+moved\s+to)\b/i;
-    const candidates = Array.from(root.querySelectorAll("p,li,blockquote,aside")).filter(element => normalizeSpace(element.textContent));
+    const candidates = Array.from(root.querySelectorAll("p,li,blockquote,aside")).filter(element => !excludedFromReview(element) && normalizeSpace(reviewText(element)));
     for (const element of candidates) {
-      const text = normalizeSpace(element.textContent);
+      const text = normalizeSpace(reviewText(element));
       const match = expression.exec(text);
       if (match) return { element, text, match };
     }
-    const text = normalizeSpace(root.textContent);
+    const text = normalizeSpace(reviewText(root));
     const match = expression.exec(text);
     return match ? { element: root, text, match } : null;
   }
@@ -1718,7 +1749,7 @@
     const candidates = Array.from(root.querySelectorAll("h1,h2,h3,h4,h5,h6,p,div,strong,b,span,nav,[aria-label]")).filter(include);
     const labelledCandidates = candidates.map(label => {
       const ownLabel = ownText(label) || normalizeSpace(label.getAttribute && label.getAttribute("aria-label"));
-      const fullText = normalizeSpace(label.textContent);
+      const fullText = normalizeSpace(reviewText(label));
       const exactLabel = /^on this page:?$/i.test(ownLabel);
       const combinedLabel = /^on this page:?(?:\s|$)/i.test(fullText) && label.querySelectorAll && label.querySelectorAll("a[href^='#']").length >= 2;
       return { label, ownLabel, fullText, exactLabel, combinedLabel };
@@ -1728,7 +1759,7 @@
       const { label, ownLabel, fullText } = candidate;
       let links = Array.from(label.querySelectorAll ? label.querySelectorAll("a[href^='#']") : []).filter(include);
       let container = label.nextElementSibling;
-      if (!container && label.parentElement && normalizeSpace(label.parentElement.textContent) === fullText) {
+      if (!container && label.parentElement && normalizeSpace(reviewText(label.parentElement)) === fullText) {
         container = label.parentElement.nextElementSibling;
       }
       while (links.length < 2 && container && !/^(UL|OL|NAV|DIV|P)$/.test(container.tagName)) container = container.nextElementSibling;
@@ -1751,14 +1782,14 @@
       .filter(include)
       .filter(heading => !heading.contains(list) && Boolean(heading.compareDocumentPosition(list) & 4));
     const nearestHeading = headingsBefore[headingsBefore.length - 1] || null;
-    return Boolean(nearestHeading && /^on this page:?$/i.test(normalizeSpace(nearestHeading.textContent)));
+    return Boolean(nearestHeading && /^on this page:?$/i.test(normalizeSpace(reviewText(nearestHeading))));
   }
 
   function isMeaningfulList(list) {
     if (!list) return false;
     const items = Array.from(list.children || []).filter(item => item.tagName === "LI");
     return items.some(item => {
-      if (normalizeSpace(item.textContent)) return true;
+      if (normalizeSpace(reviewText(item))) return true;
       return Boolean(item.querySelector("a[href],img[src],button,input,select,textarea,table,iframe,video,audio"));
     });
   }
@@ -1784,9 +1815,9 @@
   function suggestedAnchorForText(value, headingElements) {
     const candidates = (headingElements || []).map(heading => ({
       heading,
-      text: normalizeSpace(heading.textContent),
+      text: normalizeSpace(reviewText(heading)),
       id: anchorIdForHeading(heading),
-      score: anchorTextScore(value, heading.textContent)
+      score: anchorTextScore(value, reviewText(heading))
     })).filter(item => item.id && item.score >= 0.72).sort((first, second) => second.score - first.score);
     if (!candidates.length) return null;
     if (candidates[1] && candidates[0].score - candidates[1].score < 0.15) return null;
@@ -1859,7 +1890,8 @@
     let stopped = false;
     function collect(node) {
       if (stopped || text.length > 160) return;
-      if (node.nodeType === 3) { text += node.textContent || ""; return; }
+      if (excludedFromReview(node.nodeType === 1 ? node : node.parentElement)) { stopped = true; return; }
+      if (node.nodeType === 3) { text += reviewText(node) || ""; return; }
       if (node.nodeType === 8) return;
       if (node.nodeType !== 1 || !inline.test(node.tagName) || node.hidden
         || node.getAttribute("aria-hidden") === "true") { stopped = true; return; }
@@ -2013,11 +2045,11 @@
     if (!block || !include(block)) return null;
     if (block.closest("nav,aside,header,footer,table,form,ul,ol,dl,summary,[role='alert'],[role='status'],[role='navigation'],[class*='alert' i],[class*='callout' i],[class*='notification' i],[class*='banner' i],[class*='breadcrumb' i],[class*='navigation' i]")) return null;
     if (block.querySelector("a,button,input,select,textarea,label")) return null;
-    if (normalizeSpace(block.textContent) !== normalizeSpace(element.textContent)) return null;
+    if (normalizeSpace(reviewText(block)) !== normalizeSpace(reviewText(element))) return null;
     const blockChildren = Array.from(block.children || []);
     if (blockChildren.some(child => child !== element && child.tagName !== "BR" && !child.contains(element))) return null;
 
-    const text = normalizeSpace(element.textContent);
+    const text = normalizeSpace(reviewText(element));
     const wordCount = words(text).length;
     if (wordCount < 2 || wordCount > 12) return null;
     const withoutClosingMarks = text.replace(/[”’"')\]}]+$/g, "").trim();
@@ -2026,10 +2058,10 @@
 
     let following = block.nextElementSibling;
     while (following && /^(BR)$/.test(following.tagName)) following = following.nextElementSibling;
-    while (following && /^(P|DIV)$/.test(following.tagName) && !normalizeSpace(following.textContent) && !following.querySelector("img,ul,ol,table,figure")) following = following.nextElementSibling;
+    while (following && /^(P|DIV)$/.test(following.tagName) && !normalizeSpace(reviewText(following)) && !following.querySelector("img,ul,ol,table,figure")) following = following.nextElementSibling;
     if (!following || /^H[1-6]$/.test(following.tagName) || !include(following)) return null;
     if (!/^(P|DIV|SECTION|ARTICLE|UL|OL|DL|TABLE|BLOCKQUOTE|FIGURE)$/.test(following.tagName)) return null;
-    if (!normalizeSpace(following.textContent) && !following.querySelector("img,ul,ol,table,figure")) return null;
+    if (!normalizeSpace(reviewText(following)) && !following.querySelector("img,ul,ol,table,figure")) return null;
     const firstFollowingElement = following.matches("div,section,article") ? following.firstElementChild : null;
     if (firstFollowingElement && /^H[1-6]$/.test(firstFollowingElement.tagName)) return null;
 
@@ -2066,7 +2098,7 @@
     const sideArea = element.closest("aside,[class*='sidebar' i],[class*='side-nav' i],[class*='sidenav' i]");
     if (!sideArea) return false;
     const moreTopicsLabel = Array.from(sideArea.querySelectorAll("h1,h2,h3,h4,h5,h6,strong,b,[class*='title' i],[class*='heading' i]"))
-      .find(item => /^more topics:?$/i.test(normalizeSpace(item.textContent)));
+      .find(item => /^more topics:?$/i.test(normalizeSpace(reviewText(item))));
     return Boolean(moreTopicsLabel && sideArea.querySelectorAll("a[href]").length >= 2);
   }
 
@@ -2078,7 +2110,7 @@
     const component = element && element.closest && element.closest(CMS_LITE_COMPONENT_SELECTORS);
     if (!component) return "";
     const label = component.querySelector("summary,h2,h3,h4,[aria-controls],[class*='title' i],[class*='heading' i]");
-    return normalizeSpace(label && label.textContent);
+    return normalizeSpace(label && reviewText(label));
   }
 
   function isCmsLiteTemplateImage(image, profile) {
@@ -2146,26 +2178,34 @@
   function buildPageDetails(doc, detailRoot, profile, suppliedPageOrder) {
     const pageOrder = suppliedPageOrder || new WeakMap();
     if (!suppliedPageOrder) Array.from(doc.querySelectorAll("*")).forEach((element, index) => pageOrder.set(element, index));
-    const includeDetail = element => {
+    const includeDetailContext = element => {
       if (profile === "cms-lite" && isCmsLiteExcludedArea(element)) return false;
       return isVisible(element) || (profile === "cms-lite" && isCmsLiteComponent(element));
     };
+    const includeDetail = element => !excludedFromReview(element) && includeDetailContext(element);
     const headings = scanHeadings(doc, detailRoot, includeDetail).slice(0, 500).map(heading => ({
       level: Number(heading.tagName.slice(1)),
-      text: normalizeSpace(heading.textContent) || "[No heading text]",
+      text: normalizeSpace(reviewText(heading)) || "[No heading text]",
       selector: cssPath(heading),
       pageOrder: pageOrder.get(heading),
       component: profile === "cms-lite" && isCmsLiteComponent(heading),
       flags: []
     }));
-    const outlineHeadings = profile === "cms-lite" ? headings.filter(heading => !heading.component) : headings;
-    const h1Indexes = outlineHeadings.map((heading, index) => heading.level === 1 ? index : -1).filter(index => index >= 0);
-    if (h1Indexes.length > 1) h1Indexes.slice(1).forEach(index => outlineHeadings[index].flags.push("Extra H1"));
-    let previousLevel = 0;
-    outlineHeadings.forEach(heading => {
-      if (previousLevel && heading.level > previousLevel + 1) heading.flags.push(`Skipped H${previousLevel + 1}`);
-      if (!heading.text || heading.text === "[No heading text]") heading.flags.push("Empty");
-      previousLevel = heading.level;
+    const contextHeadings = scanHeadings(doc, detailRoot, includeDetailContext)
+      .filter(element => profile !== "cms-lite" || !isCmsLiteComponent(element));
+    const contextual = contextualPageH1(doc, detailRoot);
+    if (contextual && excludedFromReview(contextual) && !contextHeadings.includes(contextual)) contextHeadings.unshift(contextual);
+    let previousLevel = 0, h1Count = 0;
+    contextHeadings.forEach(element => {
+      const level = Number(element.tagName.slice(1));
+      if (level === 1) h1Count += 1;
+      const heading = headings.find(item => item.pageOrder === pageOrder.get(element));
+      if (heading) {
+        if (level === 1 && h1Count > 1) heading.flags.push("Extra H1");
+        if (previousLevel && level > previousLevel + 1) heading.flags.push(`Skipped H${previousLevel + 1}`);
+        if (!heading.text || heading.text === "[No heading text]") heading.flags.push("Empty");
+      }
+      previousLevel = level;
     });
     const images = Array.from(detailRoot.querySelectorAll("img"))
       .filter(image => includeDetail(image) && !isCmsLiteTemplateImage(image, profile))
@@ -2177,7 +2217,7 @@
         altState: !image.hasAttribute("alt") ? "missing" : (image.alt ? "provided" : "empty"),
         linked: Boolean(image.closest("a"))
       }));
-    const links = Array.from(detailRoot.querySelectorAll("a[href]")).filter(includeDetail).map(link => {
+    const links = Array.from(detailRoot.querySelectorAll("a[href]")).filter(includeDetailContext).map(link => {
       const rawHref = link.getAttribute("href") || "";
       return {
         selector: cssPath(link),
@@ -2185,6 +2225,8 @@
         text: accessibleName(link) || "[No accessible name]",
         href: link.href || rawHref,
         rawHref,
+        reviewExcluded: excludedFromReview(link),
+        excludedFromCheck: excludedLinkCheck(link),
         target: link.target || "",
         location: (profile === "cms-lite" ? cmsLiteComponentLabel(link) : "") || locationLabel(link, detailRoot),
         kind: rawHref.startsWith("#") ? "anchor" : /^mailto:/i.test(rawHref) ? "email" : /^tel:/i.test(rawHref) ? "phone" : assetTypeFromUrl(link.href || rawHref) ? "asset" : "web"
@@ -2202,10 +2244,10 @@
         imagesEmptyAlt: images.filter(image => image.altState === "empty").length,
         links: links.length,
         assets: links.filter(link => link.kind === "asset").length,
-        lists: Array.from(detailRoot.querySelectorAll("ul,ol")).filter(isMeaningfulList).length,
-        tables: detailRoot.querySelectorAll("table").length,
-        forms: detailRoot.querySelectorAll("form").length,
-        accordions: detailRoot.querySelectorAll("details,.accordion,[class*='accordion' i],.panel-group").length
+        lists: Array.from(detailRoot.querySelectorAll("ul,ol")).filter(includeDetail).filter(isMeaningfulList).length,
+        tables: Array.from(detailRoot.querySelectorAll("table")).filter(includeDetail).length,
+        forms: Array.from(detailRoot.querySelectorAll("form")).filter(includeDetail).length,
+        accordions: Array.from(detailRoot.querySelectorAll("details,.accordion,[class*='accordion' i],.panel-group")).filter(includeDetail).length
       }
     };
   }
@@ -2260,6 +2302,10 @@
   function scanPage(doc, suppliedOptions) {
     const options = suppliedOptions || {};
     const pageUrl = String(options.pageUrlOverride || (doc.location && doc.location.href ? doc.location.href : ""));
+    const exclusionContext = global.BCReviewExclusions
+      ? global.BCReviewExclusions.createContext(doc, options.exclusions, pageUrl) : null;
+    if (exclusionContext) reviewScopes.set(doc, exclusionContext);
+    try {
     const hostname = (() => { try { return new URL(pageUrl).hostname.toLowerCase(); } catch (_) { return ""; } })();
     const scope = options.scope === "whole" ? "whole" : "content";
     const profile = detectProfile(pageUrl, options.profile || "auto");
@@ -2303,7 +2349,7 @@
     const detectedOpenTotals = {};
     const retainedOpenTotals = {};
 
-    function inScanArea(element) {
+    function inBaseScanArea(element) {
       const collapsedCmsLiteContent = scope === "content" && profile === "cms-lite" && isCmsLiteComponent(element);
       if (!isVisible(element) && !collapsedCmsLiteContent) return false;
       if (scope === "content" && profile === "cms-lite" && isCmsLiteExcludedArea(element)) return false;
@@ -2315,6 +2361,9 @@
       if (!sectionBoundary) return true;
       return Boolean(element.compareDocumentPosition(sectionBoundary) & 4);
     }
+
+    function inScanArea(element) { return inBaseScanArea(element) && !excludedFromReview(element); }
+    if (exclusionContext) exclusionContext.setScope(root, inBaseScanArea);
 
     const documentOrder = new WeakMap();
     Array.from(doc.querySelectorAll("*")).forEach((element, index) => documentOrder.set(element, index));
@@ -2329,9 +2378,10 @@
 
     function add(ruleId, element, evidence, detail, metadata) {
       const rule = RULES[ruleId];
-      if (!rule) return;
+      const allowedLinkCheck = metadata && metadata.includeExcludedLink === true && ["broken-anchor", "empty-fragment-link"].includes(ruleId);
+      if (!rule || (excludedFromReview(element) && !allowedLinkCheck)) return;
       const meta = metadata || {};
-      const rawContext = normalizeSpace(meta.contextText || evidence || (element && element.textContent) || "");
+      const rawContext = normalizeSpace(meta.contextText || evidence || (element && reviewText(element)) || "");
       const matchedException = meta.matchedException || (meta.matchIndex === undefined
         ? savedExceptions.find(item => exceptionMatches(item, ruleId, rawContext, hostname, pageUrl))
         : null);
@@ -2342,7 +2392,7 @@
       if (!matchedException) retainedOpenTotals[ruleId] = (retainedOpenTotals[ruleId] || 0) + 1;
       const source = SOURCES[rule[5]];
       const matchText = meta.matchText || meta.flaggedToken || "";
-      const evidenceSource = meta.contextText || evidence || (element && element.textContent) || "";
+      const evidenceSource = meta.contextText || evidence || (element && reviewText(element)) || "";
       const matchedEvidence = excerptAroundMatch(evidenceSource, meta.matchIndex, matchText);
       const evidencePrefix = meta.evidencePrefix || "";
       const finding = {
@@ -2427,7 +2477,7 @@
     const authoredTitleElement = root.querySelector("h1") || contextualPageH1(doc, root) || doc.querySelector("h1");
     const metadataTitle = normalizeSpace((doc.querySelector("meta[name='title']") || {}).content);
     const title = scope === "content"
-      ? normalizeSpace(metadataTitle || (authoredTitleElement && authoredTitleElement.textContent) || doc.title)
+      ? normalizeSpace(metadataTitle || (authoredTitleElement && reviewText(authoredTitleElement)) || doc.title)
       : normalizeSpace(doc.title);
     const titleTarget = scope === "content" ? (authoredTitleElement || root) : (doc.querySelector("title") || doc.documentElement);
     const titleIsAuthoredH1 = Boolean(authoredTitleElement && titleTarget === authoredTitleElement);
@@ -2466,15 +2516,22 @@
     const headings = sectionHeading
       ? Array.from(root.querySelectorAll("h1,h2,h3,h4,h5,h6")).filter(inScanArea)
       : scanHeadings(doc, root, inScanArea);
-    const h1s = headings.filter(item => item.tagName === "H1");
+    const contextHeadings = sectionHeading ? headings : scanHeadings(doc, root, inBaseScanArea);
+    // Keep excluded headings as structural context without reviewing their content.
+    if (!sectionHeading && exclusionContext) {
+      const contextual = contextualPageH1(doc, root);
+      if (contextual && excludedFromReview(contextual) && !contextHeadings.includes(contextual)) contextHeadings.unshift(contextual);
+    }
+    const h1s = contextHeadings.filter(item => item.tagName === "H1");
     if (!sectionHeading) {
       if (h1s.length === 0) add("h1-count", root, "No H1 heading found");
-      else if (h1s.length > 1) h1s.slice(1).forEach((heading, index) => add("h1-count", heading, `Extra H1 ${index + 2} of ${h1s.length}: ${normalizeSpace(heading.textContent)}`));
+      else if (h1s.length > 1) h1s.slice(1).forEach((heading, index) => add("h1-count", heading, `Extra H1 ${index + 2} of ${h1s.length}: ${normalizeSpace(reviewText(heading))}`));
     }
     let previousLevel = 0;
-    headings.forEach(heading => {
+    contextHeadings.forEach(heading => {
       const level = Number(heading.tagName.slice(1));
-      const text = normalizeSpace(heading.textContent);
+      if (excludedFromReview(heading)) { previousLevel = level; return; }
+      const text = normalizeSpace(reviewText(heading));
       if (!text) add("heading-empty", heading, "Empty " + heading.tagName);
       if (previousLevel && level > previousLevel + 1) add("heading-skip", heading, heading.tagName + ": " + text, "Change this heading so it follows H" + previousLevel + " without skipping a level.");
       if (level >= 5) add("heading-deep", heading, heading.tagName + ": " + text);
@@ -2500,12 +2557,14 @@
 
     const authoredStructuralHeadings = headings.filter(heading => /^H[2-6]$/.test(heading.tagName) && !isCmsLiteComponent(heading));
     const meaningfulStructuralElements = Array.from(root.querySelectorAll("p,li,table,img,form,details,.alert,[role='alert']"))
-      .filter(inScanArea)
+      .filter(inBaseScanArea)
       .filter(element => {
+        // Physical content still separates headings when it is outside review scope.
         if (/^(P|LI)$/.test(element.tagName)) return Boolean(normalizeSpace(element.textContent));
         if (element.tagName === "IMG") return Boolean(element.getAttribute("src") || element.getAttribute("alt"));
         return true;
       });
+    meaningfulStructuralElements.push(...contextHeadings.filter(excludedFromReview));
     const hasMeaningfulContentBetween = (first, second) => {
       const firstOrder = documentOrder.get(first);
       const secondOrder = documentOrder.get(second);
@@ -2517,7 +2576,7 @@
     let headingRun = [];
     const finishHeadingRun = () => {
       if (headingRun.length >= 3) {
-        add("heading-empty-sequence", headingRun[0], `${headingRun.length} consecutive H${headingRun[0].tagName.slice(1)} headings: ${headingRun.map(heading => normalizeSpace(heading.textContent)).join(" · ")}`, null, {
+        add("heading-empty-sequence", headingRun[0], `${headingRun.length} consecutive H${headingRun[0].tagName.slice(1)} headings: ${headingRun.map(heading => normalizeSpace(reviewText(heading))).join(" · ")}`, null, {
           selectors: headingRun.map(cssPath)
         });
       }
@@ -2531,14 +2590,14 @@
     });
     finishHeadingRun();
 
-    const h2s = headings.filter(item => item.tagName === "H2");
-    const conventionalOnThisPage = headings.find(item => normalizeSpace(item.textContent).replace(/:$/, "").toLowerCase() === "on this page");
-    const onThisPagePattern = !sectionHeading ? findOnThisPagePattern(root, inScanArea) : null;
+    const h2s = contextHeadings.filter(item => item.tagName === "H2");
+    const conventionalOnThisPage = contextHeadings.find(item => normalizeSpace(reviewText(item)).replace(/:$/, "").toLowerCase() === "on this page");
+    const onThisPagePattern = !sectionHeading ? findOnThisPagePattern(root, inBaseScanArea) : null;
     const onThisPage = conventionalOnThisPage || (onThisPagePattern && onThisPagePattern.label);
     const eligibleH2s = h2s.filter(item => item !== conventionalOnThisPage && (!isCmsLiteComponent(item) || profile !== "cms-lite") && (profile !== "cms-lite" || headingHasStableAnchor(item)));
-    if (!sectionHeading && eligibleH2s.length >= 3 && !onThisPagePattern && !conventionalOnThisPage) add("on-this-page-missing", root, eligibleH2s.length + " linkable H2 headings found");
-    if (!sectionHeading && onThisPage) {
-      const otpText = normalizeSpace(onThisPagePattern ? onThisPagePattern.text : onThisPage.textContent);
+    if (!sectionHeading && eligibleH2s.filter(inScanArea).length >= 3 && !onThisPagePattern && !conventionalOnThisPage) add("on-this-page-missing", root, eligibleH2s.length + " linkable H2 headings found");
+    if (!sectionHeading && onThisPage && !excludedFromReview(onThisPage)) {
+      const otpText = normalizeSpace(onThisPagePattern ? onThisPagePattern.text : reviewText(onThisPage));
       if (!onThisPagePattern || !onThisPagePattern.generated) {
         if (onThisPage.tagName !== "H2" || /:$/.test(otpText)) add("on-this-page-format", onThisPage, onThisPage.tagName + ": " + otpText);
       }
@@ -2555,7 +2614,8 @@
         const href = link.getAttribute("href") || "";
         const target = fragmentTarget(doc, href);
         const targetHeading = headingForFragmentTarget(target);
-        const linkText = normalizeSpace(link.textContent);
+        if (excludedFromReview(link)) { if (targetHeading) linkedH2s.add(targetHeading); return; }
+        const linkText = normalizeSpace(reviewText(link));
         const label = `Link ${index + 1}: ${linkText || "[No link text]"}`;
         const recordDetail = (kind, detail) => diagnosticItems.push({ kind, label, target: href, detail });
         if (!targetHeading) {
@@ -2565,7 +2625,8 @@
             : !href || href === "#" ? "This link does not name a page section." : "No matching destination on this page.");
           return;
         }
-        const targetText = normalizeSpace(targetHeading.textContent);
+        if (excludedFromReview(targetHeading)) { linkedH2s.add(targetHeading); return; }
+        const targetText = normalizeSpace(reviewText(targetHeading));
         if (targetHeading.tagName !== "H2") {
           diagnostics.push(`Link ${index + 1}, “${linkText}”, points to ${targetHeading.tagName} “${targetText}”. ‘On this page’ links should point to H2 headings.`);
           recordDetail("wrong-heading-level", `Targets ${targetHeading.tagName}${targetText !== linkText ? ` “${targetText}”` : ""}.`);
@@ -2592,10 +2653,11 @@
         }
       });
       eligibleH2s.forEach(heading => {
+        if (excludedFromReview(heading)) return;
         if (!linkedH2s.has(heading)) {
           const target = anchorIdForHeading(heading);
-          diagnostics.push(`Missing link for H2 “${normalizeSpace(heading.textContent)}” (${target ? `#${target}` : "no anchor found"}).`);
-          diagnosticItems.push({ kind: "missing-link", label: normalizeSpace(heading.textContent), target: target ? `#${target}` : "", detail: target ? "This H2 heading has no link in ‘On this page’." : "This H2 heading has no link in ‘On this page’ and no anchor was found." });
+          diagnostics.push(`Missing link for H2 “${normalizeSpace(reviewText(heading))}” (${target ? `#${target}` : "no anchor found"}).`);
+          diagnosticItems.push({ kind: "missing-link", label: normalizeSpace(reviewText(heading)), target: target ? `#${target}` : "", detail: target ? "This H2 heading has no link in ‘On this page’." : "This H2 heading has no link in ‘On this page’ and no anchor was found." });
         }
       });
       if (diagnostics.length) add("on-this-page-links", onThisPage, `${diagnostics.length} mismatch${diagnostics.length === 1 ? "" : "es"} across ${links.length} links and ${eligibleH2s.length} eligible H2 headings`, null, { diagnostics, diagnosticItems });
@@ -2604,7 +2666,7 @@
     const elementTexts = textElements(root, inScanArea);
     elementTexts.filter(item => item.tagName === "P").forEach(paragraph => {
       if (!englishLanguage) return;
-      const paragraphText = normalizeSpace(paragraph.textContent);
+      const paragraphText = normalizeSpace(reviewText(paragraph));
       const sentenceList = sentences(paragraphText);
       const paragraphWords = words(paragraphText).length;
       const tooManySentences = sentenceList.length > 5;
@@ -2629,7 +2691,7 @@
       });
     });
 
-    const mainText = normalizeSpace(elementTexts.map(element => element.textContent).join(" "));
+    const mainText = normalizeSpace(elementTexts.map(element => reviewText(element)).join(" "));
     const proseBlocks = elementTexts
       .filter(element => !element.closest("nav,table,figure,address,[class*='contact' i],[class*='breadcrumb' i]"))
       .map(element => ({ element, text: readabilityBlockText(element) }))
@@ -2872,7 +2934,7 @@
       }
 
       const gradeMatch = /\bgrade\s+(?:\d+|[A-K])\b/g.exec(value);
-      if (gradeMatch && educationContext(parent.textContent || value)) add("grade-capitalization", parent, value, null, {
+      if (gradeMatch && educationContext(reviewText(parent) || value)) add("grade-capitalization", parent, value, null, {
         matchText: gradeMatch[0], replacement: gradeMatch[0].replace(/^grade/, "Grade"), matchIndex: gradeMatch.index
       });
       const degreeMatch = academicDegreeDetails(value);
@@ -2898,7 +2960,7 @@
         if (value.includes("!")) add("exclamation", parent, value);
         if (value.includes(";")) {
           const semanticContainer = parent.closest("li,h1,h2,h3,h4,h5,h6");
-          const terminalSemicolonHandledElsewhere = semanticContainer && /;\s*$/.test(normalizeSpace(semanticContainer.textContent));
+          const terminalSemicolonHandledElsewhere = semanticContainer && /;\s*$/.test(normalizeSpace(reviewText(semanticContainer)));
           if (!terminalSemicolonHandledElsewhere) {
             const semicolonIndex = value.indexOf(";");
             add("semicolon", parent, value, null, {
@@ -2972,7 +3034,7 @@
         .replace(/(^|\s)@[A-Za-z0-9_]{2,}\b/g, "$1");
       if (nonEmailAtText.includes("@")) add("at-symbol", parent, value, null, { matchText: "@", matchIndex: value.indexOf("@") });
       const boldContainer = parent.closest("strong,b");
-      const fullBoldAllCaps = boldContainer && allCapsHeadingDetails(normalizeSpace(boldContainer.textContent));
+      const fullBoldAllCaps = boldContainer && allCapsHeadingDetails(normalizeSpace(reviewText(boldContainer)));
       const allCapsTokens = fullBoldAllCaps ? [] : Array.from(value.matchAll(/\b[A-Z][A-Z’']{1,}\b/g))
         .filter(match => isCommonAllCapsWord(match[0]));
       let allCapsGroup = [];
@@ -3066,7 +3128,7 @@
     });
 
     Array.from(root.querySelectorAll("sup")).filter(inScanArea).forEach(element => {
-      const ownText = normalizeSpace(element.textContent);
+      const ownText = normalizeSpace(reviewText(element));
       let number = "";
       let suffix = "";
       let before = "";
@@ -3128,7 +3190,7 @@
       if (/^[ABCEGHJKLMNPRSTVXY]\d[ABCEGHJKLMNPRSTVWXYZ]\d[ABCEGHJKLMNPRSTVWXYZ]\d$/i.test(acronym)) return;
       const parent = occurrence.node.parentElement;
       const element = parent.closest("h1,h2,h3,h4,h5,h6,p,li,dd,dt,figcaption,blockquote") || parent;
-      const elementText = normalizeSpace(element.textContent || occurrence.node.nodeValue || displayedAcronym);
+      const elementText = normalizeSpace(reviewText(element) || occurrence.node.nodeValue || displayedAcronym);
       if (isPostalAcronymContext(acronym, elementText, element)) return;
       const exactIndex = exactTokenIndex(elementText, displayedAcronym);
       const termIndex = Math.max(0, exactIndex);
@@ -3160,8 +3222,24 @@
     });
 
     headings.forEach(heading => {
-      if (/\b(?:frequently asked questions|FAQs?)\b/i.test(heading.textContent) || /\?$/.test(normalizeSpace(heading.textContent))) add("faq-content", heading, heading.textContent);
+      if (/\b(?:frequently asked questions|FAQs?)\b/i.test(reviewText(heading)) || /\?$/.test(normalizeSpace(reviewText(heading)))) add("faq-content", heading, reviewText(heading));
     });
+
+    function checkInPageLink(link, linkText, includeExcludedLink) {
+      const href = link.getAttribute("href") || "";
+      if (emptySamePageFragment(href, pageUrl)) {
+        add("empty-fragment-link", link, linkText + " → " + href, null, { includeExcludedLink });
+      } else if (href.startsWith("#") && href.length > 1 && !fragmentTarget(doc, href)) {
+        const suggestion = suggestedAnchorForText(linkText, headings);
+        add("broken-anchor", link, linkText + " → " + href,
+          suggestion ? `Change the target to #${suggestion.id}, which is attached to the heading “${suggestion.text}”.` : null,
+          { includeExcludedLink,
+            suggestedTarget: suggestion ? `#${suggestion.id}` : "",
+            diagnostics: suggestion ? [`Matching heading found: “${suggestion.text}”.`] : [],
+            diagnosticItems: [{ kind: "missing-target", label: linkText || "[No link text]", target: href, detail: "No matching destination on this page." }]
+          });
+      }
+    }
 
     const links = Array.from(root.querySelectorAll("a[href]")).filter(inScanArea);
     Array.from(root.querySelectorAll("a:not([href])")).filter(inScanArea).forEach(anchor => {
@@ -3195,11 +3273,11 @@
         range.setStartAfter(first);
         range.setEndBefore(second);
         const fragment = range.cloneContents();
-        if (normalizeSpace(fragment.textContent)) return false;
+        if (normalizeSpace(reviewText(fragment))) return false;
         return !fragment.querySelector("br,hr,p,div,section,article,aside,ul,ol,table,form,details");
       } catch (_) { return false; }
     };
-    const linkEvidenceText = link => normalizeSpace(link.textContent || "") || "[No link text]";
+    const linkEvidenceText = link => normalizeSpace(reviewText(link) || "") || "[No link text]";
     const finishSplitLinkGroup = group => {
       if (group.length < 2) return;
       const linkTexts = group.map(linkEvidenceText);
@@ -3397,22 +3475,11 @@
           add("linked-period", link, linkText);
         }
       }
-      if (emptySamePageFragment(href, pageUrl)) {
-        add("empty-fragment-link", link, linkText + " → " + href);
-      } else if (href.startsWith("#") && href.length > 1) {
-        const target = fragmentTarget(doc, href);
-        if (!target) {
-          const suggestion = suggestedAnchorForText(linkText, headings);
-          add("broken-anchor", link, linkText + " → " + href,
-            suggestion ? `Change the target to #${suggestion.id}, which is attached to the heading “${suggestion.text}”.` : null,
-            {
-              suggestedTarget: suggestion ? `#${suggestion.id}` : "",
-              diagnostics: suggestion ? [`Matching heading found: “${suggestion.text}”.`] : [],
-              diagnosticItems: [{ kind: "missing-target", label: linkText || "[No link text]", target: href, detail: "No matching destination on this page." }]
-            });
-        }
-      }
+      checkInPageLink(link, linkText, false);
     });
+
+    Array.from(root.querySelectorAll("a[href]")).filter(link => inBaseScanArea(link) && excludedFromReview(link) && !excludedLinkCheck(link))
+      .forEach(link => checkInPageLink(link, accessibleName(link) || "[No link text]", true));
 
     textNodes(root, inScanArea).forEach(node => {
       const phoneMatches = node.nodeValue.match(/(?:\+?1[-. (]*)?\d{3}[-. )]+\d{3}[-. ]+\d{4}/g) || [];
@@ -3441,13 +3508,13 @@
         .filter(element => (element.closest(CMS_LITE_COMPONENT_SELECTORS) || null) === (listComponent || null));
       const precedingBlock = precedingBlocks[precedingBlocks.length - 1] || null;
       const precedingParagraph = precedingBlock && precedingBlock.tagName === "P" ? precedingBlock : null;
-      const precedingText = precedingParagraph ? normalizeSpace(precedingParagraph.textContent) : "";
+      const precedingText = precedingParagraph ? normalizeSpace(reviewText(precedingParagraph)) : "";
       if (englishLanguage && !navigationalList && items.length >= 2 && precedingParagraph && precedingText && !/:$/.test(precedingText) && !listIntroductionParagraphs.has(precedingParagraph)) {
         listIntroductionParagraphs.add(precedingParagraph);
         add("list-introduction", precedingParagraph, precedingText);
       }
       items.forEach(item => {
-        const ownText = normalizeSpace(Array.from(item.childNodes).filter(node => node.nodeType === 3 || !/^(UL|OL)$/.test(node.tagName || "")).map(node => node.textContent).join(" "));
+        const ownText = normalizeSpace(Array.from(item.childNodes).filter(node => node.nodeType === 3 || !/^(UL|OL)$/.test(node.tagName || "")).map(node => reviewText(node)).join(" "));
         if (!englishLanguage || navigationalList) return;
         const fakeSublist = fakeListDetails(item, { allowInsideListItem: true });
         if (fakeSublist) add("fake-list", item, `${fakeSublist.count} sub-items made with ${fakeSublist.marker}: ${fakeSublist.evidence}`);
@@ -3458,10 +3525,10 @@
       });
       const linkDirectory = items.length > 0 && items.every(item => {
         const itemLinks = item.querySelectorAll("a");
-        return itemLinks.length === 1 && normalizeSpace(item.textContent) === normalizeSpace(itemLinks[0].textContent);
+        return itemLinks.length === 1 && normalizeSpace(reviewText(item)) === normalizeSpace(reviewText(itemLinks[0]));
       });
       if (englishLanguage && !navigationalList && !linkDirectory) {
-        const openings = items.map(item => firstWords(item.textContent, 2)).map(opening => /^[a-zà-öø-ÿ]/i.test(opening) ? opening : "");
+        const openings = items.map(item => firstWords(reviewText(item), 2)).map(opening => /^[a-zà-öø-ÿ]/i.test(opening) ? opening : "");
         const counts = new Map();
         openings.filter(Boolean).forEach(opening => counts.set(opening, (counts.get(opening) || 0) + 1));
         const repeated = Array.from(counts.entries()).find(([opening, count]) => {
@@ -3485,9 +3552,9 @@
     });
 
     Array.from(root.querySelectorAll("table")).filter(inScanArea).forEach(table => {
-      if (!table.querySelector("th")) add("table-headers", table, excerpt(table.textContent));
-      if (!table.querySelector("caption")) add("table-caption", table, excerpt(table.textContent));
-      if (table.closest("details,[class*='accordion' i],[class*='collapse' i]")) add("table-accordion", table, excerpt(table.textContent));
+      if (!table.querySelector("th")) add("table-headers", table, excerpt(reviewText(table)));
+      if (!table.querySelector("caption")) add("table-caption", table, excerpt(reviewText(table)));
+      if (table.closest("details,[class*='accordion' i],[class*='collapse' i]")) add("table-accordion", table, excerpt(reviewText(table)));
     });
 
     Array.from(root.querySelectorAll("strong,b")).filter(inScanArea).forEach(element => {
@@ -3495,7 +3562,7 @@
       if (element.closest("h1,h2,h3,h4,h5,h6")) return;
       if (element.closest("figure,figcaption,[class*='chart' i],[role='img']")) return;
       if (element.closest("a")) {
-        add("bold-link", element, element.textContent, null,
+        add("bold-link", element, reviewText(element), null,
           element.closest("h1,h2,h3,h4,h5,h6") ? { diagnostics: ["The bold link is also inside a heading. Removing the bold resolves both formatting concerns."] } : null);
         return;
       }
@@ -3508,28 +3575,28 @@
         add(formattedHeading.allCaps ? "formatted-all-caps-heading" : "formatted-heading", formattedHeading.block, formattedHeading.text);
         return;
       }
-      const standaloneAllCaps = allCapsHeadingDetails(normalizeSpace(element.textContent));
+      const standaloneAllCaps = allCapsHeadingDetails(normalizeSpace(reviewText(element)));
       if (standaloneAllCaps) {
-        add("all-caps", element, element.textContent, null, {
+        add("all-caps", element, reviewText(element), null, {
           matchText: standaloneAllCaps.text,
           matchIndex: standaloneAllCaps.index
         });
         return;
       }
-      if (element.closest("h1,h2,h3,h4,h5,h6") || words(element.textContent).length > 12) add("bold-block", element, element.textContent);
+      if (element.closest("h1,h2,h3,h4,h5,h6") || words(reviewText(element)).length > 12) add("bold-block", element, reviewText(element));
     });
-    Array.from(root.querySelectorAll("em,i")).filter(inScanArea).filter(element => !element.closest("h1,h2,h3,h4,h5,h6")).forEach(element => add("italics", element, element.textContent));
-    Array.from(root.querySelectorAll("s,strike,del")).filter(inScanArea).forEach(element => add("strikethrough", element, element.textContent));
+    Array.from(root.querySelectorAll("em,i")).filter(inScanArea).filter(element => !element.closest("h1,h2,h3,h4,h5,h6")).forEach(element => add("italics", element, reviewText(element)));
+    Array.from(root.querySelectorAll("s,strike,del")).filter(inScanArea).forEach(element => add("strikethrough", element, reviewText(element)));
     Array.from(root.querySelectorAll("u")).filter(inScanArea).forEach(element => {
-      if (!element.closest("a,h1,h2,h3,h4,h5,h6")) add("underline", element, element.textContent);
+      if (!element.closest("a,h1,h2,h3,h4,h5,h6")) add("underline", element, reviewText(element));
     });
 
     const aligned = new Set();
     Array.from(root.querySelectorAll("p,li,h1,h2,h3,h4,blockquote")).filter(inScanArea).forEach(element => {
       const alignment = doc.defaultView.getComputedStyle(element).textAlign;
       if ((alignment === "center" || alignment === "right" || alignment === "justify") && !element.closest("th,td,caption")) {
-        const key = alignment + ":" + normalizeSpace(element.textContent).slice(0, 30);
-        if (!aligned.has(key)) { aligned.add(key); add("text-alignment", element, alignment + " aligned: " + element.textContent); }
+        const key = alignment + ":" + normalizeSpace(reviewText(element)).slice(0, 30);
+        if (!aligned.has(key)) { aligned.add(key); add("text-alignment", element, alignment + " aligned: " + reviewText(element)); }
       }
     });
 
@@ -3669,7 +3736,7 @@
         url: pageUrl,
         hostname,
         instanceId: doc.defaultView && doc.defaultView.performance ? String(doc.defaultView.performance.timeOrigin || "") : "",
-        contentSignature: hashString(`${mainText}|${headings.map(heading => normalizeSpace(heading.textContent)).join("|")}|${links.length}`)
+        contentSignature: hashString(`${mainText}|${headings.map(heading => normalizeSpace(reviewText(heading))).join("|")}|${links.length}`)
       },
       settings: {
         scope,
@@ -3678,8 +3745,13 @@
         canControlColour,
         rootSelector: cssPath(root),
         sectionSelector: sectionHeading ? cssPath(sectionHeading) : "",
-        sectionLabel: sectionHeading ? normalizeSpace(sectionHeading.textContent) : "",
-        optionalChecks
+        sectionLabel: sectionHeading ? normalizeSpace(reviewText(sectionHeading)) : "",
+        optionalChecks,
+        exclusions: exclusionContext ? exclusionContext.results : [],
+        exclusionRevision: exclusionContext ? exclusionContext.revision : "",
+        emptyReviewScope: Boolean(exclusionContext && exclusionContext.roots.length &&
+          !textNodes(root, inScanArea).length && !Array.from(root.querySelectorAll("img,input,select,textarea,button")).some(inScanArea)),
+        structuralContext: Boolean(exclusionContext && exclusionContext.roots.some(area => area.matches("h1,h2,h3,h4,h5,h6") || area.querySelector("h1,h2,h3,h4,h5,h6")))
       },
       stats: {
         words: words(mainText).length,
@@ -3687,12 +3759,18 @@
         readingWords: gradeResult.words,
         readingGrade: grade === null ? null : Number(grade.toFixed(1)),
         headings: headings.length,
-        links: links.length,
+        links: pageDetails.links.length,
         images: Array.from(root.querySelectorAll("img")).filter(inScanArea).filter(image => !isCmsLiteTemplateImage(image, profile)).length,
         root: root === doc.body ? "body" : root.tagName.toLowerCase()
       },
       severityCounts,
       issues,
+      excludedReviewState: exclusionContext ? (Array.isArray(options.reviewStateCandidates) ? options.reviewStateCandidates : []).slice(0, 5000).filter(item => {
+        if (!item || typeof item.fingerprint !== "string" || typeof item.selector !== "string" || item.selector.length > 1500) return false;
+        const savedAt = Date.parse(item.savedAt || "");
+        if (!Number.isFinite(savedAt) || savedAt > Date.now() || Date.now() - savedAt > 7 * 24 * 60 * 60 * 1000) return false;
+        try { const matches = doc.querySelectorAll(item.selector); return matches.length === 1 && exclusionContext.excluded(matches[0]); } catch (_) { return false; }
+      }).map(item => ({ fingerprint: item.fingerprint, selector: item.selector, savedAt: item.savedAt })) : [],
       assets,
       pageDetails,
       totals,
@@ -3706,6 +3784,9 @@
         ? `Some issue types reached the ${PER_RULE_FINDING_LIMIT}-finding safety limit. Detected totals are preserved in the report.`
         : ""
     };
+    } finally {
+      if (exclusionContext) reviewScopes.delete(doc);
+    }
   }
 
   global.BCWebStyleGuideChecker = {

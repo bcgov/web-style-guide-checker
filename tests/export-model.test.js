@@ -14,6 +14,7 @@ assert.ok(start >= 0 && end > start, "Export model helpers must be present");
 assert.ok(evidenceStart >= 0 && evidenceEnd > evidenceStart, "Export evidence helpers must be present");
 
 const context = {
+  BCReviewExclusions: require("../review-exclusions.js"),
   effectiveStatus: finding => finding.status || finding.automaticStatus || "open",
   auditNote: finding => finding.note || { important: false, text: "" },
   truncatedFindingRules: () => [],
@@ -165,6 +166,13 @@ assert.deepEqual(customSheets, ["Summary", "Findings detail", "Scan log"], "Cust
 assert.equal(context.exportModel.linkCheckCoverage(first), "Not checked");
 first.linkCheck = { state: "complete", totalFound: 8, completed: 8 };
 assert.equal(context.exportModel.linkCheckCoverage(first), "Complete");
+
+const excludedReport = report("Excluded sidebar review");
+excludedReport.settings.exclusions = [{ id: "sidebar", name: "Shared sidebar", scope: "Section: https://example.ca/services/", status: "applied" }];
+const scopedSheets = context.exportModel.batchWorkbookSheets([{ status: "complete", pageNumber: 1, submittedUrl: excludedReport.page.url, report: excludedReport }], false, "custom", new Set(["Links"]));
+assert.deepEqual(Array.from(scopedSheets, sheet => sheet.name), ["Links", "Review scope"], "Custom workbooks must preserve exclusion coverage even without the summary");
+assert.ok(JSON.stringify(scopedSheets.at(-1).rows).includes("Shared sidebar"));
+assert.ok(context.exportModel.summarySheetRows(excludedReport).some(row => row.values && row.values[0] === "Excluded areas" && /Shared sidebar/.test(row.values[1])));
 
 const summary = context.exportModel.summarySheetRows(first);
 assert.ok(summary.some(row => row.values && row.values[0] === "Automated review profile"), "Single-page summary must include the review profile");

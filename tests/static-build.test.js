@@ -295,7 +295,7 @@ assert.match(html, /id="optional-passive-voice"[^>]*checked/, "Passive-voice rev
 assert.doesNotMatch(html, /Reading-level checks are always included/, "Optional-check settings must avoid explaining checks that cannot be changed here");
 assert.match(html, /class="check-row optional-check-row"/, "Optional-check labels must use dedicated description layout");
 assert.match(script, /optionalReviewChecksV1/, "Optional contextual review choices must be stored explicitly");
-assert.match(script, /Excluded from this scan:/, "Page details must disclose optional checks excluded from a scan");
+assert.match(read("exclusions-ui.js"), /Excluded from this scan:/, "Page details must disclose optional checks excluded from a scan");
 assert.doesNotMatch(script, /Reading-level checks were still included/, "Excluded-check disclosure must stay focused on checks that were excluded");
 assert.match(script, /Optional review checks/, "Workbook summaries and metadata must disclose optional-check coverage");
 assert.match(script, /if \(locate && !workspaceSurface && finding\.selector\)/, "Side-panel guided review must always follow a locatable finding");

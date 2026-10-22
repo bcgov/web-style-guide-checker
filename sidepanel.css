@@ -1026,3 +1026,83 @@ body[data-surface="workspace"] .preview-lifecycle-banner {
     justify-content: flex-start;
   }
 }
+/* Saved review scope stays quiet until it needs attention. */
+.exclusion-summary { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; font-size: 13px; line-height: 1.5; }
+.exclusion-summary { margin: 14px 0 4px; color: #555; }
+.page-scan-coverage { margin: 0 0 16px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+.page-scan-coverage > p { margin: 0 0 8px; }
+.page-scan-coverage #exclusion-report-text { margin: 8px 0 0; }
+.exclusions-list { display: grid; gap: 18px; margin-top: 18px; }
+.exclusion-group-heading, .exclusion-group > summary { margin: 0 0 10px; font-size: 15px; font-weight: 700; color: var(--navy); }
+.exclusion-group > summary { cursor: pointer; margin: 0; padding: 12px 0; border-top: 1px solid var(--line); }
+.exclusion-group-items { padding-top: 8px; }
+.exclusion-entry { padding: 12px 0; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+.exclusion-entry-heading { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 4px 12px; }
+.exclusion-entry-heading h3 { font-size: 16px; margin: 0; }
+.exclusion-entry-heading > span { font-size: 13px; color: var(--muted); }
+.exclusion-entry p { font-size: 14px; line-height: 1.5; margin: 8px 0; }
+.exclusion-entry .inline-actions { flex-wrap: wrap; gap: 8px 18px; margin-top: 6px; }
+.exclusions-page { margin: 18px 0; font-size: 14px; line-height: 1.5; }
+.exclusions-page { overflow-wrap: anywhere; }
+.exclusions-main-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.exclusion-match-warning { border-left: 3px solid var(--gold); padding-left: 8px; }
+.exclusion-address { overflow-wrap: anywhere; margin: 4px 0 12px; }
+.exclusion-scope-options { display: grid; gap: 8px; margin-top: 20px; }
+.exclusion-scope-options label { display: flex; align-items: baseline; gap: 8px; }
+.exclusion-scope-options select { width: 100%; min-width: 0; }
+.exclusion-selected-area { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin: 14px 0 20px; padding: 12px; border: 1px solid var(--line); border-radius: 4px; }
+.exclusion-selected-area p { margin: 4px 0 0; overflow-wrap: anywhere; }
+.exclusion-element-name { color: var(--muted); }
+.exclusion-link-choice { margin-top: 18px; }
+.exclusion-save-actions { justify-content: flex-start; gap: 10px; }
+#exclusion-name { width: 100%; }
+#exclusion-save-dialog, #exclusions-dialog { overflow-wrap: anywhere; }
+#exclusions-dialog { padding: 18px; }
+
+#exclusions-dialog .exclusion-dialog-heading, #exclusion-save-dialog .exclusion-dialog-heading {
+  position: sticky;
+  top: -18px;
+  z-index: 2;
+  margin: -18px -18px 16px;
+  padding: 14px 18px;
+  background: var(--white);
+  border-bottom: 1px solid var(--line);
+}
+#exclusion-save-dialog .exclusion-dialog-heading h2 { font-size: 21px; }
+#exclusion-duplicate-notice { padding: 10px; background: var(--surface-soft); border-left: 3px solid var(--gold); }
+
+.scan-exclude-control { margin-top: 14px; }
+.scan-exclude-control small { font-weight: 400; }
+.exclusion-scan-options { margin: 8px 0 18px 35px; font-size: 14px; }
+.exclusion-scan-options > p { margin: 0 0 6px; }
+.exclusion-settings-areas { list-style: none; margin: 0 0 8px; padding: 0; }
+.exclusion-settings-areas li { margin: 4px 0; overflow-wrap: anywhere; }
+.exclusion-area-name { font: inherit; font-weight: 700; text-align: left; }
+
+body[data-surface="panel"] .exclusion-scan-options { margin-left: 32px; }
+
+/* Keep checkbox columns and wrapped labels aligned across scan settings. */
+#cms-more-scan-options .check-row,
+.optional-check-row,
+.batch-options .check-row {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+}
+#cms-more-scan-options .check-row input,
+.optional-check-row input,
+.batch-options .check-row input { width: 16px; height: 16px; margin: 3px 0 0; }
+body[data-surface] #cms-more-scan-options .scan-colour-control { padding: 0; gap: 10px; }
+body[data-surface] #cms-more-scan-options .exclusion-scan-options { margin-left: 26px; }
+.exclusions-help { margin: 0 0 18px; font-size: 14px; line-height: 1.5; }
+.exclusions-help > summary { color: var(--navy); cursor: pointer; font-weight: 700; }
+.exclusions-help > p { margin: 12px 0; }
+.batch-exclusion-option { margin: 4px 0; }
+.batch-exclusion-option .batch-option-note { margin-top: 4px; }
+.batch-exclusion-option > button { margin: 4px 0 0 26px; }
+.built-in-name-group { margin-top: 18px; }
+.built-in-name-group h3 { margin: 0; font-size: 16px; }
+.built-in-name-group p { margin: 6px 0 10px; }
+
+.built-in-name-group .term-chips { padding: 0; }

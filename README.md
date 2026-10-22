@@ -85,6 +85,30 @@ For a February 29 update, anniversaries fall on February 28 in non-leap years. B
 
 This check skips missing, hidden, invalid, ambiguous and future dates, CMS Lite editor fields and section-only scans. It uses visible page content, without requesting a page or relying on server modification dates.
 
+## Excluded areas (experimental)
+
+Use **Checker menu → Excluded areas → Choose an area on the page** to skip a shared area outside your review responsibility. The picker starts at the nearest meaningful group, such as navigation, a section or a div containing several content blocks. It avoids jumping to the whole page. Point to an area and click, then adjust its boundary with **Select a larger area** or **Select a smaller area**. The picker shows the element name, such as `div#residentialleftnav`. **Reselect area** lets you choose again in the picker or save form while preserving your draft name and choices.
+
+The picker uses bundled BC Sans. Drag **Move** to reposition it, click it to move to another corner, or focus it and use arrow keys. Keyboard users can focus the selected-element preview and use Up/Down to browse areas, Left/Right to move through the hierarchy, and Enter to select. Escape cancels and restores page interaction.
+
+Enter a descriptive name, such as **Left navigation panel**. **Entire website** is selected first by default; **Only the page below** is the second option, with the actual address shown. Website scope uses the exact scheme, hostname and port. QA and live addresses remain separate. Page-only scope preserves query parameters and ignores fragments. Previous section-scoped exclusions keep their existing coverage until explicitly edited; the save form offers the two current choices.
+
+**Save and close** keeps your scan settings and saved results. **Save and add another** saves the first area and starts another selection. **Save and rescan** is also available when reviewing saved results. **Edit** changes a saved area's name, scope and link-check choice. **Add to review page** copies an exclusion from another page on the same site; if the area cannot be identified there, the picker asks you to select it. **Show area** and **Show all on page** highlight matching areas while keeping management open. Saving an edit returns to management. Its close button stays visible while scrolling.
+
+**Exclude areas** appears below **Check colour contrast**. Turn it on to see saved area names; select a name to highlight it on the page, or choose **Choose or edit areas**. Turning it off includes those areas in the next single-page scan while keeping the saved exclusions. The choice is remembered with the site’s scan settings. Batch settings are separate.
+
+The manager shows the review page address and its active exclusions, newest first. Exclusions for other pages, other websites and turned-off areas are in separate collapsed groups. Each compact row has a clickable name, scope and visible **Edit**, **Turn off/on** and **Remove** actions. **Edit** contains the element information, scope and link-check settings, and **Reselect area**; the list has no per-area dropdown. Selecting an already saved area opens its existing settings. Duplicate checks also recognize different selectors that identify the same element; existing disabled exclusions can be turned on again.
+
+**Page details** places **Excluded areas (count)** beside the scan coverage information. Below **Reviewed findings**, **Review with excluded areas** rescans with saved excluded areas included. It keeps saved preferences and batch settings, labels the resulting report and its exports, and offers **Rescan with exclusions** to return to the usual scope. Other scan settings still apply.
+
+Excluded content is removed from writing checks, reading measures, headings and image inventories. Links remain in the links inventory and in link checks by default, including in-page anchor checks. Select **Skip link checks in this area too** to skip those checks while retaining the inventory entries. A destination also linked from included content is still checked. Excluded headings and anchor destinations remain structural context. If no content remains in the review scope, the checker says so.
+
+Matches are validated on each page. Position-dependent selections require unchanged content as well as the same structure. Missing, changed or ambiguous areas remain in the review, with the outcome recorded. Preferences remain local to this browser until removed. Settings provides a separate deletion control. Changes require a rescan; saved decisions and notes on excluded findings are retained for up to 7 days so matching findings can recover them when included again.
+
+Batch scans use a snapshot of their starting exclusions, including their link-check choices, when paused and resumed. Matching uses each page's final address. Reports retain their original coverage. Workbooks automatically include a **Review scope** sheet whenever exclusions apply, including in custom workbooks; findings CSV and copied findings also disclose exclusions.
+
+The picker supports the main document on published and QA pages. It does not select inside embedded frames or shadow components, and is unavailable in the CMS Lite editor. Choose the containing area where appropriate, or review the QA/live page.
+
 ## Allowed terms
 
 Allowed terms are exact and rule-specific. An allowed term can address an approved formal name or familiar acronym without disabling unrelated checks. The Proofreading check for `pubic` also offers a page-only ignore option for legitimate anatomical content.
@@ -136,6 +160,7 @@ CSV exports prefix cells that could otherwise be interpreted as spreadsheet form
 
 - `manifest.json` — extension metadata and permissions
 - `checker-core.js` — page extraction and review rules
+- `review-exclusions.js`, `exclusion-picker.js`, `exclusions-ui.js` — saved review scope, page selection and exclusion management
 - `cms-lite-editor.js` — CMS Lite editor field mapping and reveal behaviour
 - `sidepanel.html`, `sidepanel.css`, `sidepanel.js` — side panel and full-page workspace
 - `background.js` — extension startup and side-panel behaviour

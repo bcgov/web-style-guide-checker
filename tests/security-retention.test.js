@@ -61,6 +61,14 @@ const retainedReports = context.retentionHelpers.normalizedStoredReports(stored,
 assert.deepEqual(Object.keys(retainedReports).sort(), ["https://example.com/boundary", "https://example.com/page"].sort());
 assert.equal(retainedReports["https://example.com/page"].issues[0].fingerprint, "current-finding", "The newest successful scan must replace an earlier scan of the same canonical page");
 
+const exclusionTime = Date.now();
+const protectedFingerprints = context.retentionHelpers.storedFindingFingerprints({ page: { issues: [], excludedReviewState: [
+  { fingerprint: "excluded-note", savedAt: new Date(exclusionTime - 1000).toISOString() },
+  { fingerprint: "expired-excluded-note", savedAt: new Date(exclusionTime - 8 * 86400000).toISOString() },
+  { fingerprint: "future-excluded-note", savedAt: new Date(exclusionTime + 86400000).toISOString() }
+] } });
+assert.deepEqual(Array.from(protectedFingerprints), ["excluded-note"], "Temporarily excluded findings retain notes and decisions within the seven-day retention period");
+
 const fingerprints = context.retentionHelpers.storedFindingFingerprints(retainedReports);
 assert.deepEqual(Array.from(fingerprints).sort(), ["boundary-finding", "current-finding"]);
 assert.deepEqual(

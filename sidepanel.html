@@ -52,9 +52,10 @@
           <div id="cms-lite-settings" class="profile-callout" hidden>
             <strong>Editable CMS Lite content</strong>
             <span>Checks the page title and editable body content.</span>
-            <details>
+            <details id="cms-more-scan-options">
               <summary>More scan options</summary>
-              <label class="check-row"><input id="cms-whole-scan" type="checkbox"> Include the page template and controls</label>
+              <label class="check-row"><input id="cms-whole-scan" type="checkbox"><span>Include the page template and controls</span></label>
+              <div id="cms-exclusion-slot"></div>
             </details>
           </div>
 
@@ -74,6 +75,19 @@
             <input id="colour-control" type="checkbox" checked>
             <span><strong>Check colour contrast</strong><small>Include when editors can change colours and styling.</small></span>
           </label>
+          <div id="standard-exclusion-slot">
+            <div id="exclusion-scan-control">
+              <label class="check-row scan-colour-control scan-exclude-control">
+                <input id="exclude-areas" type="checkbox" aria-controls="exclusion-scan-options" aria-expanded="false">
+                <span><strong>Exclude areas</strong><small>Skip selected areas when reviewing this page.</small></span>
+              </label>
+              <div id="exclusion-scan-options" class="exclusion-scan-options" hidden>
+                <p id="exclusion-settings-summary" class="hint">No areas selected</p>
+                <ul id="exclusion-settings-areas" class="exclusion-settings-areas"></ul>
+                <button id="manage-exclusions" class="button secondary compact" type="button">Choose or edit areas</button>
+              </div>
+            </div>
+          </div>
           <p id="scope-note" class="hint"></p>
 
           <div class="section-scan-control">
@@ -169,6 +183,11 @@
             </section>
 
             <section id="page-details-panel" class="review-panel details-panel" role="tabpanel" aria-labelledby="details-review-tab" hidden>
+              <div id="page-scan-coverage" class="page-scan-coverage">
+                <p id="optional-exclusions-summary" class="detail-help" hidden></p>
+                <div id="exclusion-report-summary"><button id="manage-report-exclusions" class="text-button" type="button">Excluded areas (0)</button></div>
+                <p id="exclusion-report-text" class="hint" role="status" hidden></p>
+              </div>
               <div id="page-details" tabindex="-1"></div>
               <details id="manual-review" class="manual-review">
                 <summary>Manual review checklist</summary>
@@ -242,6 +261,11 @@
               <label class="check-row"><input id="batch-check-links" type="checkbox"> Check whether links work</label>
               <p class="hint batch-option-note">Checks links after each page. This takes longer and may ask for access to linked websites. CMS Lite links are checked in QA and live when applicable. Some internal links may use your current browser access.</p>
               <p id="batch-link-access-note" class="hint batch-option-note" hidden>After scanning the pages, the checker asks only for access to linked websites found in this batch.</p>
+              <div class="batch-exclusion-option">
+                <label class="check-row"><input id="batch-use-exclusions" type="checkbox" checked aria-describedby="batch-exclusion-summary"><span>Exclude saved areas</span></label>
+                <p id="batch-exclusion-summary" class="hint batch-option-note">Skip saved areas where they are found. Pages without matching areas are reviewed normally.</p>
+                <button id="manage-batch-exclusions" class="text-button" type="button">Choose or edit areas</button>
+              </div>
               <label>Workbook type
                 <select id="batch-export-preset">
                   <option value="full" selected>Full audit</option>
@@ -286,15 +310,9 @@
 
       <section id="terms-view" class="app-view workspace-view" role="tabpanel" aria-labelledby="terms-mode-tab" hidden>
         <header class="workspace-heading">
-          <div><p class="eyebrow">Preferences and access</p><h1>Settings</h1><p>Manage exact allowed terms, website access and privacy.</p></div>
+          <div><h1>Settings</h1><p>Manage exact allowed terms, website access and privacy.</p></div>
           <button id="settings-permission-button" class="button secondary" type="button">Website access</button>
         </header>
-
-        <section class="workspace-card" aria-labelledby="personal-terms-heading">
-          <div class="list-heading"><h2 id="personal-terms-heading">Allowed terms</h2><span id="personal-term-count"></span></div>
-          <p>Allowed terms apply only to the rule that flagged them. Other checks still apply.</p>
-          <div id="personal-terms" class="term-list"></div>
-        </section>
 
         <section class="workspace-card" aria-labelledby="optional-checks-heading">
           <h2 id="optional-checks-heading">Optional review checks</h2>
@@ -304,10 +322,16 @@
           <p id="optional-checks-status" class="hint" aria-live="polite"></p>
         </section>
 
+        <section class="workspace-card" aria-labelledby="personal-terms-heading">
+          <div class="list-heading"><h2 id="personal-terms-heading">Allowed terms</h2><span id="personal-term-count"></span></div>
+          <p>Allowed terms apply only to the rule that flagged them. Other checks still apply.</p>
+          <div id="personal-terms" class="term-list"></div>
+        </section>
+
         <details class="workspace-card built-in-terms">
           <summary>Built-in approved names</summary>
-          <p>These names are already allowed for the “Use B.C.” check.</p>
-          <div id="built-in-terms-list" class="term-chips"></div>
+          <p>The checker recognizes these names in abbreviation and capitalization checks. Other checks still apply.</p>
+          <div id="built-in-terms-list"></div>
         </details>
 
         <section class="workspace-card" aria-labelledby="saved-data-heading">
@@ -333,6 +357,10 @@
             <div class="data-management-row">
               <div><strong>Allowed terms</strong><span id="allowed-terms-data-count"></span><small>Exact rule-specific exceptions remain until you remove them.</small></div>
               <button id="clear-allowed-terms" class="button danger compact" type="button">Delete</button>
+            </div>
+            <div class="data-management-row">
+              <div><strong>Excluded areas</strong><span id="excluded-areas-data-count"></span><small>Saved selections remain until removed. Rescan to update existing results.</small></div>
+              <button id="clear-excluded-areas" class="button danger compact" type="button">Delete</button>
             </div>
             <div class="data-management-row">
               <div><strong>Page preferences</strong><span id="page-preferences-data-count"></span><small>Saved review scope, colour-control and optional-review choices remain until reset.</small></div>
@@ -373,8 +401,8 @@
         <div class="menu-actions">
           <button id="rescan-button" class="menu-action" type="button"><strong>Rescan page</strong><span>Review the scan options before checking the page again</span></button>
           <button id="export-page-button" class="menu-action" type="button"><strong>Export page results</strong><span>Download or copy this page’s scan results</span></button>
+          <button id="menu-exclusions" class="menu-action" type="button"><strong>Excluded areas</strong><span>Choose page areas to skip in single-page and batch reviews</span></button>
           <button id="open-workspace-button" class="menu-action" type="button"><strong>Open full-page review</strong><span>Opens this review in a new browser tab</span></button>
-          <button id="open-feedback-button" class="menu-action" type="button"><strong>Feedback notes</strong><span>Collect testing notes and create one feedback email</span></button>
           <button id="open-batch-button" class="menu-action" type="button"><strong>Start a batch scan</strong><span>Check several pages and create one report</span></button>
           <button id="open-settings-button" class="menu-action" type="button"><strong>Settings and allowed terms</strong><span>Manage permissions, privacy and exact-term exceptions</span></button>
         </div>
@@ -428,6 +456,44 @@
         </fieldset>
         <p id="exception-guardrail" class="guardrail">Capitalization and wording must match exactly. Single-word terms are allowed, except “BC” on its own. Structure, accessibility and sentence case are still checked.</p>
         <div class="dialog-actions"><button id="exception-cancel" class="button secondary" type="button">Cancel</button><button id="exception-submit" class="button primary" type="submit">Allow exact term</button></div>
+      </form>
+    </dialog>
+
+    <dialog id="exclusions-dialog" class="sheet-dialog" aria-labelledby="exclusions-heading">
+      <div class="dialog-heading exclusion-dialog-heading"><h2 id="exclusions-heading">Excluded areas</h2><button id="exclusions-close" class="icon-button" type="button" aria-label="Close excluded areas">×</button></div>
+      <p>Choose areas to leave out of content reviews, such as the site footer.</p>
+      <details class="exclusions-help">
+        <summary>How excluded areas work</summary>
+        <p>Links continue to be checked in the link checker, unless you choose to skip those checks.</p>
+        <p>Changes take effect when you rescan. A running or saved batch keeps the settings it started with.</p>
+        <p class="exclusions-page"><strong>Review page:</strong> <span id="exclusions-page-address"></span></p>
+      </details>
+      <div class="exclusions-main-actions"><button id="choose-exclusion" class="button primary" type="button">Choose an area on the page</button><button id="show-all-exclusions" class="button secondary" type="button">Show all on page</button></div>
+      <p id="exclusions-status" class="hint" role="status"></p>
+      <div id="exclusions-list" class="exclusions-list"></div>
+    </dialog>
+
+    <dialog id="exclusion-save-dialog" aria-labelledby="exclusion-save-heading">
+      <form id="exclusion-save-form">
+        <div class="dialog-heading exclusion-dialog-heading"><h2 id="exclusion-save-heading">Exclude this area</h2><button id="exclusion-save-close" class="icon-button" type="button" aria-label="Close area editor">×</button></div>
+        <p id="exclusion-duplicate-notice" class="hint" role="status" hidden></p>
+        <label id="exclusion-enabled-choice" class="check-row" hidden><input id="exclusion-enabled" type="checkbox"> Turn this exclusion on</label>
+        <div class="exclusion-selected-area"><div><span class="field-label">Selected element</span><p id="exclusion-selection-description"></p></div><button id="exclusion-reselect" class="button secondary compact" type="button">Reselect area</button></div>
+        <label class="field-label" for="exclusion-name">Area name</label>
+        <input id="exclusion-name" maxlength="80" type="text" autocomplete="off" required placeholder="For example, Left navigation panel" aria-describedby="exclusion-name-help">
+        <p id="exclusion-name-help" class="hint">Enter a descriptive name so you can recognize this area later.</p>
+        <fieldset class="exclusion-scope-options">
+          <legend>Where should this apply?</legend>
+          <label><input id="exclusion-site-radio" type="radio" name="exclusion-scope" value="site" checked> Entire website</label>
+          <p id="exclusion-site-address" class="hint exclusion-address"></p>
+          <label><input type="radio" name="exclusion-scope" value="page"> Only the page below</label>
+          <p id="exclusion-page-address" class="hint exclusion-address"></p>
+        </fieldset>
+        <label class="check-row exclusion-link-choice"><input id="exclusion-skip-links" type="checkbox"> Skip link checks in this area too</label>
+        <p class="hint">Links always remain in the links inventory.</p>
+        <p id="exclusion-stability-note" class="hint"></p>
+        <p id="exclusion-save-status" class="hint error-text" role="alert"></p>
+        <div class="dialog-actions exclusion-save-actions"><button id="exclusion-save-button" class="button primary" type="submit" value="close">Save and close</button><button id="exclusion-save-add" class="button secondary" type="submit" value="add">Save and add another</button><button id="exclusion-save-rescan" class="text-button" type="submit" value="rescan" hidden>Save and rescan</button><button id="exclusion-save-cancel" class="text-button" type="button">Cancel</button></div>
       </form>
     </dialog>
 
@@ -560,7 +626,9 @@
     <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
     <script src="preview-lifecycle.js"></script>
+    <script src="review-exclusions.js"></script>
     <script src="checker-core.js"></script>
+    <script src="exclusions-ui.js"></script>
     <script src="sidepanel.js"></script>
   </body>
 </html>
