@@ -1011,7 +1011,7 @@ function defaultSettings(url) {
   const profile = detectProfile(url);
   const saved = state.domainSettings[hostname] || {};
   return {
-    scope: profile === "cms-lite" ? "content" : (saved.scope || "content"),
+    scope: profile === "cms-lite" ? "content" : (saved.scope || "whole"),
     profile,
     canControlColour: typeof saved.canControlColour === "boolean" ? saved.canControlColour : profile !== "cms-lite",
     useExclusions: typeof saved.useExclusions === "boolean" ? saved.useExclusions : Boolean(globalThis.BCReviewExclusions?.applicableRules(state.exclusions, url).length)
