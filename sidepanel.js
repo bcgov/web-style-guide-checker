@@ -10,7 +10,8 @@ const STORAGE_KEYS = {
   feedback: "feedbackNotesV1",
   reviewContexts: "reviewContextsV1",
   navigation: "reviewNavigationV1",
-  optionalChecks: "optionalReviewChecksV1"
+  optionalChecks: "optionalReviewChecksV1",
+  exclusions: "reviewExclusionsV1"
 };
 
 const MAX_REPORTS = 20;
@@ -63,6 +64,7 @@ const state = {
   reports: {},
   decisions: {},
   exceptions: [],
+  exclusions: [],
   notes: {},
   feedbackNotes: [],
   reviewContexts: {},
@@ -256,6 +258,8 @@ function $(id) { return document.getElementById(id); }
 
 function cacheElements() {
   [
+    "excluded-areas-data-count", "clear-excluded-areas", "exclusion-settings-summary", "manage-exclusions", "exclude-areas", "exclusion-scan-options", "exclusion-settings-areas", "exclusion-report-summary", "exclusion-report-text", "manage-report-exclusions", "optional-exclusions-summary", "page-scan-coverage", "exclusion-scan-control", "standard-exclusion-slot", "cms-exclusion-slot", "cms-more-scan-options", "batch-exclusion-summary", "batch-use-exclusions", "manage-batch-exclusions", "menu-exclusions",
+    "exclusions-dialog", "exclusions-close", "exclusions-page-address", "show-all-exclusions", "exclusion-save-heading", "exclusion-save-close", "exclusion-duplicate-notice", "exclusion-enabled-choice", "exclusion-enabled", "choose-exclusion", "exclusions-status", "exclusions-list", "exclusion-save-dialog", "exclusion-save-form", "exclusion-selection-description", "exclusion-name", "exclusion-page-address", "exclusion-site-radio", "exclusion-site-address", "exclusion-stability-note", "exclusion-save-status", "exclusion-save-cancel", "exclusion-save-button", "exclusion-save-add", "exclusion-save-rescan", "exclusion-reselect", "exclusion-skip-links",
     "active-page-label", "return-review-button", "feedback-header-button", "feedback-header-count", "profile-badge", "colour-control-row", "colour-control", "scope-note", "scan-button", "scan-permission-button", "cache-note",
     "preview-lifecycle-banner", "preview-lifecycle-title", "preview-lifecycle-message", "preview-lifecycle-version", "preview-download-link", "preview-continue-button", "preview-check-again-button",
     "scan-settings", "cancel-settings-button", "stale-report-banner", "stale-report-title", "stale-report-message", "stale-rescan-button",
@@ -286,7 +290,7 @@ function cacheElements() {
     "feedback-context-section", "feedback-include-context", "feedback-context-preview", "feedback-cancel", "feedback-email-dialog", "feedback-email-message", "feedback-email-close",
     "archive-prepared-feedback", "keep-prepared-feedback", "feedback-copy-dialog", "feedback-copy-close", "feedback-copy-options", "feedback-copy-selection",
     "feedback-copy-list", "feedback-copy-count", "feedback-copy-selected", "feedback-select-all", "feedback-select-unsent", "feedback-select-sent", "feedback-select-none",
-    "more-dialog", "more-menu-button", "more-close", "open-workspace-button", "open-feedback-button", "open-batch-button", "open-settings-button",
+    "more-dialog", "more-menu-button", "more-close", "open-workspace-button", "open-batch-button", "open-settings-button",
     "export-dialog", "export-close"
   ].forEach(id => { elements[id] = $(id); });
 }
@@ -730,6 +734,7 @@ function remoteLinkKey(link) {
 function remoteLinksForReport(report) {
   const unique = new Map();
   (((report || {}).pageDetails || {}).links || []).forEach(originalLink => {
+    if (originalLink.excludedFromCheck) return;
     const link = prepareRemoteLink(originalLink, report && report.page ? report.page.url : "");
     if (!link) return;
     if (link.cmsLiteAssetGuid) {
@@ -861,6 +866,7 @@ async function loadState() {
   state.feedbackNotes = retainedFeedbackNotes(stored[STORAGE_KEYS.feedback]);
   state.reviewContexts = retainedReviewContexts(stored[STORAGE_KEYS.reviewContexts] || {}, state.reports);
   state.domainSettings = stored[STORAGE_KEYS.domains] || {};
+  state.exclusions = globalThis.BCReviewExclusions ? globalThis.BCReviewExclusions.normalizeRules(stored[STORAGE_KEYS.exclusions]) : [];
   const savedOptionalChecks = stored[STORAGE_KEYS.optionalChecks] || {};
   state.optionalChecks = {
     nonBreakingSpace: savedOptionalChecks.nonBreakingSpace !== false,
@@ -913,6 +919,11 @@ async function loadState() {
       downloadFilename: savedBatch.downloadFilename || "",
       downloadedAt: savedBatch.downloadedAt || ""
     };
+    if (globalThis.BCReviewExclusions && Array.isArray(state.batch.settings.exclusions)) {
+      state.batch.settings = { ...state.batch.settings, exclusions: globalThis.BCReviewExclusions.normalizeRules(
+        state.batch.settings.exclusions.map(rule => ({ ...rule, skipLinks: rule.skipLinks !== false }))
+      ) };
+    }
     if (legacyBatchWithoutTimestamp) await persistBatchState();
   } else if (storedBatch) {
     await chrome.storage.local.remove(STORAGE_KEYS.batch);
@@ -1000,9 +1011,10 @@ function defaultSettings(url) {
   const profile = detectProfile(url);
   const saved = state.domainSettings[hostname] || {};
   return {
-    scope: profile === "cms-lite" ? "content" : (saved.scope || "content"),
+    scope: profile === "cms-lite" ? "content" : (saved.scope || "whole"),
     profile,
-    canControlColour: typeof saved.canControlColour === "boolean" ? saved.canControlColour : profile !== "cms-lite"
+    canControlColour: typeof saved.canControlColour === "boolean" ? saved.canControlColour : profile !== "cms-lite",
+    useExclusions: typeof saved.useExclusions === "boolean" ? saved.useExclusions : Boolean(globalThis.BCReviewExclusions?.applicableRules(state.exclusions, url).length)
   };
 }
 
@@ -1018,7 +1030,9 @@ function selectedSettings() {
     profile,
     canControlColour: profile === "cms-lite" ? false : elements["colour-control"].checked,
     sectionSelector: scope === "content" && state.selectedSection ? state.selectedSection.selector : "",
-    optionalChecks: { ...state.optionalChecks }
+    optionalChecks: { ...state.optionalChecks },
+    useExclusions: !cmsEditor && elements["exclude-areas"].checked,
+    exclusions: !cmsEditor && elements["exclude-areas"].checked && globalThis.BCReviewExclusions ? globalThis.BCReviewExclusions.normalizeRules(state.exclusions) : []
   };
 }
 
@@ -1027,7 +1041,7 @@ async function saveDomainSettings() {
   const hostname = hostnameFor(state.activeTab.url);
   if (!hostname) return;
   const settings = selectedSettings();
-  state.domainSettings[hostname] = { scope: settings.scope, canControlColour: settings.canControlColour };
+  state.domainSettings[hostname] = { scope: settings.scope, canControlColour: settings.canControlColour, useExclusions: settings.useExclusions };
   await saveKey(STORAGE_KEYS.domains, state.domainSettings);
 }
 
@@ -1037,10 +1051,12 @@ function applySettings(settings) {
   const cmsEditor = isCmsLiteEditorUrl((state.activeTab && state.activeTab.url) || "");
   elements["cms-whole-scan"].checked = !cmsEditor && settings.scope === "whole";
   elements["colour-control"].checked = settings.canControlColour;
+  elements["exclude-areas"].checked = defaultSettings(state.activeTab?.url || "").useExclusions;
   updateSettingsExplanation();
 }
 
 function updateSettingsExplanation() {
+  if (typeof renderExclusionSettings === "function") renderExclusionSettings();
   const settings = selectedSettings();
   const isCmsLite = settings.profile === "cms-lite";
   const cmsEditor = isCmsLite && isCmsLiteEditorUrl((state.activeTab && state.activeTab.url) || "");
@@ -1048,6 +1064,10 @@ function updateSettingsExplanation() {
   elements["cms-lite-settings"].hidden = !isCmsLite;
   elements["standard-scope-settings"].hidden = isCmsLite;
   elements["cms-whole-scan"].disabled = cmsEditor;
+  elements["cms-more-scan-options"].hidden = cmsEditor;
+  elements[isCmsLite ? "cms-exclusion-slot" : "standard-exclusion-slot"].append(elements["exclusion-scan-control"]);
+  elements["exclusion-scan-control"].hidden = cmsEditor;
+  elements["menu-exclusions"].hidden = cmsEditor;
   elements["colour-control-row"].hidden = settings.scope === "whole" || isCmsLite;
   elements["scope-note"].hidden = !isCmsLite && settings.scope === "content";
   if (cmsEditor) {
@@ -1074,7 +1094,8 @@ function settingsMatchReport() {
     state.activeReport.settings.canControlColour === settings.canControlColour &&
     (state.activeReport.settings.sectionSelector || "") === (settings.sectionSelector || "") &&
     (state.activeReport.settings.optionalChecks?.nonBreakingSpace !== false) === settings.optionalChecks.nonBreakingSpace &&
-    (state.activeReport.settings.optionalChecks?.passiveVoice !== false) === settings.optionalChecks.passiveVoice;
+    (state.activeReport.settings.optionalChecks?.passiveVoice !== false) === settings.optionalChecks.passiveVoice &&
+    (state.activeReport.settings.exclusionRevision || "") === (globalThis.BCReviewExclusions ? globalThis.BCReviewExclusions.revision(settings.exclusions, state.activeReport.page.url) : "");
 }
 
 async function saveOptionalChecks() {
@@ -1117,9 +1138,13 @@ function normalizedStoredReports(reports, now = Date.now()) {
 }
 
 function storedFindingFingerprints(reports) {
-  return new Set(Object.values(reports || {}).flatMap(report =>
-    Array.isArray(report && report.issues) ? report.issues.map(finding => finding && finding.fingerprint).filter(Boolean) : []
-  ));
+  return new Set(Object.values(reports || {}).flatMap(report => [
+    ...(Array.isArray(report && report.issues) ? report.issues.map(finding => finding && finding.fingerprint).filter(Boolean) : []),
+    ...(Array.isArray(report && report.excludedReviewState) ? report.excludedReviewState.filter(item => {
+      const timestamp = Date.parse(item && item.savedAt || "");
+      return Number.isFinite(timestamp) && timestamp <= Date.now() && Date.now() - timestamp <= SINGLE_PAGE_REPORT_RETENTION_MS;
+    }).map(item => item.fingerprint) : [])
+  ]));
 }
 
 function retainedFindingMap(values, fingerprints) {
@@ -1188,7 +1213,11 @@ function omittedFindingCountForExport(report, includeReviewed) {
 
 function findingCoverageText(report) {
   const truncated = truncatedFindingRules(report);
-  if (!truncated.length) return "All detected findings are available for review.";
+  if (!truncated.length) return report.settings && report.settings.emptyReviewScope
+    ? "No content remains in the selected review area."
+    : report.settings && (report.settings.exclusions || []).some(item => item.status === "applied")
+      ? "All detected findings within the selected review scope are available for review."
+      : "All detected findings are available for review.";
   const limit = Number(report.findingLimits && report.findingLimits.perRule) || 500;
   const details = truncated.map(item => `${item.title || item.ruleId}: ${Number(item.detected) || 0} detected, ${Number(item.retained) || 0} available`).join("; ");
   return `Safety limit reached (${limit} per issue type). ${details}.`;
@@ -1446,7 +1475,7 @@ async function syncActiveTab() {
 async function injectScanner(tabId, options) {
   await chrome.scripting.executeScript({
     target: { tabId },
-    files: ["checker-core.js", "cms-lite-editor.js"]
+    files: ["review-exclusions.js", "checker-core.js", "cms-lite-editor.js"]
   });
 
   const results = await chrome.scripting.executeScript({
@@ -3910,7 +3939,7 @@ function restoreReviewScroll(pageKey) {
 
 async function scanCurrentPage(suppliedOptions) {
   if (!await ensurePreviewCanRun()) return;
-  const options = suppliedOptions && suppliedOptions.preserveReview ? suppliedOptions : {};
+  const options = { preserveReview: suppliedOptions?.preserveReview === true, includeExcludedAreas: suppliedOptions?.includeExcludedAreas === true };
   const preserved = options.preserveReview ? captureReviewContext() : null;
   showCurrentState("loading");
   elements["scan-settings"].hidden = true;
@@ -3924,10 +3953,20 @@ async function scanCurrentPage(suppliedOptions) {
     const settings = selectedSettings();
     await clearPageOverlays();
     await saveDomainSettings();
+    const previous = state.reports[reportKey(state.activeTab.url)] || null;
+    const reviewStateCandidates = previous ? [...(previous.excludedReviewState || []), ...(previous.issues || [])
+      .filter(finding => state.notes[finding.fingerprint] || state.decisions[finding.fingerprint])
+      .map(finding => ({ fingerprint: finding.fingerprint, selector: finding.selector, savedAt: previous.scannedAt }))] : [];
     const report = await scanTab(state.activeTab.id, {
       ...settings,
+      exclusions: options.includeExcludedAreas ? [] : settings.exclusions,
+      reviewStateCandidates,
       exceptions: state.exceptions
     });
+    if (options.includeExcludedAreas && !report.settings.editorMode) {
+      report.settings.includeExcludedAreas = true;
+      report.settings.includedExclusionRevision = BCReviewExclusions.revision(state.exclusions, report.page.url);
+    }
     state.activeReport = report;
     state.lastReviewTabId = state.activeTab.id;
     state.lastReviewPageKey = reportKey(report.page.url, report.settings && report.settings.sectionSelector);
@@ -3970,6 +4009,7 @@ async function scanCurrentPage(suppliedOptions) {
 }
 
 function renderCurrentReport() {
+  if (typeof renderExclusionSettings === "function") renderExclusionSettings();
   const report = state.activeReport;
   if (!report) return;
   const counts = reportCounts(report);
@@ -4736,6 +4776,7 @@ function renderPageDetails(section = "overview") {
   const report = state.activeReport;
   const details = report && report.pageDetails;
   elements["manual-review"].hidden = section !== "overview";
+  elements["page-scan-coverage"].hidden = section !== "overview";
   if (!details) {
     elements["page-details"].innerHTML = `<div class="empty-state"><strong>Page details are not available in this saved review.</strong><br>Check the page again to add them.</div>`;
     return;
@@ -4800,7 +4841,6 @@ function renderPageDetails(section = "overview") {
         ? "Not enough prose"
         : `Estimated grade ${report.stats.readingGrade}`;
     elements["page-details"].innerHTML = `
-      ${excludedOptionalCheckLabels(report).length ? `<p class="detail-help"><strong>Excluded from this scan:</strong> ${escapeHtml(excludedOptionalCheckLabels(report).join(", "))}.</p>` : ""}
       <div class="details-landing">
         <button class="detail-card" type="button" data-detail-section="headings">${detailCardIcon("headings")}<span><strong>Headings</strong><span>${headingIssues} heading issue${headingIssues === 1 ? "" : "s"}${generatedHeadings.length ? ` · ${generatedHeadings.length} accordion heading${generatedHeadings.length === 1 ? "" : "s"}` : ""}</span></span><span class="detail-card-count">${authoredHeadings.length}</span></button>
         <button class="detail-card" type="button" data-detail-section="images">${detailCardIcon("images")}<span><strong>Images and alt text</strong><span>${details.counts.imagesMissingAlt} missing alt · ${details.counts.imagesEmptyAlt} empty alt</span></span><span class="detail-card-count">${details.counts.images}</span></button>
@@ -4831,7 +4871,7 @@ function renderPageDetails(section = "overview") {
     const allPageLinks = details.links.map(link => {
       const asset = assetBySelector.get(assetKey(link));
       const verification = asset ? ` · Asset ${String(asset.verificationStatus || "not checked").replace(/-/g, " ")}${asset.actualSize ? ` · ${displayBytes(asset.actualSize)}` : ""}` : "";
-      return `<li><button class="detail-jump page-link-item" type="button" data-selector="${escapeHtml(link.selector)}" ${editorDataAttributes(link)}><strong>${escapeHtml(link.text || "[No accessible name]")}</strong><span class="page-link-url">${escapeHtml(link.href)}</span><span class="page-link-meta">${escapeHtml(link.location || "Page content")}${escapeHtml(verification)}</span></button></li>`;
+      return `<li><button class="detail-jump page-link-item" type="button" data-selector="${escapeHtml(link.selector)}" ${editorDataAttributes(link)}><strong>${escapeHtml(link.text || "[No accessible name]")}</strong><span class="page-link-url">${escapeHtml(link.href)}</span><span class="page-link-meta">${escapeHtml(link.location || "Page content")}${escapeHtml(verification)}${link.excludedFromCheck ? " · Link check skipped by saved exclusion" : link.reviewExcluded ? " · Content excluded; link included" : ""}</span></button></li>`;
     }).join("");
     elements["page-details"].innerHTML = `${back}<h2>Links and assets</h2>
       <section class="link-check-panel" aria-label="Link checking">
@@ -6387,7 +6427,11 @@ function renderTerms() {
       <div><strong>${escapeHtml(item.phrase)}</strong><small>${escapeHtml(item.ruleTitle || item.ruleId)} · ${item.page ? "This page" : item.domain === "*" ? "All sites" : item.domain}</small></div>
       <button class="small-button remove-term" type="button" data-id="${escapeHtml(item.id)}">Remove</button>
     </div>`).join("") : `<div class="empty-state">No personal allowed terms yet.</div>`;
-  elements["built-in-terms-list"].innerHTML = globalThis.BCWebStyleGuideChecker.builtInTerms.map(term => `<span class="term-chip">${escapeHtml(term)}</span>`).join("");
+  const names = globalThis.BCWebStyleGuideChecker.builtInTerms;
+  elements["built-in-terms-list"].innerHTML = [
+    ["Names that use BC", "These names can keep BC without periods.", names.filter(term => term.includes("BC"))],
+    ["Other formal names", "These names have recognized capitalization.", names.filter(term => !term.includes("BC"))]
+  ].map(([heading, description, terms]) => `<section class="built-in-name-group"><h3>${heading}</h3><p>${description}</p><div class="term-chips">${terms.map(term => `<span class="term-chip">${escapeHtml(term)}</span>`).join("")}</div></section>`).join("");
   elements["optional-non-breaking-space"].checked = state.optionalChecks.nonBreakingSpace;
   elements["optional-passive-voice"].checked = state.optionalChecks.passiveVoice;
   renderDataManagement();
@@ -6711,6 +6755,7 @@ function issueSummaryText(report, includeReviewed) {
     `Checked: ${formatDate(report.scannedAt)}`,
     `Automated findings detected: ${findings.reduce((total, finding) => total + findingOccurrences(finding), 0) + omittedFindingCountForExport(report, includeReviewed)} · Issue types: ${new Set([...findings.map(finding => finding.ruleId), ...truncatedFindingRules(report).filter(item => includeReviewed || omittedOpenCount(item)).map(item => item.ruleId)]).size}`,
     `Finding coverage: ${findingCoverageText(report)}`,
+    `Excluded areas: ${exclusionCoverageText(report)}`,
     "",
     "Automated findings identify items to review. They are not confirmed compliance failures.",
     ""
@@ -6739,6 +6784,7 @@ function detailedFindingsText(report, includeReviewed) {
     `Checked: ${formatDate(report.scannedAt)}`,
     `Finding rows: ${findings.length} · Occurrences: ${findings.reduce((total, finding) => total + findingOccurrences(finding), 0)}`,
     `Finding coverage: ${findingCoverageText(report)}`,
+    `Excluded areas: ${exclusionCoverageText(report)}`,
     ""
   ];
   findings.forEach((finding, index) => {
@@ -6822,6 +6868,8 @@ function summarySheetRows(report) {
     sheetRow(["Checked", formatDate(report.scannedAt)]),
     sheetRow(["Scope", `${report.settings.scope === "whole" ? "Whole page" : "Page content"} · ${report.settings.profileLabel}`]),
     sheetRow(["Optional review checks", optionalCheckCoverage(report)]),
+    sheetRow(["Excluded areas", exclusionCoverageText(report)]),
+    ...(report.settings.structuralContext ? [sheetRow(["Structure checks", "Excluded headings remain available as context. Their content is not reviewed."])] : []),
     sheetRow(["Finding coverage", findingCoverageText(report)]),
     sheetRow(["Link check", linkCheckCoverage(report)]),
     sheetRow(["Link check results", linkCheckResultSummary(report)]),
@@ -7188,10 +7236,13 @@ function linkRows(report) {
   });
   return allLinks.map(link => {
     const prepared = prepareRemoteLink(link, report.page.url);
-    const result = prepared ? resultByDestination.get(remoteLinkKey(prepared)) : null;
+    const result = prepared && !link.excludedFromCheck ? resultByDestination.get(remoteLinkKey(prepared)) : null;
     let checkResult = "Not checked";
     let detail = "";
-    if (result) {
+    if (link.excludedFromCheck) {
+      checkResult = "Skipped by saved exclusion";
+      detail = "Link retained in the inventory; checking was excluded for this area.";
+    } else if (result) {
       checkResult = linkResultLabel(result.status);
       const environmentDetail = [];
       if (result.cmsCheckedUrl) environmentDetail.push(`CMS Lite: ${result.cmsStatus === "ok" ? "Working" : linkResultLabel(result.cmsStatus)}${result.cmsCode ? ` (HTTP ${result.cmsCode})` : ""}`);
@@ -7240,6 +7291,24 @@ function batchCustomSheetNames() {
   ]);
 }
 
+function exclusionCoverageText(report) {
+  return globalThis.BCReviewExclusions ? globalThis.BCReviewExclusions.coverage(report) : "None";
+}
+
+function withExclusionCoverage(sheets, reports) {
+  if (!sheets.length || !reports.some(report => (report.settings.exclusions || []).length || report.settings.includeExcludedAreas)) return sheets;
+  const rows = [["Page", "Page URL", "Review scope", "Excluded area", "Address scope", "Outcome", "Links"]];
+  reports.forEach(report => {
+    const outcomes = report.settings.exclusions || [];
+    const scope = report.settings.scope === "whole" ? "Whole page" : report.settings.sectionLabel ? `Page section: ${report.settings.sectionLabel}` : "Page content";
+    if (!outcomes.length) rows.push([report.page.title, report.page.url, scope, "None", "", report.settings.includeExcludedAreas ? "Saved excluded areas included in this scan" : "No saved exclusions apply"]);
+    outcomes.forEach(outcome => rows.push([report.page.title, report.page.url, scope, outcome.name, outcome.scope,
+      ({ applied: "Excluded", missing: "Area not found; content reviewed", ambiguous: "Multiple matches; content reviewed", changed: "Area changed; content reviewed", "outside-scope": "Already outside review scope" })[outcome.status] || "Not applied", outcome.status === "applied" ? outcome.skipLinks !== false ? "Link checks skipped" : "Links included" : ""]));
+    if (report.settings.emptyReviewScope) rows.push([report.page.title, report.page.url, scope, "", "", "No content remains in the selected review area"]);
+  });
+  return [...sheets, { name: "Review scope", rows, filterRow: 1, widths: [32, 52, 20, 36, 60, 55], maxColumnWidth: 60 }];
+}
+
 function currentWorkbookSheets() {
   if (!state.activeReport) return [];
   const report = state.activeReport;
@@ -7255,9 +7324,9 @@ function currentWorkbookSheets() {
   ];
   if (preset === "custom") {
     const selected = currentCustomSheetNames();
-    return allSheets.filter(sheet => selected.has(sheet.name));
+    return withExclusionCoverage(allSheets.filter(sheet => selected.has(sheet.name)), [report]);
   }
-  return allSheets;
+  return withExclusionCoverage(allSheets, [report]);
 }
 
 function downloadCurrentWorkbook() {
@@ -7559,7 +7628,7 @@ function batchWorkbookSheets(records, includeReviewed, preset, customSelection) 
   const pages = batchPagesRows(records);
   const scanLogHeader = ["Submitted URL", "Result", "Page title", "Final URL", "Scanned at", "Message"];
   const scanLogRows = records.map(record => record.status === "complete"
-    ? [record.submittedUrl, "Complete", record.report.page.title, record.report.page.url, formatDate(record.report.scannedAt), ""]
+    ? [record.submittedUrl, "Complete", record.report.page.title, record.report.page.url, formatDate(record.report.scannedAt), (record.report.settings.exclusions || []).length ? exclusionCoverageText(record.report) : ""]
     : [record.submittedUrl, "Failed", "", "", formatDate(record.scannedAt || ""), record.error || "Unknown error"]);
   const allSheets = [
     { name: "Summary", rows: batchSummaryRows(records, includeReviewed), widths: [38, 22, 18, 18, 18, 72], maxColumnWidth: 72 },
@@ -7572,12 +7641,12 @@ function batchWorkbookSheets(records, includeReviewed, preset, customSelection) 
     { name: "Scan log", rows: [scanLogHeader, ...scanLogRows], filterRow: 1, widths: [52, 14, 34, 52, 24, 60], maxColumnWidth: 60 }
   ];
   const byName = new Map(allSheets.map(sheet => [sheet.name, sheet]));
-  if (preset === "full") return allSheets;
+  if (preset === "full") return withExclusionCoverage(allSheets, records.filter(record => record.status === "complete").map(record => record.report));
   if (preset === "custom") {
     const selected = customSelection instanceof Set ? customSelection : new Set(customSelection || []);
-    return allSheets.filter(sheet => selected.has(sheet.name));
+    return withExclusionCoverage(allSheets.filter(sheet => selected.has(sheet.name)), records.filter(record => record.status === "complete").map(record => record.report));
   }
-  return allSheets;
+  return withExclusionCoverage(allSheets, records.filter(record => record.status === "complete").map(record => record.report));
 }
 
 function parseBatchUrls() {
@@ -7680,6 +7749,7 @@ async function scanBatchUrl(url, settings) {
       profile,
       canControlColour: profile === "cms-lite" ? false : settings.canControlColour,
       optionalChecks: settings.optionalChecks || state.optionalChecks,
+      exclusions: settings.exclusions || [],
       exceptions: state.exceptions
     });
     return { submittedUrl: url, status: "complete", report };
@@ -7890,6 +7960,7 @@ function applyBatchStateToControls() {
   if (batch.settings && batch.settings.scope) elements["batch-scope"].value = batch.settings.scope;
   elements["batch-colour-control"].checked = batch.settings ? batch.settings.canControlColour !== false : true;
   elements["batch-check-links"].checked = Boolean(batch.checkLinks);
+  elements["batch-use-exclusions"].checked = batch.settings?.useExclusions ?? (Array.isArray(batch.settings?.exclusions) ? batch.settings.exclusions.length > 0 : true);
   elements["batch-export-preset"].value = batch.exportPreset === "custom" ? "custom" : "full";
   const custom = new Set(batch.customSheets || []);
   document.querySelectorAll("#batch-export-custom [data-sheet]").forEach(input => { input.checked = custom.has(input.dataset.sheet); });
@@ -7898,7 +7969,7 @@ function applyBatchStateToControls() {
 function batchExportSnapshotFromUi() {
   const preset = elements["batch-export-preset"].value === "custom" ? "custom" : "full";
   return {
-    settings: { scope: elements["batch-scope"].value, canControlColour: elements["batch-colour-control"].checked, optionalChecks: { ...state.optionalChecks } },
+    settings: { scope: elements["batch-scope"].value, canControlColour: elements["batch-colour-control"].checked, optionalChecks: { ...state.optionalChecks }, useExclusions: elements["batch-use-exclusions"].checked, exclusions: elements["batch-use-exclusions"].checked && globalThis.BCReviewExclusions ? globalThis.BCReviewExclusions.normalizeRules(state.exclusions) : [] },
     checkLinks: elements["batch-check-links"].checked,
     linkPermissionMode: batchLinkPermissionModeFromUi(),
     exportPreset: preset,
@@ -7915,6 +7986,7 @@ function updateBatchExportDescription() {
 }
 
 function updateBatchControls() {
+  if (typeof renderExclusionSettings === "function") renderExclusionSettings();
   const batch = state.batch;
   const running = batch.running;
   const waitingForLinkAccess = batch.phase === "link-permission";
@@ -7931,6 +8003,7 @@ function updateBatchControls() {
   elements["batch-urls"].disabled = lockSetup;
   elements["batch-scope"].disabled = lockSetup;
   elements["batch-colour-control"].disabled = lockSetup;
+  elements["batch-use-exclusions"].disabled = lockSetup;
   elements["batch-check-links"].disabled = lockSetup;
   elements["batch-link-access-note"].hidden = !elements["batch-check-links"].checked;
   elements["batch-link-finish-actions"].hidden = !waitingForLinkAccess;
@@ -8277,6 +8350,7 @@ async function openWorkspace(view = "current") {
 }
 
 function bindEvents() {
+  if (typeof bindExclusionEvents === "function") bindExclusionEvents();
   document.querySelectorAll(".mode-tab").forEach(button => button.addEventListener("click", () => switchView(button.dataset.view)));
   document.querySelectorAll('[role="tablist"]').forEach(tablist => tablist.addEventListener("keydown", handleTablistKeys));
   document.querySelectorAll("input[name='scope']").forEach(input => input.addEventListener("change", handleSettingsChange));
@@ -8320,7 +8394,6 @@ function bindEvents() {
   elements["more-close"].addEventListener("click", () => elements["more-dialog"].close());
   elements["feedback-header-button"].addEventListener("click", openFeedbackView);
   elements["feedback-back-button"].addEventListener("click", closeFeedbackView);
-  elements["open-feedback-button"].addEventListener("click", () => { elements["more-dialog"].close(); openFeedbackView(); });
   elements["open-workspace-button"].addEventListener("click", () => { elements["more-dialog"].close(); openWorkspace("current"); });
   elements["open-batch-button"].addEventListener("click", () => { elements["more-dialog"].close(); workspaceSurface ? switchView("batch") : openWorkspace("batch"); });
   elements["open-settings-button"].addEventListener("click", () => { elements["more-dialog"].close(); workspaceSurface ? switchView("terms") : openWorkspace("terms"); });
@@ -8494,13 +8567,25 @@ function bindEvents() {
   elements["batch-cancel-button"].addEventListener("click", cancelBatch);
   elements["batch-csv-button"].addEventListener("click", downloadBatchCsv);
   elements["batch-check-links"].addEventListener("change", updateBatchControls);
+  elements["batch-use-exclusions"].addEventListener("change", updateBatchControls);
   elements["batch-link-access-button"].addEventListener("click", requestBatchLinkAccessAndFinish);
   elements["batch-finish-without-links"].addEventListener("click", finishBatchWithoutLinks);
   elements["batch-export-preset"].addEventListener("change", updateBatchControls);
   elements["download-current-workbook"].addEventListener("click", downloadCurrentWorkbook);
   elements["download-current-action-csv"].addEventListener("click", () => {
     if (!state.activeReport) return;
-    downloadCsvRows(actionRows(state.activeReport, elements["current-export-reviewed"].checked), `bc-web-style-findings-${new Date().toISOString().slice(0, 10)}.csv`, ACTION_HEADER);
+    const rows = actionRows(state.activeReport, elements["current-export-reviewed"].checked);
+    const hasExclusions = (state.activeReport.settings.exclusions || []).length > 0;
+    const coverage = exclusionCoverageText(state.activeReport);
+    const exported = hasExclusions ? rows.map(row => [...row, coverage]) : rows;
+    if (hasExclusions && !exported.length) {
+      const scopeRow = Array(ACTION_HEADER.length).fill("");
+      scopeRow[1] = state.activeReport.page.title;
+      scopeRow[2] = state.activeReport.page.url;
+      scopeRow[3] = "Review scope";
+      exported.push([...scopeRow, coverage]);
+    }
+    downloadCsvRows(exported, `bc-web-style-findings-${new Date().toISOString().slice(0, 10)}.csv`, hasExclusions ? [...ACTION_HEADER, "Excluded areas"] : ACTION_HEADER);
   });
   document.addEventListener("keydown", event => {
     if (state.reviewMode !== "detail" || event.defaultPrevented || /INPUT|TEXTAREA|SELECT|BUTTON/.test(document.activeElement && document.activeElement.tagName)) return;

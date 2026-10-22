@@ -242,9 +242,9 @@ assert.doesNotMatch(script, /<pane ySplit=/, "Workbook exports must not freeze p
 assert.match(html, /Some supported government links may use your existing signed-in browser session/, "Privacy wording must explain supported signed-in link checks");
 assert.match(html, /The checker does not collect or store your sign-in information/, "Privacy wording must explain that sign-in information is not collected or stored");
 assert.match(readme, /managed CMS Lite asset check[\s\S]*Asset Not Found/, "Detailed privacy documentation must disclose the limited managed-asset response read");
-assert.match(html, /value="custom">Customize workbook</, "Export presets must keep detailed sheet selection behind a Customize option");
+assert.match(html, /value="custom">Customize report</, "Export presets must keep detailed sheet selection behind a Customize option");
 const currentPresetHtml = (html.match(/<select id="current-export-preset">([\s\S]*?)<\/select>/) || [])[1] || "";
-assert.match(currentPresetHtml, /<option value="full" selected>Full audit<\/option>[\s\S]*<option value="custom">Customize workbook<\/option>/, "Single-page exports should expose Full audit and Customize workbook presets");
+assert.match(currentPresetHtml, /<option value="full" selected>Full report<\/option>[\s\S]*<option value="custom">Customize report<\/option>/, "Single-page exports should expose Full audit and Customize workbook presets");
 assert.doesNotMatch(currentPresetHtml, /value="standard"|value="summary"/, "Legacy single-page workbook presets must be removed");
 assert.doesNotMatch(html, /id="copy-button"|Copy issue summary/, "Single-page exports must not offer the low-value Copy issue summary action");
 assert.match(html, /id="download-current-action-csv" class="button tertiary"/, "Download findings CSV must be presented as a button");
@@ -295,7 +295,7 @@ assert.match(html, /id="optional-passive-voice"[^>]*checked/, "Passive-voice rev
 assert.doesNotMatch(html, /Reading-level checks are always included/, "Optional-check settings must avoid explaining checks that cannot be changed here");
 assert.match(html, /class="check-row optional-check-row"/, "Optional-check labels must use dedicated description layout");
 assert.match(script, /optionalReviewChecksV1/, "Optional contextual review choices must be stored explicitly");
-assert.match(script, /Excluded from this scan:/, "Page details must disclose optional checks excluded from a scan");
+assert.match(read("exclusions-ui.js"), /Excluded from this scan:/, "Page details must disclose optional checks excluded from a scan");
 assert.doesNotMatch(script, /Reading-level checks were still included/, "Excluded-check disclosure must stay focused on checks that were excluded");
 assert.match(script, /Optional review checks/, "Workbook summaries and metadata must disclose optional-check coverage");
 assert.match(script, /if \(locate && !workspaceSurface && finding\.selector\)/, "Side-panel guided review must always follow a locatable finding");
@@ -330,7 +330,7 @@ assert.doesNotMatch(script, /setTimeout\([\s\S]{0,200}data-bc-style-checker-high
 
 assert.ok(manifest.permissions.includes("unlimitedStorage"), "Large resumable batch scans must not be constrained by the default local-storage quota");
 const batchPresetHtml = (html.match(/<select id="batch-export-preset">([\s\S]*?)<\/select>/) || [])[1] || "";
-assert.match(batchPresetHtml, /<option value="full" selected>Full audit<\/option>[\s\S]*<option value="custom">Customize workbook<\/option>/, "Batch exports should expose Full audit and Customize workbook presets");
+assert.match(batchPresetHtml, /<option value="full" selected>Full report<\/option>[\s\S]*<option value="custom">Customize report<\/option>/, "Batch exports should expose Full audit and Customize workbook presets");
 assert.doesNotMatch(batchPresetHtml, /value="standard"|value="summary"/, "Legacy batch workbook presets must be removed from the batch workflow");
 assert.match(script, /function batchStorageValue\(/, "Batch progress must have a persistable state snapshot");
 assert.match(script, /await persistBatchState\(\);[\s\S]{0,220}renderBatchProgress\(\);/, "Batch progress must be saved as page scanning advances");
