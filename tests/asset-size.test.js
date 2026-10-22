@@ -279,6 +279,7 @@ test("The finding card renders the measured action shown to the author", async (
     renderedEvidence: finding => finding.evidence, editorDataAttributes: () => "",
     workspaceSurface: false
   });
+  vm.runInContext(shippedFunction("renderedFindingDiagnostics"), context);
   vm.runInContext(shippedFunction("renderFinding"), context);
   const html = context.renderFinding(report.issues[0]);
   assert.match(html, /Suggested action:<\/strong> Add \(PDF, 296KB\) to the link text\./);
@@ -800,6 +801,7 @@ test('Combined correction shows a clear title and two escaped numbered actions',
     sentenceLabel: value => value, renderedContrastDetails: () => '',
     renderedEvidence: finding => finding.evidence, editorDataAttributes: () => '', workspaceSurface: false
   });
+  vm.runInContext(shippedFunction('renderedFindingDiagnostics'), context);
   vm.runInContext(shippedFunction('renderFinding'), context);
   const html = context.renderFinding(report.issues[0]);
   assert.match(html, /<ol><li>Change 299KB to 179KB\.<\/li><li>Move \(PDF, 179KB\) into the link text\.<\/li><\/ol>/);

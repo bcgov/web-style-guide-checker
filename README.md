@@ -55,6 +55,8 @@ Use **Open full-page review** for a wider workspace. The larger workspace also c
 
 **Rescan page** returns to the scan-options screen with the previous choices selected so you can confirm or change the scope before checking the page again.
 
+Choose **Export page results** below **Rescan page** in the checker menu to download or copy the current page's results. Select **Check links** above the issue list to start a separate link check. Link progress, results and controls are available under **Page details → Links and assets**.
+
 ## CMS Lite pages
 
 The extension recognizes these sites as CMS Lite:
