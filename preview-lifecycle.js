@@ -8,7 +8,7 @@
   const SCHEMA_VERSION = 1;
   const REQUEST_TIMEOUT_MS = 4000;
   const CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
-  const BUILT_IN_EXPIRY = "2026-10-31";
+  const BUILT_IN_EXPIRY = "2027-01-31";
   const ALLOWED_PILOT_STATUSES = new Set(["active", "ended"]);
   const VERSION_PATTERN = /^\d+(?:\.\d+){0,3}$/;
   const ALLOWED_DOWNLOAD_HOSTS = new Set(["github.com"]);
