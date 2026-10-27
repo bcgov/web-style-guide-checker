@@ -78,6 +78,16 @@ Help a reviewer understand a webpage, decide what needs attention and finish an 
 The checker leaves meaning-heavy decisions—such as whether an image is decorative, whether an acronym is familiar or whether `Dr.` identifies a medical doctor—to the reviewer.
 
 
+## Name and language recognition
+
+- Match complete recorded names with Unicode word boundaries. Preserve source spelling and offsets, support canonical Unicode composition and documented apostrophe variants, and keep literal question marks distinct from glottal-stop letters.
+- Apply name exceptions only to the matched expression. Keep surrounding English, standalone acronyms, links, formatting and accessibility in scope.
+- Respect local language declarations and nested English overrides. A font, unusual character or Indigenous-related heading does not establish the language of an entire passage.
+- Keep recorded name apostrophes distinct from quotation delimiters. Protect internal name punctuation while preserving real sentence endings and punctuation outside the name.
+- Keep additions to the recognition catalogue separate from the existing word-count and English-readability eligibility models. Preserve their legacy matching boundaries so new names alone do not change those models.
+- Use the catalogue to reduce editorial false positives. Do not use it to prescribe replacement spellings or infer identity, affiliation or legal status.
+- Keep Indigenous terminology checks narrow and context-specific. Broad wording such as “gaps”, “traditional” or “should” does not by itself justify a finding.
+
 ## Readability and proofreading heuristics
 
 - Keep the page-wide reading-grade review at Grade 9 or higher; the Web Style Guide target remains Grade 8.

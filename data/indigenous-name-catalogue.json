@@ -1,0 +1,6211 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "fileName": "First_Nations_Name_Review.xlsx",
+    "sha256": "ebaaebdb12b2f83b5a4b471d9a8041c1ee12ab85f72a6949b316383ae13ee3dd",
+    "reviewDate": "2026-10-23",
+    "evidenceStatusSource": "Workbook labels; not a new audit of all cited websites."
+  },
+  "purpose": "Literal name recognition for editorial false-positive prevention. No canonical-name replacement, legal-identity inference, affiliation mapping or runtime website requests.",
+  "records": [
+    {
+      "id": "E001",
+      "workbookRow": 7,
+      "lookupLabel": "3 Nations Society",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://3nations.org/"
+      ],
+      "forms": [
+        {
+          "text": "3 Nations",
+          "role": "context-dependent-short-form",
+          "sourceColumn": "C",
+          "recognize": false,
+          "reason": "context-required"
+        },
+        {
+          "text": "3Nations Society",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "3Nations",
+          "role": "context-dependent-short-form",
+          "sourceColumn": "D",
+          "recognize": false,
+          "reason": "context-required"
+        }
+      ]
+    },
+    {
+      "id": "E002",
+      "workbookRow": 8,
+      "lookupLabel": "?Akisq'nuk First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://akisqnuk.org/",
+        "https://akisqnuk.org/afn-lake-stewardship",
+        "https://akisqnuk.org/lands-%26-resources",
+        "https://akisqnuk.org/afn-enterprises-lp",
+        "https://akisqnuk.org/what-were-working-on-1",
+        "https://akisqnuk.org/finance-%26-economic-dev"
+      ],
+      "forms": [
+        {
+          "text": "ʔAkisq̓nuk First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "ʔAkisq̓nuk",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "ʔakisq̓nuk",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "ʔAKISQ̓NUK",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E003",
+      "workbookRow": 9,
+      "lookupLabel": "?Aq'am",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www2.aqam.net/"
+      ],
+      "forms": [
+        {
+          "text": "ʔaq̓am",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "ʔaq̓am Community",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "St. Mary's Indian Band",
+          "role": "historical-or-administrative-name",
+          "sourceColumn": "E",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E004",
+      "workbookRow": 10,
+      "lookupLabel": "?Esdilagh First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://esdilaghfn.com/",
+        "https://esdilaghfn.com/about-esdilagh/",
+        "https://esdilaghfn.com/about-esdilagh/leadership-and-governance/"
+      ],
+      "forms": [
+        {
+          "text": "ʔEsdilagh First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "?Esdilagh First Nation",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "ʔEsdilagh",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Alexandria Indian Band",
+          "role": "historical-or-administrative-name",
+          "sourceColumn": "E",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E005",
+      "workbookRow": 11,
+      "lookupLabel": "Acho Dene Koe First Nation",
+      "verificationBasis": "Own-site name unverified",
+      "evidenceUrls": [
+        "https://fnp-ppn.aadnc-aandc.gc.ca/fnp/Main/Search/FNMain.aspx?BAND_NUMBER=758&lang=eng"
+      ],
+      "forms": [],
+      "holdReason": "additional-verification-required"
+    },
+    {
+      "id": "E006",
+      "workbookRow": 12,
+      "lookupLabel": "Adams Lake Indian Band",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://adamslakeband.org/"
+      ],
+      "forms": [
+        {
+          "text": "Adams Lake Indian Band",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "ALIB",
+          "role": "acronym",
+          "sourceColumn": "D",
+          "recognize": false,
+          "reason": "definition-required"
+        }
+      ]
+    },
+    {
+      "id": "E007",
+      "workbookRow": 13,
+      "lookupLabel": "Ahousaht First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.ahousaht.ca/"
+      ],
+      "forms": [
+        {
+          "text": "ʕaaḥuusʔatḥ",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Ahousaht",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E008",
+      "workbookRow": 14,
+      "lookupLabel": "Aitchelitz Band",
+      "verificationBasis": "Shared administrative site",
+      "evidenceUrls": [
+        "https://www.saylandsoffice.ca/"
+      ],
+      "forms": [],
+      "holdReason": "additional-verification-required"
+    },
+    {
+      "id": "E009",
+      "workbookRow": 15,
+      "lookupLabel": "Alexis Creek",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.tsideldel.org/",
+        "https://www.tsideldel.org/elections",
+        "https://www.tsideldel.org/about",
+        "https://www.tsideldel.org/post/copy-of-industrial-update-t%C5%9Dideldel-first-nation-taking-the-lead-on-traditional-territory",
+        "https://www.tsideldel.org/law-and-order"
+      ],
+      "forms": [
+        {
+          "text": "Tŝideldel First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Tŝideldel",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Tsideldel FN",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Alexis Creek First Nation",
+          "role": "historical-or-administrative-name",
+          "sourceColumn": "E",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E010",
+      "workbookRow": 16,
+      "lookupLabel": "Anaham Indian Band",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.tletinqox.ca/",
+        "https://www.tletinqox.ca/about",
+        "https://www.tletinqox.ca/health-3",
+        "https://www.tletinqox.ca/contact-us",
+        "https://www.tletinqox.ca/videos",
+        "https://www.tletinqox.ca/school"
+      ],
+      "forms": [
+        {
+          "text": "Tl'etinqox Government",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Tl'etinqox",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Tl’etinqox Government",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E011",
+      "workbookRow": 17,
+      "lookupLabel": "Ashcroft Indian Band",
+      "verificationBasis": "Indexed official content",
+      "evidenceUrls": [
+        "https://www.ashcroftband.ca/",
+        "https://www.ashcroftband.ca/content/contact-us"
+      ],
+      "forms": [],
+      "holdReason": "additional-verification-required"
+    },
+    {
+      "id": "E012",
+      "workbookRow": 18,
+      "lookupLabel": "Beecher Bay First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://scianew.com/",
+        "https://scianew.com/wp-content/uploads/2024/10/draft-bbfn-sub-and-develop-servicing-law.pdf",
+        "https://scianew.com/wp-content/uploads/2024/10/beecher-bay-lands-summary-2017.pdf",
+        "https://scianew.com/wp-content/uploads/2026/05/Land-Registry-and-Cerification-Law.pdf",
+        "https://scianew.com/wp-content/uploads/2024/10/official-notice-proposed-public-safety-and-order-law.pdf",
+        "https://scianew.com/boundary-change-in-langford-metchosin-and-beecher-bay/"
+      ],
+      "forms": [
+        {
+          "text": "SC’IȺNEW̱ Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "SC'IȺNEW̱ Nation (Beecher Bay)",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "SC’IȺNEW̱",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Beecher Bay First Nation",
+          "role": "historical-or-administrative-name",
+          "sourceColumn": "E",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E013",
+      "workbookRow": 19,
+      "lookupLabel": "Bella Bella Indian Band",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.heiltsuk.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Heiltsuk Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Haíɫzaqv",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Haíɫzaqv Nation",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Heiltsuk Tribal Council",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Bella Bella Indian Band",
+          "role": "historical-or-administrative-name",
+          "sourceColumn": "E",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E014",
+      "workbookRow": 20,
+      "lookupLabel": "Bella Coola Band",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://nuxalknation.ca/",
+        "https://nuxalknation.ca/wp-content/uploads/2024/08/Senior-Executive-Assistant.pdf",
+        "https://nuxalknation.ca/wp-content/uploads/2026/01/Family-Support-Worker-Job-Description.pdf",
+        "https://nuxalknation.ca/wp-content/uploads/2025/03/Finance-Director.pdf",
+        "https://nuxalknation.ca/wp-content/uploads/2025/04/Nuxalk-FNPCC_Family-Practitioner_Posting_10Mar2025v1.3.pdf",
+        "https://nuxalknation.ca/event/bella-coola-music-festival/"
+      ],
+      "forms": [
+        {
+          "text": "Nuxalk Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Nuxalk",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E015",
+      "workbookRow": 21,
+      "lookupLabel": "Binche Whut’en First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://binche.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Binche Whut’en",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Binche Whu’ten",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Binche Whut'en",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Binche",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E016",
+      "workbookRow": 22,
+      "lookupLabel": "Blueberry River First Nations",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://blueberryfn.com/"
+      ],
+      "forms": [
+        {
+          "text": "Blueberry River First Nations",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E017",
+      "workbookRow": 23,
+      "lookupLabel": "Bonaparte Indian Band",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.bonapartefirstnation.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Bonaparte First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "St’uxwtéws",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "St̓uxwtéws",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Bonaparte Indian Band",
+          "role": "historical-or-administrative-name",
+          "sourceColumn": "E",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E018",
+      "workbookRow": 24,
+      "lookupLabel": "Boothroyd Indian Band",
+      "verificationBasis": "Own-site name unverified",
+      "evidenceUrls": [
+        "https://www.bcafn.ca/first-nations-bc/lower-mainland-southwest/boothroyd-indian-band"
+      ],
+      "forms": [],
+      "holdReason": "additional-verification-required"
+    },
+    {
+      "id": "E019",
+      "workbookRow": 25,
+      "lookupLabel": "Boston Bar First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.bbfn.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Boston Bar First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E020",
+      "workbookRow": 26,
+      "lookupLabel": "Bridge River Indian Band",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://xwisten.ca/",
+        "https://xwisten.ca/wp-content/uploads/2025/04/Job-Posting-ECE-2025-Open-till-Filled.pdf",
+        "https://xwisten.ca/wp-content/uploads/2025/07/Job-Posting-Fisheries-Technicians-Deadline-2025-Aug-8.pdf",
+        "https://xwisten.ca/wp-content/uploads/2025/04/Job-Posting-Food-Systems-Horticulture-trainee-2025-Open-till-Filled.pdf",
+        "https://xwisten.ca/wp-content/uploads/2022/11/Bridge-River-Indian-Band-Elected-Officials-2021-2022.pdf",
+        "https://xwisten.ca/wp-content/uploads/2025/07/Job-Posting-Xwisten-Guardian-Heritage-Field-Crew-Deadline-2025-Aug-8.pdf"
+      ],
+      "forms": [
+        {
+          "text": "Xwísten",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Xwísten, Bridge River Indian Band",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Bridge River Indian Band",
+          "role": "historical-or-administrative-name",
+          "sourceColumn": "E",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E021",
+      "workbookRow": 27,
+      "lookupLabel": "Burns Lake Indian Band",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.tsilkazkoh.ca/",
+        "https://www.tsilkazkoh.ca/contact-us",
+        "https://www.tsilkazkoh.ca/c-c"
+      ],
+      "forms": [
+        {
+          "text": "Ts'il Kaz Koh",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Ts’il Kaz Koh First Nation",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Burns Lake Band",
+          "role": "historical-or-administrative-name",
+          "sourceColumn": "E",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E022",
+      "workbookRow": 28,
+      "lookupLabel": "Campbell River Indian Band",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://weiwaikum.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Wei Wai Kum First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Wei Wai Kum",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Campbell River Indian Band",
+          "role": "historical-or-administrative-name",
+          "sourceColumn": "E",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E023",
+      "workbookRow": 29,
+      "lookupLabel": "Cape Mudge Band",
+      "verificationBasis": "Indexed official content",
+      "evidenceUrls": [
+        "https://wewaikai.com/",
+        "https://wewaikai.com/wp-content/uploads/2019/12/We-Wai-Kai-Newsletter.pdf",
+        "https://wewaikai.com/wp-content/uploads/2025/10/WWK-Housing-Policy-Passed-by-Council-Sept-2-2025.pdf",
+        "https://wewaikai.com/contacts/"
+      ],
+      "forms": [],
+      "holdReason": "additional-verification-required"
+    },
+    {
+      "id": "E024",
+      "workbookRow": 30,
+      "lookupLabel": "Carcross/Tagish First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.ctfn.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Carcross/Tagish First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E025",
+      "workbookRow": 31,
+      "lookupLabel": "Carrier Chilcotin Tribal Council",
+      "verificationBasis": "Own-site name unverified",
+      "evidenceUrls": [
+        "https://carrierchilcotin.org/"
+      ],
+      "forms": [],
+      "holdReason": "additional-verification-required"
+    },
+    {
+      "id": "E026",
+      "workbookRow": 32,
+      "lookupLabel": "Carrier Sekani First Nations Society",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.csfns.ca/",
+        "https://www.csfns.ca/about/our-story/"
+      ],
+      "forms": [
+        {
+          "text": "Carrier Sekani First Nations",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Carrier Sekani First Nations Society",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "CSFN",
+          "role": "acronym",
+          "sourceColumn": "D",
+          "recognize": false,
+          "reason": "definition-required"
+        },
+        {
+          "text": "CSFNS",
+          "role": "acronym",
+          "sourceColumn": "D",
+          "recognize": false,
+          "reason": "definition-required"
+        }
+      ]
+    },
+    {
+      "id": "E027",
+      "workbookRow": 33,
+      "lookupLabel": "Cayoose Creek Band",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://cayoosecreek.ca/",
+        "https://cayoosecreek.ca/sekwelwas-businesses/"
+      ],
+      "forms": [
+        {
+          "text": "Cayoose Creek Band",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Sekw’el’was",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Sekw'el'was",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E028",
+      "workbookRow": 34,
+      "lookupLabel": "Champagne and Aishihik First Nations",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://cafn.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Champagne and Aishihik First Nations Government",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Champagne and Aishihik First Nations",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Shadhäla yè Äshèyi Kwädǟn",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "CAFN",
+          "role": "acronym",
+          "sourceColumn": "D",
+          "recognize": false,
+          "reason": "definition-required"
+        }
+      ]
+    },
+    {
+      "id": "E029",
+      "workbookRow": 35,
+      "lookupLabel": "Chawathil Band",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://chawathil.org/"
+      ],
+      "forms": [
+        {
+          "text": "Chawathil First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Chowéthel",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Chawathil",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E030",
+      "workbookRow": 36,
+      "lookupLabel": "Cheam First Nation",
+      "verificationBasis": "Indexed official content",
+      "evidenceUrls": [
+        "https://cheam.ca/",
+        "https://cheam.ca/contact/"
+      ],
+      "forms": [],
+      "holdReason": "additional-verification-required"
+    },
+    {
+      "id": "E031",
+      "workbookRow": 37,
+      "lookupLabel": "Chemainus First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.stzuminus.com/",
+        "https://www.stzuminus.com/wp-content/uploads/2025/09/sept-2025-online.pdf",
+        "https://www.stzuminus.com/wp-content/uploads/2024/05/may-2023-online.pdf",
+        "https://www.stzuminus.com/wp-content/uploads/2024/05/jan-2023-v2-reduced.pdf",
+        "https://www.stzuminus.com/wp-content/uploads/2023/09/SFN-Consolidated-Financials-March-31-2021.pdf",
+        "https://www.stzuminus.com/wp-content/uploads/2020/11/SFN-YE-2019-20-Consolidated-Financial-Statements.pdf"
+      ],
+      "forms": [
+        {
+          "text": "Stz’uminus First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Stz'uminus First Nation",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Stz'uminus",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Chemainus First Nation",
+          "role": "historical-or-administrative-name",
+          "sourceColumn": "E",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E032",
+      "workbookRow": 38,
+      "lookupLabel": "Cheslatta Carrier Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.cheslatta.com/"
+      ],
+      "forms": [
+        {
+          "text": "Cheslatta Carrier Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Cheslatta",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E033",
+      "workbookRow": 39,
+      "lookupLabel": "Citxw Nlaka’pamux Assembly",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://cna-trust.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Citxw Nlaka’pamux Assembly",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Citxw Nlaka'pamux Assembly",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "CNA",
+          "role": "acronym",
+          "sourceColumn": "D",
+          "recognize": false,
+          "reason": "definition-required"
+        }
+      ]
+    },
+    {
+      "id": "E034",
+      "workbookRow": 40,
+      "lookupLabel": "Clinton / Whispering Pines Indian Band",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://wpcib.com/"
+      ],
+      "forms": [
+        {
+          "text": "Whispering Pines / Clinton Indian Band",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "WP/CIB",
+          "role": "acronym",
+          "sourceColumn": "D",
+          "recognize": false,
+          "reason": "definition-required"
+        }
+      ]
+    },
+    {
+      "id": "E035",
+      "workbookRow": 41,
+      "lookupLabel": "Coastal First Nations",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://coastalfirstnations.ca/",
+        "https://coastalfirstnations.ca/about/"
+      ],
+      "forms": [
+        {
+          "text": "Coastal First Nations",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Coastal First Nations-Great Bear Initiative",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "CFN",
+          "role": "acronym",
+          "sourceColumn": "D",
+          "recognize": false,
+          "reason": "definition-required"
+        },
+        {
+          "text": "Great Bear Initiative Society",
+          "role": "historical-or-administrative-name",
+          "sourceColumn": "E",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E036",
+      "workbookRow": 42,
+      "lookupLabel": "Coldwater Indian Band",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://coldwaterband.com/"
+      ],
+      "forms": [
+        {
+          "text": "Coldwater Indian Band",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E037",
+      "workbookRow": 43,
+      "lookupLabel": "Cook's Ferry Indian Band",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.cooksferry.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Cook's Ferry Indian Band",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Cook's Ferry",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Cook’s Ferry Indian Band",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E038",
+      "workbookRow": 44,
+      "lookupLabel": "Cowichan Nation Alliance",
+      "verificationBasis": "Related-body evidence",
+      "evidenceUrls": [
+        "https://cowichantribes.com/tribes-governance/chief-and-council/committees-index",
+        "https://www2.gov.bc.ca/gov/content/environment/natural-resource-stewardship/consulting-with-first-nations/first-nations-negotiations/first-nations-a-z-listing/cowichan-nation",
+        "https://cowichantribes.com/",
+        "https://www.bcafn.ca/first-nations-bc/vancouver-island-coast/cowichan-tribes",
+        "https://www.woodwardandcompany.com/news/cowichan-nation-seeks-land-fishery-recovery-on-fraser-river-in-british-columbia/",
+        "https://www.facebook.com/cowichan.tribes/"
+      ],
+      "forms": [],
+      "holdReason": "additional-verification-required"
+    },
+    {
+      "id": "E039",
+      "workbookRow": 45,
+      "lookupLabel": "Cowichan Tribes",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://cowichantribes.com/",
+        "https://cowichantribes.com/application/files/7017/3101/1530/2023_07_04_Media_Backgrounder-Release_00642320xE1C2E.pdf",
+        "https://cowichantribes.com/tribes-governance/chief-and-council/committees-index",
+        "https://cowichantribes.com/application/files/3917/1452/3690/May_2024-FINAL.pdf",
+        "https://cowichantribes.com/application/files/8916/3537/5024/CowichanTribes_AnnualReport_2020-21_mobile.pdf",
+        "https://cowichantribes.com/tribes-governance/chief-and-council/chief-and-council-profiles"
+      ],
+      "forms": [
+        {
+          "text": "Cowichan Tribes",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E040",
+      "workbookRow": 46,
+      "lookupLabel": "Da'naxda'xw/Awaetlala First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://danaxdaxw.com/"
+      ],
+      "forms": [
+        {
+          "text": "Da̱'naxda'x̱w / Awa’etłala First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Da’naxda’xw Awaetlala First Nation",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Da̱'naxda'x̱w First Nation",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E041",
+      "workbookRow": 47,
+      "lookupLabel": "Daylu Dena Council",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://dayludenacouncil.com/"
+      ],
+      "forms": [
+        {
+          "text": "Daylu Dena Council",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "DDC",
+          "role": "acronym",
+          "sourceColumn": "D",
+          "recognize": false,
+          "reason": "definition-required"
+        }
+      ]
+    },
+    {
+      "id": "E042",
+      "workbookRow": 48,
+      "lookupLabel": "Dease River Band Council",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.deaseriverfirstnation.com/"
+      ],
+      "forms": [
+        {
+          "text": "Dease River First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E043",
+      "workbookRow": 49,
+      "lookupLabel": "Ditidaht First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://nitinaht.com/first-nation/",
+        "https://nitinaht.com/"
+      ],
+      "forms": [
+        {
+          "text": "Ditidaht First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E044",
+      "workbookRow": 50,
+      "lookupLabel": "Doig River First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://doigriverfn.com/"
+      ],
+      "forms": [
+        {
+          "text": "Doig River First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Tsáá? Ché Ne Dane",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E045",
+      "workbookRow": 51,
+      "lookupLabel": "Douglas First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.xaxtsa.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Xa'xtsa",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Xa'xtsa - Douglas First Nation",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "XA'XTSA",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E046",
+      "workbookRow": 52,
+      "lookupLabel": "Dzawada’enuxw First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.kingcome.ca/",
+        "https://www.kingcome.ca/sites/default/files/Amended-Election-Code_2015-Official-Version.pdf",
+        "https://www.kingcome.ca/region"
+      ],
+      "forms": [
+        {
+          "text": "Dzawada̱ʼenux̱w First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Dzawada'enuxw",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Musgamagw Dzawada'enuxw First Nation",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Tsawataineuk First Nation",
+          "role": "historical-or-administrative-name",
+          "sourceColumn": "E",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E047",
+      "workbookRow": 53,
+      "lookupLabel": "Ehattesaht First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://ehattesaht.com/"
+      ],
+      "forms": [
+        {
+          "text": "Ehattesaht First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "ʔiiḥatisatḥ činax̣int",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Ehattesaht Chinehkint",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Ehattesaht-Chinehkints",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E048",
+      "workbookRow": 54,
+      "lookupLabel": "Esk'etemc First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.esketemc.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Esk’etemc",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E049",
+      "workbookRow": 55,
+      "lookupLabel": "Esquimalt Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://esquimaltnation.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Esquimalt Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Xʷsepsəm",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E050",
+      "workbookRow": 56,
+      "lookupLabel": "Fort Nelson First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://fortnelsonfirstnation.org/"
+      ],
+      "forms": [
+        {
+          "text": "Fort Nelson First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E051",
+      "workbookRow": 57,
+      "lookupLabel": "Fraser Thompson Indian Services Society",
+      "verificationBasis": "Related-body evidence",
+      "evidenceUrls": [
+        "https://nntc.ca/who-we-are/faq/",
+        "https://www2.gov.bc.ca/gov/content/environment/natural-resource-stewardship/consulting-with-first-nations/first-nations-negotiations/first-nations-a-z-listing/fraser-thompson-indian-services-society",
+        "https://www.facebook.com/nntc2504552711/",
+        "https://fnp-ppn.aadnc-aandc.gc.ca/fnp/Main/Search/TCMain.aspx?TC_NUMBER=9155&lang=eng",
+        "https://en.wikipedia.org/wiki/Nlaka%CA%BCpamux_Nation_Tribal_Council",
+        "https://www.gcdisclosure-divulgationsc.hc-sc.gc.ca/dpfad/gcdisc.nsf/WEBbydetails/91E7D107431CB13E852573F4005BFFB7?OpenDocument=&lang=eng"
+      ],
+      "forms": [],
+      "holdReason": "additional-verification-required"
+    },
+    {
+      "id": "E052",
+      "workbookRow": 58,
+      "lookupLabel": "Gingolx Village Government",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://gingolx.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Gingolx",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Gingolx Village Government",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E053",
+      "workbookRow": 59,
+      "lookupLabel": "Gitanmaax Band Council",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.gitanmaax.com/"
+      ],
+      "forms": [
+        {
+          "text": "Gitanmaax Band",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Gitanmaax",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E054",
+      "workbookRow": 60,
+      "lookupLabel": "Gitanyow Hereditary Chiefs",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.gitanyowchiefs.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Gitanyow Hereditary Chiefs",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E055",
+      "workbookRow": 61,
+      "lookupLabel": "Gitga'at First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.gitgaatnation.ca/",
+        "https://www.gitgaatnation.ca/gfn",
+        "https://www.gitgaatnation.ca/oceans-lands",
+        "https://www.gitgaatnation.ca/emergency-response"
+      ],
+      "forms": [
+        {
+          "text": "Gitga’at First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Gitga'at First Nation",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Gitgaat First Nation",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "GFN",
+          "role": "acronym",
+          "sourceColumn": "D",
+          "recognize": false,
+          "reason": "definition-required"
+        }
+      ]
+    },
+    {
+      "id": "E056",
+      "workbookRow": 62,
+      "lookupLabel": "Gitksan Local Government Services Society",
+      "verificationBasis": "Indexed official content",
+      "evidenceUrls": [
+        "https://gitxsangc.ca/",
+        "https://gitxsangc.ca/about-us/",
+        "https://gitxsangc.ca/ggc-board-governance/",
+        "https://gitxsangc.ca/emergency-preparedness/",
+        "https://gitxsangc.ca/wills-estates/",
+        "https://gitxsangc.ca/comprehensive-community-planning/"
+      ],
+      "forms": [],
+      "holdReason": "additional-verification-required"
+    },
+    {
+      "id": "E057",
+      "workbookRow": 63,
+      "lookupLabel": "Gitlaxt'aamix Village Government",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.gitlaxtaamiks.com/",
+        "https://www.gitlaxtaamiks.com/?page_id=60"
+      ],
+      "forms": [
+        {
+          "text": "Gitlax̱t’aamiks Village Government",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Gitlaxt'aamiks Village Government",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Nisga'a Villag̱e of New Aiyansh",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E058",
+      "workbookRow": 64,
+      "lookupLabel": "Gitsegukla Indian Band",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://gitsegukla.net/"
+      ],
+      "forms": [
+        {
+          "text": "Gitsegukla First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Gitsegukla",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E059",
+      "workbookRow": 65,
+      "lookupLabel": "Gitwangak Band Council",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.gitwangakband.ca/",
+        "https://gitwangakband.ca/",
+        "https://www.gitwangakband.ca/our-programs-services/",
+        "https://www.gitwangakband.ca/contact/",
+        "https://www.gitwangakband.ca/staff-management/"
+      ],
+      "forms": [
+        {
+          "text": "Gitwangak Band",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Gitwangak",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E060",
+      "workbookRow": 66,
+      "lookupLabel": "Gitwinksihlkw Village Government",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.gitwinksihlkw.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Nisga'a Village of Gitwinksihlkw",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Gitwinksihlkw",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E061",
+      "workbookRow": 67,
+      "lookupLabel": "Gitxaala Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://gitxaalanation.com/",
+        "https://gitxaalanation.com/departments/administration/vision-mission-values/",
+        "https://gitxaalanation.com/departments/culture-language/cultural-centre/",
+        "https://gitxaalanation.com/contact/",
+        "https://gitxaalanation.com/departments/culture-language/",
+        "https://gitxaalanation.com/departments/people/governing-council/"
+      ],
+      "forms": [
+        {
+          "text": "Gitxaala Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Gitxaała Nation",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Gitxaała",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E062",
+      "workbookRow": 68,
+      "lookupLabel": "Gitxsan",
+      "verificationBasis": "Identity / scope unresolved",
+      "evidenceUrls": [
+        "https://gitxsan.ca/"
+      ],
+      "forms": [],
+      "holdReason": "additional-verification-required"
+    },
+    {
+      "id": "E063",
+      "workbookRow": 69,
+      "lookupLabel": "Glen Vowell Indian Band",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.glenvowell.ca/",
+        "https://www.glenvowell.ca/education"
+      ],
+      "forms": [
+        {
+          "text": "Sik-E-Dakh (Glen Vowell Band)",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Sik-E-Dakh",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Glen Vowell Band",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E064",
+      "workbookRow": 70,
+      "lookupLabel": "Gwa'sala-'Nakwaxda'xw Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.gwanaknations.ca/",
+        "https://www.gwanaknations.ca/departments/",
+        "https://www.gwanaknations.ca/contact-page/",
+        "https://www.gwanaknations.ca/language/"
+      ],
+      "forms": [
+        {
+          "text": "Gwa'sala-'Nakwaxda'xw Nations",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Gwa’sala-’Nakwaxda’xw Nations",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Gwa’sala-Nakwaxda’xw Nations",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E065",
+      "workbookRow": 71,
+      "lookupLabel": "Gwawaenuk Tribe",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://gwawaenuktribe.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Gwawaenuk Tribe",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "GWAWAENUK TRIBE",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E066",
+      "workbookRow": 72,
+      "lookupLabel": "Hagwilget Village Council",
+      "verificationBasis": "Own-site name unverified",
+      "evidenceUrls": [
+        "https://www.bcafn.ca/first-nations-bc/north-coast/hagwilget-village-council"
+      ],
+      "forms": [],
+      "holdReason": "additional-verification-required"
+    },
+    {
+      "id": "E067",
+      "workbookRow": 73,
+      "lookupLabel": "Haida Nation, Council of the",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.haidanation.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Council of the Haida Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "CHN",
+          "role": "acronym",
+          "sourceColumn": "D",
+          "recognize": false,
+          "reason": "definition-required"
+        },
+        {
+          "text": "Haida Nation",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E068",
+      "workbookRow": 74,
+      "lookupLabel": "Haisla Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://haisla.ca/",
+        "https://haisla.ca/wp-content/uploads/2026/02/4_April-2023_final-copy.pdf",
+        "https://haisla.ca/haisla-history/",
+        "https://haisla.ca/membership-law-project/",
+        "https://haisla.ca/xaisla-language-fluency-certificate/",
+        "https://haisla.ca/faq-for-language-fluency-certificate/"
+      ],
+      "forms": [
+        {
+          "text": "Haisla Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Haisla Nation Council",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "x̄á’isla",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "x̄á'isla",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Kitamaat Village Council",
+          "role": "historical-or-administrative-name",
+          "sourceColumn": "E",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E069",
+      "workbookRow": 75,
+      "lookupLabel": "Halalt First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://halalt.org/"
+      ],
+      "forms": [
+        {
+          "text": "Halalt First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E070",
+      "workbookRow": 76,
+      "lookupLabel": "Halfway River First Nations",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://hrfn.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Halfway River First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "HRFN",
+          "role": "acronym",
+          "sourceColumn": "D",
+          "recognize": false,
+          "reason": "definition-required"
+        }
+      ]
+    },
+    {
+      "id": "E071",
+      "workbookRow": 77,
+      "lookupLabel": "Hesquiaht First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.hesquiaht.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Hesquiaht First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Hesquiaht",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E072",
+      "workbookRow": 78,
+      "lookupLabel": "High Bar First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.highbarfirstnation.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Llenllenéy'ten First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Llenllenéy’ten",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Llenllenéy'ten",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "High Bar First Nation",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E073",
+      "workbookRow": 79,
+      "lookupLabel": "HomalcoIndian Band",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.homalco.com/",
+        "https://www.homalco.com/wp-content/uploads/2023/08/ESS-04-Billeting-Invoice.pdf",
+        "https://www.homalco.com/wp-content/uploads/2022/03/FireSmart-Guide-to-Landscaping.pdf",
+        "https://www.homalco.com/wp-content/uploads/2023/08/Appendix-XII-Consolidated-ESS-Forms.pdf",
+        "https://www.homalco.com/election-2026-results/",
+        "https://www.homalco.com/governance/chief-council/"
+      ],
+      "forms": [
+        {
+          "text": "Homalco First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Xwémalhkwu First Nation",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Xwemalhkwu First Nation",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "HFN",
+          "role": "acronym",
+          "sourceColumn": "D",
+          "recognize": false,
+          "reason": "definition-required"
+        }
+      ]
+    },
+    {
+      "id": "E074",
+      "workbookRow": 80,
+      "lookupLabel": "Hul'qumi'num Treaty Group",
+      "verificationBasis": "Own-site name unverified",
+      "evidenceUrls": [
+        "https://www.hulquminum.bc.ca/pubs/A_Call_To_Action_HTG2008.pdf",
+        "https://www.hulquminum.bc.ca/pubs/Douglas_treaties_map.pdf"
+      ],
+      "forms": [],
+      "holdReason": "additional-verification-required"
+    },
+    {
+      "id": "E075",
+      "workbookRow": 81,
+      "lookupLabel": "Hupacasath First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.hupacasath.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Hupačasath First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Hupacasath First Nation",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E076",
+      "workbookRow": 82,
+      "lookupLabel": "Huu-ay-aht First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://huuayaht.org/",
+        "https://huuayaht.org/about/who-we-are/",
+        "https://huuayaht.org/services/language-culture/culture-history/",
+        "https://huuayaht.org/about/history/",
+        "https://huuayaht.org/about/mission/"
+      ],
+      "forms": [
+        {
+          "text": "Huu-ay-aht",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Huu-ay-aht First Nations",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E077",
+      "workbookRow": 83,
+      "lookupLabel": "Iskut First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://iskut.org/"
+      ],
+      "forms": [
+        {
+          "text": "Iskut Band Council",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Iskut Band",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E078",
+      "workbookRow": 84,
+      "lookupLabel": "Ka:'yu:'k't'h'/Che:k:tles7et'h' First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://kyuquotbc.ca/",
+        "https://kyuquotbc.ca/culture/",
+        "https://kyuquotbc.ca/contact/",
+        "https://kyuquotbc.ca/?page_id=228",
+        "https://kyuquotbc.ca/communityservices/",
+        "https://kyuquotbc.ca/search-videos/page/2/"
+      ],
+      "forms": [
+        {
+          "text": "KCFN",
+          "role": "acronym",
+          "sourceColumn": "C",
+          "recognize": false,
+          "reason": "definition-required"
+        },
+        {
+          "text": "Ka:’yu:’k’t’h’ / Che:k’tles7et’h’",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Ka:’yu:’k’t’h’/Che:k’tles7et’h’ First Nations",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Kyuquot",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Checleseht",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E079",
+      "workbookRow": 85,
+      "lookupLabel": "Kamloops Indian Band",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://tkemlups.ca/",
+        "https://tkemlups.ca/wp-content/uploads/05-May-27-2021-TteS-MEDIA-RELEASE.pdf",
+        "https://tkemlups.ca/wp-content/uploads/July15_Media-Release_Final.pdf",
+        "https://tkemlups.ca/wp-content/uploads/pdf/688_assessment_law_2008_fng.pdf",
+        "https://tkemlups.ca/wp-content/uploads/2025/09/ARCH-TteS-Heritage-Bylaw-2025-02-Aug-11-2025.pdf",
+        "https://tkemlups.ca/wp-content/uploads/2025/07/2013-Ptax-Newsletter.pdf"
+      ],
+      "forms": [
+        {
+          "text": "Tk̓emlúps Te Secwépemc",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Tk̓emlúps te Secwépemc",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Tk’emlúps te Secwépemc",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Kamloops Indian Band",
+          "role": "historical-or-administrative-name",
+          "sourceColumn": "E",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E080",
+      "workbookRow": 86,
+      "lookupLabel": "Kanaka Bar Indian Band",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.kanakabarband.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Kanaka Bar Indian Band",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E081",
+      "workbookRow": 87,
+      "lookupLabel": "Kaska Nation",
+      "verificationBasis": "Identity / scope unresolved",
+      "evidenceUrls": [
+        "https://kaskadenacouncil.com/"
+      ],
+      "forms": [],
+      "holdReason": "additional-verification-required"
+    },
+    {
+      "id": "E082",
+      "workbookRow": 88,
+      "lookupLabel": "Katzie First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.katzie.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Katzie First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E083",
+      "workbookRow": 89,
+      "lookupLabel": "Kispiox Band Council",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.kispioxband.ca/",
+        "https://www.kispioxband.ca/governance/"
+      ],
+      "forms": [
+        {
+          "text": "Anspayaxw Band",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Kispiox Band",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Kispiox Band Council",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E084",
+      "workbookRow": 90,
+      "lookupLabel": "Kitasoo Xai'xais Band Council",
+      "verificationBasis": "Indexed official content",
+      "evidenceUrls": [
+        "https://klemtu.com/visitors/",
+        "https://klemtu.com/category/kx-stewardship/",
+        "https://klemtu.com/wp-content/uploads/2023/05/18.05.03-Housing-Policy-V12.pdf",
+        "https://klemtu.com/wp-content/uploads/2023/05/Kitasoo_CFI-Standards-Manual_Ver1.pdf"
+      ],
+      "forms": [],
+      "holdReason": "additional-verification-required"
+    },
+    {
+      "id": "E085",
+      "workbookRow": 91,
+      "lookupLabel": "Kitselas First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://kitselas.com/"
+      ],
+      "forms": [
+        {
+          "text": "Kitselas First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E086",
+      "workbookRow": 92,
+      "lookupLabel": "Kitsumkalum First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://kitsumkalum.com/"
+      ],
+      "forms": [
+        {
+          "text": "Kitsumkalum",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E087",
+      "workbookRow": 93,
+      "lookupLabel": "Klahoose First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.klahoose.org/"
+      ],
+      "forms": [
+        {
+          "text": "KLAHOOSE FIRST NATION",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Klahoose Nation",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E088",
+      "workbookRow": 94,
+      "lookupLabel": "Kluskus Indian Band",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://lhooskuz.com/",
+        "https://lhooskuz.com/about/",
+        "https://lhooskuz.com/about/history/",
+        "https://lhooskuz.com/event/pedicures-in-kluskus-11/",
+        "https://lhooskuz.com/event/on-the-land-day-in-kluskus/",
+        "https://lhooskuz.com/member-resources/events/"
+      ],
+      "forms": [
+        {
+          "text": "Lhoosk’uz Dené Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "LHOOSK’UZ DENÉ NATION",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Lhoosk’uz Dené",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Kluskus Nation",
+          "role": "historical-or-administrative-name",
+          "sourceColumn": "E",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E089",
+      "workbookRow": 95,
+      "lookupLabel": "Ktunaxa Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://ktunaxa.org/"
+      ],
+      "forms": [
+        {
+          "text": "KTUNAXA NATION COUNCIL",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Ktunaxa Nation",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E090",
+      "workbookRow": 96,
+      "lookupLabel": "Kwadacha Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.kwadacha.com/",
+        "https://www.kwadacha.com/wp-content/uploads/2022/09/Main-Community-11x17-map.pdf",
+        "https://www.kwadacha.com/wp-content/uploads/2023/12/20240605154254027.pdf",
+        "https://www.kwadacha.com/wp-content/uploads/2023/12/Hospitality-Services-Attendant-2024-posting.pdf",
+        "https://www.kwadacha.com/our-nation/",
+        "https://www.kwadacha.com/contact-kwadacha-nation/"
+      ],
+      "forms": [
+        {
+          "text": "Kwadacha Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Kwadacha Nation (Tsek'ene)",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Fort Ware",
+          "role": "context-dependent-short-form",
+          "sourceColumn": "D",
+          "recognize": false,
+          "reason": "context-required"
+        }
+      ]
+    },
+    {
+      "id": "E091",
+      "workbookRow": 97,
+      "lookupLabel": "Kwakiutl District Council",
+      "verificationBasis": "Own-site name unverified",
+      "evidenceUrls": [
+        "https://www2.gov.bc.ca/gov/content/environment/natural-resource-stewardship/consulting-with-first-nations/first-nations-negotiations/first-nations-a-z-listing/kwakiutl-district-council"
+      ],
+      "forms": [],
+      "holdReason": "additional-verification-required"
+    },
+    {
+      "id": "E092",
+      "workbookRow": 98,
+      "lookupLabel": "Kwakiutl Indian Band",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.kwakiutl.bc.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Kwakiutl Band Council",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Kwakiutl Band",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Kwakiutl First Nation",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E093",
+      "workbookRow": 99,
+      "lookupLabel": "Kwantlen First Nation",
+      "verificationBasis": "Official holding page",
+      "evidenceUrls": [
+        "https://kwantlenfn.ca/",
+        "https://kwantlenfn.ca/kwantlen-strong/",
+        "https://kwantlenfn.ca/court-ruling-2026/"
+      ],
+      "forms": [],
+      "holdReason": "additional-verification-required"
+    },
+    {
+      "id": "E094",
+      "workbookRow": 100,
+      "lookupLabel": "Kwaw-kwaw-a-pilt First Nation",
+      "verificationBasis": "Related-body evidence",
+      "evidenceUrls": [
+        "https://ttml.ca/what-we-do/",
+        "https://thestsa.ca/about-stsa/first-nation-members/",
+        "https://www.bcafn.ca/first-nations-bc/lower-mainland-southwest/kwaw-kwaw-pilt-first-nation",
+        "https://www2.gov.bc.ca/gov/content/environment/natural-resource-stewardship/consulting-with-first-nations/first-nations-negotiations/first-nations-a-z-listing/kwaw-kwaw-a-pilt-first-nation",
+        "https://www.civicinfo.bc.ca/firstnations?id=72",
+        "https://data.nativemi.org/tribeslisting/Details/kwaw-kwaw-apilt-first-nation-1638953"
+      ],
+      "forms": [],
+      "holdReason": "additional-verification-required"
+    },
+    {
+      "id": "E095",
+      "workbookRow": 101,
+      "lookupLabel": "Kwiakah First Nations",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.kwiakah.com/"
+      ],
+      "forms": [
+        {
+          "text": "Kwiakah First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Kwiakah Nation",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E096",
+      "workbookRow": 102,
+      "lookupLabel": "Kwikwasut'inuxw Haxwa'mis First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://khfn.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Kwikwasut’inuxw Haxwa’mis",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Kwikwasut'inuxw Haxwa'mis",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E097",
+      "workbookRow": 103,
+      "lookupLabel": "Kwikwetlem First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://kwikwetlem.com/",
+        "https://www.kwikwetlem.com/docs/interactive_kfn_rental_housing_application_2021637629065784875107.pdf",
+        "https://www.kwikwetlem.com/blog/colonyfarmregionalparkrenamed.htm",
+        "https://www.kwikwetlem.com/blog/whats-in-a-name.htm",
+        "https://www.kwikwetlem.com/sumiqwuelu-riverview.htm",
+        "https://www.kwikwetlem.com/our-territory.htm"
+      ],
+      "forms": [
+        {
+          "text": "Kwikwetlem First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "kʷikʷəƛ̓əm (Kwikwetlem) First Nation",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "kʷikʷəƛ̓əm First Nation",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E098",
+      "workbookRow": 104,
+      "lookupLabel": "K’ómoksFirst Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://komoks.ca/"
+      ],
+      "forms": [
+        {
+          "text": "K'ómoks First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "K’ómoks First Nation",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "K’ómoks",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E099",
+      "workbookRow": 105,
+      "lookupLabel": "Lake Babine Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://lakebabine.com/"
+      ],
+      "forms": [
+        {
+          "text": "Lake Babine Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E100",
+      "workbookRow": 106,
+      "lookupLabel": "Lake Cowichan First Nation",
+      "verificationBasis": "Related-body evidence",
+      "evidenceUrls": [
+        "https://www.tsuubaaasatx-ecdev.ca/",
+        "https://www.tsuubaaasatx.ca/",
+        "https://www.tsuubaaasatx-ecdev.ca/business-development/partnership-opportunities",
+        "https://www.bcafn.ca/first-nations-bc/vancouver-island-coast/tsuubaa-asatx-lake-cowichan-first-nation",
+        "https://fnp-ppn.aadnc-aandc.gc.ca/fnp/Main/Search/FNMain.aspx?BAND_NUMBER=643&lang=eng",
+        "https://www2.gov.bc.ca/gov/content/environment/natural-resource-stewardship/consulting-with-first-nations/first-nations-negotiations/first-nations-a-z-listing/lake-cowichan-first-nation"
+      ],
+      "forms": [],
+      "holdReason": "additional-verification-required"
+    },
+    {
+      "id": "E101",
+      "workbookRow": 107,
+      "lookupLabel": "Laxgalts'ap Village Government",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://laxgaltsap.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Nisga’a Village of Laxgalts’ap",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Laxgalts’ap Village Government",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Laxgaltsap",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Laxgalts'ap",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Lax̱g̱alts’ap",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E102",
+      "workbookRow": 108,
+      "lookupLabel": "Laxkw'alaams Indian Band",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://laxkwalaams.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Lax Kw’alaams Band",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Lax Kw'alaams Band",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E103",
+      "workbookRow": 109,
+      "lookupLabel": "Leq'a:mel First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://leqamel.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Leq'á:mel First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Leq’á:mel Nation",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Leq’á:mel",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E104",
+      "workbookRow": 110,
+      "lookupLabel": "Lheidli-T'enneh First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.lheidli.ca/",
+        "https://www.lheidli.ca/about/our-story/",
+        "https://www.lheidli.ca/governance/economic-development/",
+        "https://www.lheidli.ca/governance/chief-and-council/",
+        "https://www.lheidli.ca/about/our-history/",
+        "https://www.lheidli.ca/governance/governance/"
+      ],
+      "forms": [
+        {
+          "text": "Lheidli T'enneh First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Lheidli T’enneh",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Lheidli T'enneh",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Fort George Indian Band",
+          "role": "historical-or-administrative-name",
+          "sourceColumn": "E",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E105",
+      "workbookRow": 111,
+      "lookupLabel": "Lhtako Dene Nation",
+      "verificationBasis": "Own-site name unverified",
+      "evidenceUrls": [
+        "https://lhtako.com/"
+      ],
+      "forms": [],
+      "holdReason": "additional-verification-required"
+    },
+    {
+      "id": "E106",
+      "workbookRow": 112,
+      "lookupLabel": "Liard First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://liardfirstnation.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Liard First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E107",
+      "workbookRow": 113,
+      "lookupLabel": "Lil'wat Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://lilwat.ca/",
+        "https://lilwat.ca/wp-content/uploads/2025/09/Gov-Plans-Citizenship_Code.pdf",
+        "https://lilwat.ca/wp-content/uploads/2025/09/Lilwat-2030-Strategic-Plan-2024-2030-FINAL.pdf"
+      ],
+      "forms": [
+        {
+          "text": "Líl̓wat Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Lil’wat Nation",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Líl̓wat",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Mount Currie Indian Band",
+          "role": "historical-or-administrative-name",
+          "sourceColumn": "E",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E108",
+      "workbookRow": 114,
+      "lookupLabel": "Lillooet Indian Band",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.titqet.org/",
+        "https://titqet.org/administration/membership/index.html",
+        "https://titqet.org/assets/docs/ORIGIN-OF-THE-LILLOOET-AND-BRIDGE-RIVER-PEOPLE-1.pdf",
+        "https://titqet.org/assets/docs/2024_Titqet-Annual-Report_web_lowres.pdf",
+        "https://titqet.org/assets/docs/Titqet-Annual-Report-Web_small.pdf",
+        "https://titqet.org/assets/docs/2022_Titqet-Annual-Report_web_lowres.pdf"
+      ],
+      "forms": [
+        {
+          "text": "T'it'q'et",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "T'ít'q'et",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "P’egp’íg’lha",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E109",
+      "workbookRow": 115,
+      "lookupLabel": "Lillooet Tribal Council",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://lillooettribalcouncil.ca/",
+        "https://lillooettribalcouncil.ca/statimc-nation-chief-council-list/"
+      ],
+      "forms": [
+        {
+          "text": "Lillooet Tribal Council",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "LTC",
+          "role": "acronym",
+          "sourceColumn": "D",
+          "recognize": false,
+          "reason": "definition-required"
+        }
+      ]
+    },
+    {
+      "id": "E110",
+      "workbookRow": 116,
+      "lookupLabel": "Little Shuswap Lake Band",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://lslb.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Skwlāx te Secwepemcúl̓ecw",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Skwlāx te Secwepemcúl̓ecw",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "SteS",
+          "role": "acronym",
+          "sourceColumn": "D",
+          "recognize": false,
+          "reason": "definition-required"
+        },
+        {
+          "text": "Little Shuswap",
+          "role": "context-dependent-short-form",
+          "sourceColumn": "D",
+          "recognize": false,
+          "reason": "context-required"
+        }
+      ]
+    },
+    {
+      "id": "E111",
+      "workbookRow": 117,
+      "lookupLabel": "Lower Kootenay Indian Band",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://lowerkootenay.com/",
+        "https://lowerkootenay.com/our-history/",
+        "https://lowerkootenay.com/our-community/yaqan-nukiy-school/",
+        "https://lowerkootenay.com/contact-us/",
+        "https://lowerkootenay.com/our-community/wetlands-restoration-projects/",
+        "https://lowerkootenay.com/lower-kootenay-first-nation-main/chief-and-council/"
+      ],
+      "forms": [
+        {
+          "text": "Lower Kootenay Band",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Yaqan Nukiy",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "yaqan nukiy",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E112",
+      "workbookRow": 118,
+      "lookupLabel": "Lower Nicola Indian Band",
+      "verificationBasis": "Indexed official content",
+      "evidenceUrls": [
+        "https://www.lnib.net/category/family-fun/",
+        "https://www.lnib.net/wp-content/uploads/2019/08/Introduction-of-Traditional-Holding-Project.pdf",
+        "https://www.lnib.net/wp-content/uploads/2023/08/September-2023-Newsletter.pdf",
+        "https://www.lnib.net/wp-content/uploads/2022/11/November-Newsletter.pdf",
+        "https://lnib.net/wp-content/uploads/2016/06/Lts-of-Support-Shuswap-Coldwater.pdf",
+        "https://www.lnib.net/wp-content/uploads/2019/08/LNIB-Timber-Permit-Policy.pdf"
+      ],
+      "forms": [],
+      "holdReason": "additional-verification-required"
+    },
+    {
+      "id": "E113",
+      "workbookRow": 119,
+      "lookupLabel": "Lower Similkameen Indian Band",
+      "verificationBasis": "Own-site name unverified",
+      "evidenceUrls": [
+        "https://www.lsib.net/"
+      ],
+      "forms": [],
+      "holdReason": "additional-verification-required"
+    },
+    {
+      "id": "E114",
+      "workbookRow": 120,
+      "lookupLabel": "Lower Stl'atl'imx Tribal Council",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.lstc.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Lower Stl'atl'imx Tribal Council",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E115",
+      "workbookRow": 121,
+      "lookupLabel": "Lyackson First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://lyackson.bc.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Lyackson First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Lyackson (Leey’qsun) First Nation",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Lyackson Nation",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E116",
+      "workbookRow": 122,
+      "lookupLabel": "Lytton First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://lfn.band/"
+      ],
+      "forms": [
+        {
+          "text": "Lytton First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Tl'kemtsin",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "TLKemchEEn",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E117",
+      "workbookRow": 123,
+      "lookupLabel": "Maa-nulth First Nations",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://maanulth.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Maa-nulth Treaty Society",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Maa-nulth First Nations",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E118",
+      "workbookRow": 124,
+      "lookupLabel": "Malahat Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://malahatnation.com/"
+      ],
+      "forms": [
+        {
+          "text": "Malahat Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "MÁLEXEŁ",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E119",
+      "workbookRow": 125,
+      "lookupLabel": "Mamalilikulla First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://mamalilikulla.ca/",
+        "https://mamalilikulla.ca/wp-content/uploads/2023/02/FINAL-BUSINESS-PLAN_2023.pdf"
+      ],
+      "forms": [
+        {
+          "text": "Mamalilikulla First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E120",
+      "workbookRow": 126,
+      "lookupLabel": "Matsqui First Nation",
+      "verificationBasis": "Own-site name unverified",
+      "evidenceUrls": [
+        "https://www.bcafn.ca/first-nations-bc/lower-mainland-southwest/matsqui"
+      ],
+      "forms": [],
+      "holdReason": "additional-verification-required"
+    },
+    {
+      "id": "E121",
+      "workbookRow": 127,
+      "lookupLabel": "McLeod Lake Indian Band",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://mlib.ca/"
+      ],
+      "forms": [
+        {
+          "text": "McLeod Lake Indian Band",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "McLeod Lake Band",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E122",
+      "workbookRow": 128,
+      "lookupLabel": "Metlakatla First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://metlakatla.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Metlakatla First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Metlakatla",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E123",
+      "workbookRow": 129,
+      "lookupLabel": "Mowachaht/Muchalaht First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.mmfn.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Mowachaht / Muchalaht First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Mowachaht-Muchalaht First Nations",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "MOWACHAHT / MUCHALAHT FIRST NATION",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E124",
+      "workbookRow": 130,
+      "lookupLabel": "Musgamagw Dzawada'enuxw Tribal Council",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://mdtc.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Musgamagw Dzawada'enuxw Tribal Council",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "MDTC",
+          "role": "acronym",
+          "sourceColumn": "D",
+          "recognize": false,
+          "reason": "definition-required"
+        }
+      ]
+    },
+    {
+      "id": "E125",
+      "workbookRow": 131,
+      "lookupLabel": "Musqueam Indian Band",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.musqueam.bc.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Musqueam Indian Band",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "xʷməθkʷəy̓əm",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Musqueam",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E126",
+      "workbookRow": 132,
+      "lookupLabel": "N'Quatqua Band",
+      "verificationBasis": "Own-site name unverified",
+      "evidenceUrls": [
+        "https://www2.gov.bc.ca/gov/content/environment/natural-resource-stewardship/consulting-with-first-nations/first-nations-negotiations/first-nations-a-z-listing/n-quatqua-band-anderson-lake"
+      ],
+      "forms": [],
+      "holdReason": "additional-verification-required"
+    },
+    {
+      "id": "E127",
+      "workbookRow": 133,
+      "lookupLabel": "Nadleh Whut'en Band",
+      "verificationBasis": "Own-site name unverified",
+      "evidenceUrls": [
+        "https://news.gov.bc.ca/releases/2019FLNR0175-001349"
+      ],
+      "forms": [],
+      "holdReason": "additional-verification-required"
+    },
+    {
+      "id": "E128",
+      "workbookRow": 134,
+      "lookupLabel": "Nak'azdli Band",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.nakazdliwhuten.ca/",
+        "https://www.nakazdliwhuten.ca/departments-services"
+      ],
+      "forms": [
+        {
+          "text": "Nak'azdli Whut'en",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Nak’azdli",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E129",
+      "workbookRow": 135,
+      "lookupLabel": "Nanoose First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.snawnawas.org/"
+      ],
+      "forms": [
+        {
+          "text": "Snaw-naw-as First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Snaw-naw-as (Nanoose) First Nation",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Snaw-naw-as",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E130",
+      "workbookRow": 136,
+      "lookupLabel": "Nanwakolas Council",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://nanwakolas.com/"
+      ],
+      "forms": [
+        {
+          "text": "Nanwakolas Council",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Nanwakolas",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E131",
+      "workbookRow": 137,
+      "lookupLabel": "Naut'sa mawt Tribal Council",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.nautsamawt.org/"
+      ],
+      "forms": [
+        {
+          "text": "Naut'sa mawt Tribal Council",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E132",
+      "workbookRow": 138,
+      "lookupLabel": "Nazko First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://nazkoband.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Nazko First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Nazko Band",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "NAZKO FIRST NATION",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E133",
+      "workbookRow": 139,
+      "lookupLabel": "Nee-Tahi-Buhn Band",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.ntbb.ca/",
+        "https://www.ntbb.ca/terms-of-use/"
+      ],
+      "forms": [
+        {
+          "text": "Nee Tahi Buhn Indian Band",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "NEE TAHI BUHN INDIAN BAND",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Nee Tahi Buhn Band",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E134",
+      "workbookRow": 140,
+      "lookupLabel": "Nemaiah Band",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.xeni-gwetin.ca/",
+        "https://www.xeni-gwetin.ca/history-in-the-making",
+        "https://www.xeni-gwetin.ca/event-details-registration/climate-change-adaption-plan-ccap-focus-groups",
+        "https://www.xeni-gwetin.ca/services",
+        "https://www.xeni-gwetin.ca/jobpostings",
+        "https://www.xeni-gwetin.ca/departments"
+      ],
+      "forms": [
+        {
+          "text": "Xeni Gwet’in First Nations Government",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Xeni Gwet'in First Nations Government",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "XGFNG",
+          "role": "acronym",
+          "sourceColumn": "D",
+          "recognize": false,
+          "reason": "definition-required"
+        }
+      ]
+    },
+    {
+      "id": "E135",
+      "workbookRow": 141,
+      "lookupLabel": "Neskonlith Indian Band",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://neskonlith.net/"
+      ],
+      "forms": [
+        {
+          "text": "Neskonlith Indian Band",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E136",
+      "workbookRow": 142,
+      "lookupLabel": "New Westminster Indian Band",
+      "verificationBasis": "Own-site name unverified",
+      "evidenceUrls": [
+        "https://www2.gov.bc.ca/gov/content/environment/natural-resource-stewardship/consulting-with-first-nations/first-nations-negotiations/first-nations-a-z-listing/qayqayt-first-nation-new-westminister"
+      ],
+      "forms": [],
+      "holdReason": "additional-verification-required"
+    },
+    {
+      "id": "E137",
+      "workbookRow": 143,
+      "lookupLabel": "Nicomen Indian Band",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.nicomenband.com/",
+        "https://www.nicomenband.com/blog/author/Nicomen-Band/default.htm?blogid=8195"
+      ],
+      "forms": [
+        {
+          "text": "Nicomen Indian Band",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Nicomen Band",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E138",
+      "workbookRow": 144,
+      "lookupLabel": "Nisga'a Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.nisgaanation.ca/",
+        "https://www.nisgaanation.ca/government/",
+        "https://www.nisgaanation.ca/news-events/media/media-gallery/",
+        "https://www.nisgaanation.ca/government/nisgaa-lisims-government/contact-directory/",
+        "https://www.nisgaanation.ca/culture/",
+        "https://www.nisgaanation.ca/legal-terms/"
+      ],
+      "forms": [
+        {
+          "text": "Nisg̱a’a Lisims Government",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Nisga’a",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Nisg̱a'a Lisims Government",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E139",
+      "workbookRow": 145,
+      "lookupLabel": "Nlaka'pamux First Nations",
+      "verificationBasis": "Own-site name unverified",
+      "evidenceUrls": [
+        "https://www2.gov.bc.ca/gov/content/environment/natural-resource-stewardship/consulting-with-first-nations/first-nations-negotiations/first-nations-a-z-listing/nlaka-pamux"
+      ],
+      "forms": [],
+      "holdReason": "additional-verification-required"
+    },
+    {
+      "id": "E140",
+      "workbookRow": 146,
+      "lookupLabel": "Nlaka'pamux Nation Tribal Council",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://nntc.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Nlaka’pamux Nation Tribal Council",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "NNTC",
+          "role": "acronym",
+          "sourceColumn": "D",
+          "recognize": false,
+          "reason": "definition-required"
+        },
+        {
+          "text": "NLAKA’PAMUX NATION TRIBAL COUNCIL",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E141",
+      "workbookRow": 147,
+      "lookupLabel": "Nooaitch Indian Band",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.nooaitch.com/"
+      ],
+      "forms": [
+        {
+          "text": "Nooaitch Indian Band",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Nooaitch Band",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E142",
+      "workbookRow": 148,
+      "lookupLabel": "North Thompson River Indian Band",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://simpcw.com/",
+        "https://simpcw.com/wp-content/uploads/2026/07/HR-Advisor.pdf",
+        "https://simpcw.com/wp-content/uploads/2026/07/Hot-Line-Equipment-Operator_PLM.pdf",
+        "https://simpcw.com/about-us/",
+        "https://simpcw.com/wp-content/uploads/2026/05/SRG-Job-Posting-PLM-Operator.pdf",
+        "https://simpcw.com/wp-content/uploads/2026/07/General-Labourer-Project-Term-Civil.pdf"
+      ],
+      "forms": [
+        {
+          "text": "Simpcw",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Simpcw First Nation",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E143",
+      "workbookRow": 149,
+      "lookupLabel": "Northern Regional Negotiations Table",
+      "verificationBasis": "Own-site name unverified",
+      "evidenceUrls": [
+        "https://www2.gov.bc.ca/gov/content/environment/natural-resource-stewardship/consulting-with-first-nations/first-nations-negotiations/first-nations-a-z-listing/northern-regional-negotiations-table"
+      ],
+      "forms": [],
+      "holdReason": "additional-verification-required"
+    },
+    {
+      "id": "E144",
+      "workbookRow": 150,
+      "lookupLabel": "Northern Shuswap Tribal Council",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://northernshuswaptribalcouncil.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Northern Shuswap Tribal Council",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Northern Secwēpemc te Qelmūcw",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "NSTC",
+          "role": "acronym",
+          "sourceColumn": "D",
+          "recognize": false,
+          "reason": "definition-required"
+        },
+        {
+          "text": "NStQ",
+          "role": "acronym",
+          "sourceColumn": "D",
+          "recognize": false,
+          "reason": "definition-required"
+        }
+      ]
+    },
+    {
+      "id": "E145",
+      "workbookRow": 151,
+      "lookupLabel": "Nuchatlaht First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.nuchatlaht.com/"
+      ],
+      "forms": [
+        {
+          "text": "Nuchatlaht Tribe",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Nuchatlaht First Nation",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E146",
+      "workbookRow": 152,
+      "lookupLabel": "Nuu-chah-nulth Tribal Council",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://nuuchahnulth.org/"
+      ],
+      "forms": [
+        {
+          "text": "Nuu-Chah-Nulth Tribal Council",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Nuu-chah-nulth Tribal Council",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E147",
+      "workbookRow": 153,
+      "lookupLabel": "Okanagan Indian Band",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.okib.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Okanagan Indian Band",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "OKIB",
+          "role": "acronym",
+          "sourceColumn": "D",
+          "recognize": false,
+          "reason": "definition-required"
+        }
+      ]
+    },
+    {
+      "id": "E148",
+      "workbookRow": 154,
+      "lookupLabel": "Okanagan Nation Alliance",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://syilx.org/"
+      ],
+      "forms": [
+        {
+          "text": "Okanagan Nation Alliance",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Syilx Okanagan Nation",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "ONA",
+          "role": "acronym",
+          "sourceColumn": "D",
+          "recognize": false,
+          "reason": "definition-required"
+        }
+      ]
+    },
+    {
+      "id": "E149",
+      "workbookRow": 155,
+      "lookupLabel": "Old Masset Village Council",
+      "verificationBasis": "Indexed official content",
+      "evidenceUrls": [
+        "https://oldmassettvillagecouncil.com/",
+        "https://oldmassettvillagecouncil.com/about/current-council/",
+        "https://oldmassettvillagecouncil.com/contact/",
+        "https://oldmassettvillagecouncil.com/departments/"
+      ],
+      "forms": [],
+      "holdReason": "additional-verification-required"
+    },
+    {
+      "id": "E150",
+      "workbookRow": 156,
+      "lookupLabel": "Oregon Jack Creek Band",
+      "verificationBasis": "Own-site name unverified",
+      "evidenceUrls": [
+        "https://www.bcafn.ca/first-nations-bc/thompson-okanagan/oregon-jack-creek"
+      ],
+      "forms": [],
+      "holdReason": "additional-verification-required"
+    },
+    {
+      "id": "E151",
+      "workbookRow": 157,
+      "lookupLabel": "Osoyoos Indian Band",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://oib.ca/",
+        "https://oib.ca/contact/",
+        "https://oib.ca/our-team/",
+        "https://oib.ca/businesses/"
+      ],
+      "forms": [
+        {
+          "text": "Osoyoos Indian Band",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "OIB",
+          "role": "acronym",
+          "sourceColumn": "D",
+          "recognize": false,
+          "reason": "definition-required"
+        }
+      ]
+    },
+    {
+      "id": "E152",
+      "workbookRow": 158,
+      "lookupLabel": "Oweekeno Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://wuikinuxv.net/",
+        "https://www.wuikinuxv.net/",
+        "https://www.wuikinuxv.net/who-we-are",
+        "https://www.wuikinuxv.net/accommodations",
+        "https://www.wuikinuxv.net/health-station"
+      ],
+      "forms": [
+        {
+          "text": "’Wuìk̓inux̌v Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "'Wuìk̓inux̌v Nation",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E153",
+      "workbookRow": 159,
+      "lookupLabel": "Pacheedaht First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.pacheedaht.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Pacheedaht First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E154",
+      "workbookRow": 160,
+      "lookupLabel": "Pauquachin First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://pauquachin.com/",
+        "https://www.pauquachin.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Pauquachin First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "BOḰEĆEN",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E155",
+      "workbookRow": 161,
+      "lookupLabel": "Penelakut Indian Band",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://penelakut.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Penelakut Tribe",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Penelakut First Nation",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E156",
+      "workbookRow": 162,
+      "lookupLabel": "Penticton Indian Band",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://pib.ca/"
+      ],
+      "forms": [
+        {
+          "text": "snpink'tn Indian Band",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "PIB",
+          "role": "acronym",
+          "sourceColumn": "D",
+          "recognize": false,
+          "reason": "definition-required"
+        }
+      ]
+    },
+    {
+      "id": "E157",
+      "workbookRow": 163,
+      "lookupLabel": "Peters Band",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://petersfn.ca/",
+        "https://petersfn.ca/member-info-old/"
+      ],
+      "forms": [
+        {
+          "text": "Peters First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E158",
+      "workbookRow": 164,
+      "lookupLabel": "Popkum Indian Band",
+      "verificationBasis": "Official holding page",
+      "evidenceUrls": [
+        "https://popkum.ca/"
+      ],
+      "forms": [],
+      "holdReason": "additional-verification-required"
+    },
+    {
+      "id": "E159",
+      "workbookRow": 165,
+      "lookupLabel": "Prophet River Band",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://prophetriverfirstnation.com/contact/",
+        "https://prophetriverfirstnation.com/"
+      ],
+      "forms": [
+        {
+          "text": "Prophet River First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E160",
+      "workbookRow": 166,
+      "lookupLabel": "Qualicum First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.qualicumfirstnation.com/"
+      ],
+      "forms": [
+        {
+          "text": "Qualicum First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E161",
+      "workbookRow": 167,
+      "lookupLabel": "Quatsino First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://quatsinofn.com/"
+      ],
+      "forms": [
+        {
+          "text": "Quatsino First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E162",
+      "workbookRow": 168,
+      "lookupLabel": "Ross River Dene Council",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://rrdc.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Ross River Dena Council",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E163",
+      "workbookRow": 169,
+      "lookupLabel": "Saik'uz First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.saikuz.com/",
+        "https://www.saikuz.com/application/files/2017/3352/1627/2023-24_Saikuz_AGA_Report_Digital.pdf",
+        "https://www.saikuz.com/events/news/stoney-creek-elders-annual-fishing-derby",
+        "https://www.saikuz.com/staff-directory"
+      ],
+      "forms": [
+        {
+          "text": "Saik'uz First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E164",
+      "workbookRow": 170,
+      "lookupLabel": "Samahquam First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.samahquam.ca/"
+      ],
+      "forms": [
+        {
+          "text": "SAMAHQUAM",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Samahquam",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E165",
+      "workbookRow": 171,
+      "lookupLabel": "Saulteau First Nations",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.saulteau.com/"
+      ],
+      "forms": [
+        {
+          "text": "Saulteau First Nations",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E166",
+      "workbookRow": 172,
+      "lookupLabel": "Scw'exmx Tribal Council",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.scwexmxtribal.com/",
+        "https://www.scwexmxtribal.com/staffmembers"
+      ],
+      "forms": [
+        {
+          "text": "Scw’exmx Tribal Council",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Scw'exmx Tribal Council",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E167",
+      "workbookRow": 173,
+      "lookupLabel": "Seabird Island Indian Band",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.seabirdisland.ca/",
+        "https://www.seabirdisland.ca/history/",
+        "https://www.seabirdisland.ca/about-us/",
+        "https://www.seabirdisland.ca/sqewqel-sqwelqwel-pipe/",
+        "https://www.seabirdisland.ca/contact-us/",
+        "https://www.seabirdisland.ca/schakwel-tl-sqewqel/"
+      ],
+      "forms": [
+        {
+          "text": "Sq’éwqel (Seabird Island Band)",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Sq’éwqel",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Sq’éwqel Seabird Island Band",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Seabird Island Band",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E168",
+      "workbookRow": 174,
+      "lookupLabel": "Semiahmoo First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.semiahmoofirstnation.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Semiahmoo First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E169",
+      "workbookRow": 175,
+      "lookupLabel": "Seton Lake Band",
+      "verificationBasis": "Own-site name unverified",
+      "evidenceUrls": [
+        "https://www.bcafn.ca/first-nations-bc/thompson-okanagan/tsalalh-first-nation"
+      ],
+      "forms": [],
+      "holdReason": "additional-verification-required"
+    },
+    {
+      "id": "E170",
+      "workbookRow": 176,
+      "lookupLabel": "Shackan Indian Band",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://shackan.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Shackan Indian Band",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E171",
+      "workbookRow": 177,
+      "lookupLabel": "Shuswap Band",
+      "verificationBasis": "Indexed official content",
+      "evidenceUrls": [
+        "https://www.shuswapband.net/",
+        "https://www.shuswapband.net/wp-content/uploads/2022/06/Kenpesqt-Director.-2022.pdf",
+        "https://www.shuswapband.net/about-shuswap-band/",
+        "https://www.shuswapband.net/wp-content/uploads/2024/03/KHL-Project-Manager-Posting-March-2024.pdf",
+        "https://www.shuswapband.net/wp-content/uploads/2024/02/KHL-Office-Administrator-Posting-Jan-2024.pdf",
+        "https://www.shuswapband.net/wp-content/uploads/2024/05/KF-Senior-Forester-2024.pdf"
+      ],
+      "forms": [],
+      "holdReason": "additional-verification-required"
+    },
+    {
+      "id": "E172",
+      "workbookRow": 178,
+      "lookupLabel": "Shuswap Nation Tribal Council",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://shuswapnation.org/"
+      ],
+      "forms": [
+        {
+          "text": "Shuswap Nation Tribal Council",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "SNTC",
+          "role": "acronym",
+          "sourceColumn": "D",
+          "recognize": false,
+          "reason": "definition-required"
+        }
+      ]
+    },
+    {
+      "id": "E173",
+      "workbookRow": 179,
+      "lookupLabel": "Shxw'ow'hamel First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.shxwowhamel.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Shxw’ōwhámél",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "shxwowhamel",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E174",
+      "workbookRow": 180,
+      "lookupLabel": "Shxwhá:y Village",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://skway.com/",
+        "https://skway.com/contact-us/"
+      ],
+      "forms": [
+        {
+          "text": "Shxwhá:y Village",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "SHXWA:Y VILLAGE",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Shxwhá:y",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Skway",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E175",
+      "workbookRow": 181,
+      "lookupLabel": "shíshálh Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://shishalh.com/",
+        "https://shishalh.com/wp-content/uploads/2018/09/1d-Sechelt-Indian-Band-Constitution-October-1993.pdf",
+        "https://shishalh.com/wp-content/uploads/2023/09/Sechelt-Indian-Government-District-2021-Finalized-Financial-Statements.pdf",
+        "https://shishalh.com/wp-content/uploads/2018/10/Decision-Making-Policy.pdf",
+        "https://shishalh.com/wp-content/uploads/2018/08/Law-1996-03-Protect-and-Promote-Cultural-Heritage.pdf",
+        "https://shishalh.com/wp-content/uploads/2018/09/2018-08-31-Constitution-Working-Draft-Currently-Under-Legal-Reivew.pdf"
+      ],
+      "forms": [
+        {
+          "text": "shíshálh Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "shishalh Nation",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E176",
+      "workbookRow": 182,
+      "lookupLabel": "Siska Indian Band",
+      "verificationBasis": "Official holding page",
+      "evidenceUrls": [
+        "https://www.siskaband.ca/"
+      ],
+      "forms": [],
+      "holdReason": "additional-verification-required"
+    },
+    {
+      "id": "E177",
+      "workbookRow": 183,
+      "lookupLabel": "Skatin Nations",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://skatin.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Skatin",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Skatin Nations",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E178",
+      "workbookRow": 184,
+      "lookupLabel": "Skatin Samahquam Negotiations Inc.",
+      "verificationBasis": "Own-site name unverified",
+      "evidenceUrls": [
+        "https://www2.gov.bc.ca/gov/content/environment/natural-resource-stewardship/consulting-with-first-nations/first-nations-negotiations/first-nations-a-z-listing/in-shuck-ch-nation"
+      ],
+      "forms": [],
+      "holdReason": "additional-verification-required"
+    },
+    {
+      "id": "E179",
+      "workbookRow": 185,
+      "lookupLabel": "Skawahlook / Sq’ewá:lxw First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://skawahlook.com/"
+      ],
+      "forms": [
+        {
+          "text": "Skawahlook First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Sq’ewá:lxw",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E180",
+      "workbookRow": 186,
+      "lookupLabel": "Skeetchestn Indian Band",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://skeetchestn.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Skeetchestn Indian Band",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E181",
+      "workbookRow": 187,
+      "lookupLabel": "Skidegate Band Council",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://skidegate.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Skidegate Band Council",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E182",
+      "workbookRow": 188,
+      "lookupLabel": "Skin Tyee Band",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.skintyeefirstnation.org/"
+      ],
+      "forms": [
+        {
+          "text": "Skin Tyee First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Skin Tyee Nation",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "STN",
+          "role": "acronym",
+          "sourceColumn": "D",
+          "recognize": false,
+          "reason": "definition-required"
+        }
+      ]
+    },
+    {
+      "id": "E183",
+      "workbookRow": 189,
+      "lookupLabel": "Skowkale First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.skowkalefn.com/"
+      ],
+      "forms": [
+        {
+          "text": "Skowkale First Nations",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Sq'ewqéyl",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Skowkale",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E184",
+      "workbookRow": 190,
+      "lookupLabel": "Skuppah Indian Band",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.skuppah.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Skuppah Indian Band",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E185",
+      "workbookRow": 191,
+      "lookupLabel": "Skwa' First Nation",
+      "verificationBasis": "Own-site name unverified",
+      "evidenceUrls": [
+        "https://www.bcafn.ca/first-nations-bc/lower-mainland-southwest/skwah-first-nation"
+      ],
+      "forms": [],
+      "holdReason": "additional-verification-required"
+    },
+    {
+      "id": "E186",
+      "workbookRow": 192,
+      "lookupLabel": "Sliammon First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://tlaaminnation.com/",
+        "https://www.tlaaminnation.com/governance/treaty/",
+        "https://www.tlaaminnation.com/",
+        "https://www.tlaaminnation.com/our-nation/our-culture/our-language/",
+        "https://www.tlaaminnation.com/news-and-events/",
+        "https://www.tlaaminnation.com/our-nation/who-we-are/our-sister-nations/"
+      ],
+      "forms": [
+        {
+          "text": "Tla’amin Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Tla'amin Nation",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "ɬaʔamɩn",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Sliammon First Nation",
+          "role": "historical-or-administrative-name",
+          "sourceColumn": "E",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E187",
+      "workbookRow": 193,
+      "lookupLabel": "Snuneymuxw First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://snuneymuxw.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Snuneymuxw First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E188",
+      "workbookRow": 194,
+      "lookupLabel": "Soda Creek Indian Band",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.xatsull.com/",
+        "https://www.xatsull.com/wp-content/uploads/2021/01/2020-1.pdf",
+        "https://www.xatsull.com/wp-content/uploads/2020/10/Soda-Creek-Indian-Band-Animal-Permit.pdf",
+        "https://www.xatsull.com/february-23-by-election-candidate-platforms/",
+        "https://www.xatsull.com/soda-creek-indian-band-now-offers-it-services/",
+        "https://www.xatsull.com/soda-creek-water-notice/"
+      ],
+      "forms": [
+        {
+          "text": "Xatśūll First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Xatśūll",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Soda Creek Indian Band",
+          "role": "historical-or-administrative-name",
+          "sourceColumn": "E",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E189",
+      "workbookRow": 195,
+      "lookupLabel": "Songhees First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://songheesnation.ca/",
+        "https://songheesnation.ca/governance/territory-welcomes",
+        "https://www.songheesnation.ca/files/2016-annual-report-2.pdf",
+        "https://www.songheesnation.ca/files/2018-annual-report-2.pdf",
+        "https://songheesnation.ca/community/l-k-ng-n-language-reawaken",
+        "https://songheesnation.ca/news/lekwungen_traditional_dancers_perform_paddle_welcome_song"
+      ],
+      "forms": [
+        {
+          "text": "Songhees Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "lək̓ʷəŋən",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Lekwungen",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E190",
+      "workbookRow": 196,
+      "lookupLabel": "Sooke Band",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://tsoukenation.com/",
+        "https://tsoukenation.com/sooke-potholes-regional-park-spring-salmon-place-campground/",
+        "https://tsoukenation.com/sum-sha-preschool/",
+        "https://tsoukenation.com/events/",
+        "https://tsoukenation.com/lands-forestry-environment/",
+        "https://tsoukenation.com/chief-and-council/"
+      ],
+      "forms": [
+        {
+          "text": "T’Sou-ke First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "T'Sou-ke First Nation",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "T’Sou-ke Nation",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E191",
+      "workbookRow": 197,
+      "lookupLabel": "Soowahlie Indian Band",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://soowahlie.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Soowahlie First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Soowahlie Band",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Soowahlie Band Administration",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E192",
+      "workbookRow": 198,
+      "lookupLabel": "Southern Dakelh Nation Alliance",
+      "verificationBasis": "Own-site name unverified",
+      "evidenceUrls": [
+        "https://www2.gov.bc.ca/gov/content/environment/natural-resource-stewardship/consulting-with-first-nations/first-nations-negotiations/first-nations-a-z-listing/southern-dakelh-nation-alliance"
+      ],
+      "forms": [],
+      "holdReason": "additional-verification-required"
+    },
+    {
+      "id": "E193",
+      "workbookRow": 199,
+      "lookupLabel": "SpallumcheenBand",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://splatsin.ca/",
+        "https://splatsin.ca/wp-content/uploads/2021/03/Bylaw-No.-3-Re-Care-of-Our-Indian-Children.pdf",
+        "https://splatsin.ca/splatsin-kukpi7-and-tkwamipla7-respond-to-concerns-regarding-family-reunification",
+        "https://splatsin.ca/first-coordination-agreement-video",
+        "https://splatsin.ca/tkwamipla7-miranda-kimbasket-quarterly-council-reports",
+        "https://splatsin.ca/evacuation-order"
+      ],
+      "forms": [
+        {
+          "text": "Splatsin",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Splatsin Kukpi7 and Tkwamipla7",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Spallumcheen",
+          "role": "historical-or-administrative-name",
+          "sourceColumn": "E",
+          "recognize": false,
+          "reason": "context-required"
+        }
+      ]
+    },
+    {
+      "id": "E194",
+      "workbookRow": 200,
+      "lookupLabel": "SpuzzumFirst Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://spuzzumnation.com/"
+      ],
+      "forms": [
+        {
+          "text": "Spuzzum Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Spuzzum First Nation",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E195",
+      "workbookRow": 201,
+      "lookupLabel": "Sq'éwletsFirst Nation",
+      "verificationBasis": "Official holding page",
+      "evidenceUrls": [
+        "https://sqewlets.ca/"
+      ],
+      "forms": [],
+      "holdReason": "additional-verification-required"
+    },
+    {
+      "id": "E196",
+      "workbookRow": 202,
+      "lookupLabel": "Squamish Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.squamish.net/",
+        "https://www.squamish.net/about-our-nation/"
+      ],
+      "forms": [
+        {
+          "text": "Squamish Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Sḵwx̱wú7mesh Úxwumixw",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Sḵwx̱wú7mesh Úxwumixw",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E197",
+      "workbookRow": 203,
+      "lookupLabel": "Squiala First Nation",
+      "verificationBasis": "Official holding page",
+      "evidenceUrls": [
+        "https://www.squiala.com/"
+      ],
+      "forms": [],
+      "holdReason": "additional-verification-required"
+    },
+    {
+      "id": "E198",
+      "workbookRow": 204,
+      "lookupLabel": "Stellat'en First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.stellaten.ca/",
+        "https://www.stellaten.ca/membership/"
+      ],
+      "forms": [
+        {
+          "text": "Stellat'en",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Stellat’en First Nation",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Stellaquo Indian Band",
+          "role": "historical-or-administrative-name",
+          "sourceColumn": "E",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E199",
+      "workbookRow": 205,
+      "lookupLabel": "Sto:lo Xwexwilmexw Treaty Association (supplied entry)",
+      "verificationBasis": "Own-site name unverified",
+      "evidenceUrls": [
+        "https://bctreaty.ca/stolo-xwexwilmexw-government/"
+      ],
+      "forms": [],
+      "holdReason": "additional-verification-required"
+    },
+    {
+      "id": "E200",
+      "workbookRow": 206,
+      "lookupLabel": "Stone Indian Band",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.yunesitin.ca/",
+        "https://www.yunesitin.ca/wp-content/uploads/2018/09/Home-and-Community-Care-Nurse-Job-Posting.pdf",
+        "https://www.yunesitin.ca/wp-content/uploads/2020/04/CUSTOM-ELECTION-CODE-Final-October-2007.pdf",
+        "https://www.yunesitin.ca/wp-content/uploads/2017/06/yunesitin-newsletter-march-2017-v-13.pdf",
+        "https://www.yunesitin.ca/yunesitin-custom-election-code/",
+        "https://www.yunesitin.ca/yunesitin-election-2022/"
+      ],
+      "forms": [
+        {
+          "text": "Yunesit’in Government",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Yunesitin",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Yunesit’in",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Yunesit'in Government",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Stone",
+          "role": "context-dependent-short-form",
+          "sourceColumn": "D",
+          "recognize": false,
+          "reason": "context-required"
+        },
+        {
+          "text": "Stoney",
+          "role": "context-dependent-short-form",
+          "sourceColumn": "D",
+          "recognize": false,
+          "reason": "context-required"
+        },
+        {
+          "text": "Gex Nats’inilht’ih",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E201",
+      "workbookRow": 207,
+      "lookupLabel": "Stswecem’c Xget’tem",
+      "verificationBasis": "Official title only",
+      "evidenceUrls": [
+        "https://sxfn.ca/",
+        "https://www.sxfn.ca/treaty/",
+        "https://sxfn.ca/housing/",
+        "https://www.sxfn.ca/family-services/"
+      ],
+      "forms": [],
+      "holdReason": "additional-verification-required"
+    },
+    {
+      "id": "E202",
+      "workbookRow": 208,
+      "lookupLabel": "Sts’ailes Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.stsailes.com/",
+        "https://www.stsailes.com/news-events/2026/7/6/press-release-no-jet-boats-on-the-chehalis-river",
+        "https://www.stsailes.com/we-are-stsailes",
+        "https://www.stsailes.com/how-to-find-us",
+        "https://www.stsailes.com/education",
+        "https://www.stsailes.com/yeqwethet-aylexw"
+      ],
+      "forms": [
+        {
+          "text": "Sts'ailes",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Sts’ailes",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E203",
+      "workbookRow": 209,
+      "lookupLabel": "Stó:lo Nation (supplied entry)",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.stolonation.bc.ca/about"
+      ],
+      "forms": [
+        {
+          "text": "Stó:lō Service Agency",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Stó:lō Service Agency Society",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "SSAS",
+          "role": "acronym",
+          "sourceColumn": "D",
+          "recognize": false,
+          "reason": "definition-required"
+        },
+        {
+          "text": "Stó:lō Nation Society",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E204",
+      "workbookRow": 210,
+      "lookupLabel": "Stó:lo Tribal Council",
+      "verificationBasis": "Official holding page",
+      "evidenceUrls": [
+        "https://www.stolotribalcouncil.ca/"
+      ],
+      "forms": [],
+      "holdReason": "additional-verification-required"
+    },
+    {
+      "id": "E205",
+      "workbookRow": 211,
+      "lookupLabel": "Sumas First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://sumasfirstnation.com/"
+      ],
+      "forms": [
+        {
+          "text": "Sumas First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Semá:th",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E206",
+      "workbookRow": 212,
+      "lookupLabel": "Tahltan Band Council",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://tahltan.ca/",
+        "https://tahltan.ca/contact/"
+      ],
+      "forms": [
+        {
+          "text": "Tahltan Band Council",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Tahltan Band",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E207",
+      "workbookRow": 213,
+      "lookupLabel": "Tahltan Central Government",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://tahltan.org/"
+      ],
+      "forms": [
+        {
+          "text": "Tahltan Central Government",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "TCG",
+          "role": "acronym",
+          "sourceColumn": "D",
+          "recognize": false,
+          "reason": "definition-required"
+        },
+        {
+          "text": "Tahltan Nation",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E208",
+      "workbookRow": 214,
+      "lookupLabel": "Takla Nation",
+      "verificationBasis": "Indexed official content",
+      "evidenceUrls": [
+        "https://www.taklafn.ca/about/"
+      ],
+      "forms": [],
+      "holdReason": "additional-verification-required"
+    },
+    {
+      "id": "E209",
+      "workbookRow": 215,
+      "lookupLabel": "Taku River Tlingit First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://trtfn.com/"
+      ],
+      "forms": [
+        {
+          "text": "Taku River Tlingit First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "TRTFN",
+          "role": "acronym",
+          "sourceColumn": "D",
+          "recognize": false,
+          "reason": "definition-required"
+        }
+      ]
+    },
+    {
+      "id": "E210",
+      "workbookRow": 216,
+      "lookupLabel": "Te'mexw Treaty Association",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://temexw.org/"
+      ],
+      "forms": [
+        {
+          "text": "Te’mexw Treaty Association",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Te'mexw Treaty Association",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E211",
+      "workbookRow": 217,
+      "lookupLabel": "Teslin Tlingit Council",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://ttc.yt/",
+        "https://ttc.yt/welcome-to-the-new-teslin-tlingit-council-website/"
+      ],
+      "forms": [
+        {
+          "text": "Teslin Tlingit Council",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "TTC",
+          "role": "acronym",
+          "sourceColumn": "D",
+          "recognize": false,
+          "reason": "definition-required"
+        }
+      ]
+    },
+    {
+      "id": "E212",
+      "workbookRow": 218,
+      "lookupLabel": "Tl'azt'en Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://tlaztennation.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Tl'azt'en Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Tl’azt’en Nation",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E213",
+      "workbookRow": 219,
+      "lookupLabel": "Tla-o-qui-aht First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.tla-o-qui-aht.org/"
+      ],
+      "forms": [
+        {
+          "text": "Tla-o-qui-aht First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E214",
+      "workbookRow": 220,
+      "lookupLabel": "Tlatlasikwala First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.tlatlasikwala.com/"
+      ],
+      "forms": [
+        {
+          "text": "TLATLASIKWALA FIRST NATION",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E215",
+      "workbookRow": 221,
+      "lookupLabel": "Tlowitsis Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://tlowitsisnation.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Tlowitsis Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E216",
+      "workbookRow": 222,
+      "lookupLabel": "Toosey Indian Band",
+      "verificationBasis": "Own-site name unverified",
+      "evidenceUrls": [
+        "https://www2.gov.bc.ca/gov/content/environment/natural-resource-stewardship/consulting-with-first-nations/first-nations-negotiations/first-nations-a-z-listing/toosey-indian-band-tl-esqox"
+      ],
+      "forms": [],
+      "holdReason": "additional-verification-required"
+    },
+    {
+      "id": "E217",
+      "workbookRow": 223,
+      "lookupLabel": "Toquaht First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://toquaht.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Toquaht Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E218",
+      "workbookRow": 224,
+      "lookupLabel": "Treaty 8 First Nations",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://treaty8.bc.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Treaty 8 Tribal Association",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Treaty 8 First Nations",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E219",
+      "workbookRow": 225,
+      "lookupLabel": "Ts'kw'aylaxw First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://tskwaylaxw.com/"
+      ],
+      "forms": [
+        {
+          "text": "Ts'kw'aylaxw First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E220",
+      "workbookRow": 226,
+      "lookupLabel": "Tsartlip First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://tsartlip.com/",
+        "https://tsartlip.com/about/",
+        "https://tsartlip.com/learn-sencoten-with-the-new-w%CC%B1jo%C6%9Ae%C6%9Ap-language-department/",
+        "https://tsartlip.com/mawuecs-return-to-w%CC%B1jo%C6%9Ae%C6%9Ap-strengthened-by-purchase-of-7669west-saanich-road/",
+        "https://tsartlip.com/w%CC%B1jo%C6%9Ae%C6%9Ap-native-plants-trees/",
+        "https://tsartlip.com/language/"
+      ],
+      "forms": [
+        {
+          "text": "Tsartlip First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "W̱JOȽEȽP First Nation",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "W̱JOȽEȽP",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "W̱JOȽEȽP Band",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E221",
+      "workbookRow": 227,
+      "lookupLabel": "Tsawout First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://tsawout.ca/"
+      ],
+      "forms": [
+        {
+          "text": "SȾÁUTW̱ First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E222",
+      "workbookRow": 228,
+      "lookupLabel": "Tsawwassen First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://tsawwassenfirstnation.com/"
+      ],
+      "forms": [
+        {
+          "text": "Tsawwassen First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E223",
+      "workbookRow": 229,
+      "lookupLabel": "Tsay Keh Dene",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://tsaykeh.com/",
+        "https://tsaykeh.com/2026-election-information/",
+        "https://tsaykeh.com/about-tkd/",
+        "https://tsaykeh.com/members-login/",
+        "https://tsaykeh.com/departments/ingenika-trading-post/",
+        "https://tsaykeh.com/media/"
+      ],
+      "forms": [
+        {
+          "text": "Tsay Keh Dene Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Tsay Keh Dene",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "TKD",
+          "role": "acronym",
+          "sourceColumn": "D",
+          "recognize": false,
+          "reason": "definition-required"
+        },
+        {
+          "text": "TKDN",
+          "role": "acronym",
+          "sourceColumn": "D",
+          "recognize": false,
+          "reason": "definition-required"
+        },
+        {
+          "text": "Ingenika Band",
+          "role": "historical-or-administrative-name",
+          "sourceColumn": "E",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E224",
+      "workbookRow": 230,
+      "lookupLabel": "Tseshaht First Nation",
+      "verificationBasis": "Indexed official content",
+      "evidenceUrls": [
+        "https://tseshaht.com/",
+        "https://tseshaht.com/history-culture/traditional-territory/",
+        "https://tseshaht.com/directions/",
+        "https://tseshaht.com/policies-and-other-governing-documents/"
+      ],
+      "forms": [],
+      "holdReason": "additional-verification-required"
+    },
+    {
+      "id": "E225",
+      "workbookRow": 231,
+      "lookupLabel": "Tsetsaut / Skii km Lax Ha Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://tsklhnation.ca/",
+        "https://tsklhnation.ca/our-territory"
+      ],
+      "forms": [
+        {
+          "text": "Tsetsaut Skii km Lax Ha Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "TSKLH Nation",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E226",
+      "workbookRow": 232,
+      "lookupLabel": "Tseycum First Nation",
+      "verificationBasis": "Own-site name unverified",
+      "evidenceUrls": [
+        "https://www.bcafn.ca/first-nations-bc/vancouver-island-coast/tseycum"
+      ],
+      "forms": [],
+      "holdReason": "additional-verification-required"
+    },
+    {
+      "id": "E227",
+      "workbookRow": 233,
+      "lookupLabel": "Tsilhqot'in National Government",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://tsilhqotin.ca/",
+        "https://tsilhqotin.ca/our-nation/administration/",
+        "https://tsilhqotin.ca/our-nation/communities/",
+        "https://tsilhqotin.ca/publications/"
+      ],
+      "forms": [
+        {
+          "text": "Tŝilhqot'in National Government",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Tŝilhqot’in National Government",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Tŝilhqot’in",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "TNG",
+          "role": "acronym",
+          "sourceColumn": "D",
+          "recognize": false,
+          "reason": "definition-required"
+        }
+      ]
+    },
+    {
+      "id": "E228",
+      "workbookRow": 234,
+      "lookupLabel": "Tsimshian First Nations Treaty Society",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.tfntreaty.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Tsimshian First Nations Treaty Society",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Tsimshian First Nations (TFN) Treaty Society",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E229",
+      "workbookRow": 235,
+      "lookupLabel": "Tsleil-Waututh First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://twnation.ca/",
+        "https://twnation.ca/wp-content/uploads/2024/10/201711_Burrard_Inlet_Action-Plan_2017_Version_FINAL.pdf",
+        "https://twnation.ca/wp-content/uploads/2019/09/1-CT-LO-BISS-2019.pdf",
+        "https://twnation.ca/new-research-estimating-long-term-and-large-scale-colonial-impacts-on-the-burrard-inlet-ecosystem-s%C9%99lilw%C9%99ta%C9%AC-tsleil-waututh-nation-people-and-harvesting-rights/",
+        "https://twnation.ca/new-interactive-map-of-burrard-inlet/",
+        "https://twnation.ca/impactsmap/"
+      ],
+      "forms": [
+        {
+          "text": "Tsleil-Waututh Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "səlilwətaɬ",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E230",
+      "workbookRow": 236,
+      "lookupLabel": "Tsq̓éscen̓ First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://tsqescen.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Tsq̓éscen̓ First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Tsq’escném’c",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Canim Lake Band",
+          "role": "historical-or-administrative-name",
+          "sourceColumn": "E",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E231",
+      "workbookRow": 237,
+      "lookupLabel": "Ts’elxwéyeqw Tribe Society",
+      "verificationBasis": "Related-body evidence",
+      "evidenceUrls": [
+        "https://ttml.ca/what-we-do/",
+        "https://www.tzeachten.ca/about",
+        "https://thestsa.ca/about-stsa/first-nation-members/",
+        "https://ttml.ca/",
+        "https://www2.gov.bc.ca/gov/content/environment/natural-resource-stewardship/consulting-with-first-nations/first-nations-negotiations/first-nations-a-z-listing/ts-elxw-yeqw-tribe-ch-ihl-kway-uhk",
+        "https://ttml.ca/rooted-waters-video-series/"
+      ],
+      "forms": [],
+      "holdReason": "additional-verification-required"
+    },
+    {
+      "id": "E232",
+      "workbookRow": 238,
+      "lookupLabel": "Tzeachten First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.tzeachten.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Ch’íyáqtel",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Ch’íyáqtel (Tzeachten) First Nation",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Ch’íyáqtel First Nation",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Tzeachten First Nation",
+          "role": "historical-or-administrative-name",
+          "sourceColumn": "E",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E233",
+      "workbookRow": 239,
+      "lookupLabel": "Uchucklesaht Tribe",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://uchucklesaht.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Uchucklesaht Tribe Government",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Uchucklesaht Tribe",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Uchucklesaht Government",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E234",
+      "workbookRow": 240,
+      "lookupLabel": "Ucluelet First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.ufn.ca/",
+        "https://www.ufn.ca/wp-content/uploads/2019/02/Fire-Services-Agreement-News-Release-2019.pdf",
+        "https://www.ufn.ca/wp-content/uploads/2024/03/WCT-Riders-Guide.pdf",
+        "https://www.ufn.ca/wp-content/uploads/2021/10/State-of-Emergency-October-14-2021.pdf",
+        "https://www.ufn.ca/contact/",
+        "https://www.ufn.ca/our-government/"
+      ],
+      "forms": [
+        {
+          "text": "Yuułuʔiłʔatḥ Government",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Ucluelet First Nation",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E235",
+      "workbookRow": 241,
+      "lookupLabel": "Ulkatcho First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://ulkatcho.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Ulkatcho First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Ulkatcho",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E236",
+      "workbookRow": 242,
+      "lookupLabel": "Union Bar Indian Band",
+      "verificationBasis": "Own-site name unverified",
+      "evidenceUrls": [
+        "https://www.bcafn.ca/first-nations-bc/lower-mainland-southwest/union-bar"
+      ],
+      "forms": [],
+      "holdReason": "additional-verification-required"
+    },
+    {
+      "id": "E237",
+      "workbookRow": 243,
+      "lookupLabel": "Upper Nicola Band",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://uppernicola.com/"
+      ],
+      "forms": [
+        {
+          "text": "Upper Nicola Band",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E238",
+      "workbookRow": 244,
+      "lookupLabel": "Upper Similkameen Indian Band",
+      "verificationBasis": "Indexed official content",
+      "evidenceUrls": [
+        "https://usib.ca/chuchuwayha-family-centre/parent-tot-program/"
+      ],
+      "forms": [],
+      "holdReason": "additional-verification-required"
+    },
+    {
+      "id": "E239",
+      "workbookRow": 245,
+      "lookupLabel": "Wei Wai Kum Kwiakah Treaty Society",
+      "verificationBasis": "Related-body evidence",
+      "evidenceUrls": [
+        "https://www.kwiakah.com/treaty",
+        "https://weiwaikum.ca/about/",
+        "https://wkts.ca/wp-content/uploads/2020/07/Treaty-Organizational-Timeline-1-1.pdf",
+        "https://www2.gov.bc.ca/gov/content/environment/natural-resource-stewardship/consulting-with-first-nations/first-nations-negotiations/first-nations-a-z-listing/laich-kwil-tach-treaty-society",
+        "https://bctreaty.ca/wei-wai-kum-first-nations/",
+        "https://www2.gov.bc.ca/gov/content/environment/natural-resource-stewardship/consulting-with-first-nations/first-nations-negotiations/first-nations-a-z-listing/we-wai-kum-nation-campbell-river-indian-band"
+      ],
+      "forms": [],
+      "holdReason": "additional-verification-required"
+    },
+    {
+      "id": "E240",
+      "workbookRow": 246,
+      "lookupLabel": "West Moberly First Nations",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://westmo.org/"
+      ],
+      "forms": [
+        {
+          "text": "West Moberly First Nations",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E241",
+      "workbookRow": 247,
+      "lookupLabel": "Westbank First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://wfn.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Westbank First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "WFN",
+          "role": "acronym",
+          "sourceColumn": "D",
+          "recognize": false,
+          "reason": "definition-required"
+        }
+      ]
+    },
+    {
+      "id": "E242",
+      "workbookRow": 248,
+      "lookupLabel": "Wet'suwet'en First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.wetsuweten.net/"
+      ],
+      "forms": [
+        {
+          "text": "Wet’suwet’en First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Wet'suwet'en First Nation",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Broman Lake Indian Band",
+          "role": "historical-or-administrative-name",
+          "sourceColumn": "E",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E243",
+      "workbookRow": 249,
+      "lookupLabel": "Wet'suwet'en Society, Office of",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://wetsuweten.ca/index.php?page=contact-us-archive"
+      ],
+      "forms": [
+        {
+          "text": "Office of the Wet'suwet'en",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Wet'suwet'en Nation",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E244",
+      "workbookRow": 250,
+      "lookupLabel": "Williams Lake First Nation",
+      "verificationBasis": "Indexed official content",
+      "evidenceUrls": [
+        "https://www.wlfn.ca/about-wlfn/chief-council/",
+        "https://www.wlfn.ca/about-wlfn/history/",
+        "https://www.wlfn.ca/about-wlfn/message-from-the-chief/",
+        "https://www.wlfn.ca/about-wlfn/culture-language/",
+        "https://www.wlfn.ca/governance/reports-publications/",
+        "https://www.wlfn.ca/events/"
+      ],
+      "forms": [],
+      "holdReason": "additional-verification-required"
+    },
+    {
+      "id": "E245",
+      "workbookRow": 251,
+      "lookupLabel": "Witset First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.witset.ca/",
+        "https://www.witset.ca/about-5",
+        "https://www.witset.ca/about",
+        "https://www.witset.ca/bandstaff",
+        "https://www.witset.ca/camping",
+        "https://www.witset.ca/services"
+      ],
+      "forms": [
+        {
+          "text": "WITSET FIRST NATION",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Witset First Nation",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Moricetown",
+          "role": "historical-or-administrative-name",
+          "sourceColumn": "E",
+          "recognize": false,
+          "reason": "context-required"
+        }
+      ]
+    },
+    {
+      "id": "E246",
+      "workbookRow": 252,
+      "lookupLabel": "Wuikinuxv Kitasoo Nuxalk Tribal Council",
+      "verificationBasis": "Related-body evidence",
+      "evidenceUrls": [
+        "https://nuxalknation.ca/partnerships/",
+        "https://www2.gov.bc.ca/gov/content/environment/natural-resource-stewardship/consulting-with-first-nations/first-nations-negotiations/first-nations-a-z-listing/wuikinuxv-kitasoo-nuxalk-tribal-council",
+        "https://en.wikipedia.org/wiki/Wuikinuxv-Kitasoo-Nuxalk_Tribal_Council",
+        "https://fnp-ppn.aadnc-aandc.gc.ca/fnp/Main/Search/TCMain.aspx?TC_NUMBER=1004&lang=eng",
+        "https://www.bcafn.ca/first-nations-bc/vancouver-island-coast/wuikinuxv-nation",
+        "https://data.nativemi.org/tribeslisting/Details/wuikinuxv-nation-1757200"
+      ],
+      "forms": [],
+      "holdReason": "additional-verification-required"
+    },
+    {
+      "id": "E247",
+      "workbookRow": 253,
+      "lookupLabel": "Xaxli'p First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://xaxlip.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Xaxli’p",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Xaxli'p",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E248",
+      "workbookRow": 254,
+      "lookupLabel": "Yakweakwioose First Nation",
+      "verificationBasis": "Shared administrative site",
+      "evidenceUrls": [
+        "https://www.saylandsoffice.ca/"
+      ],
+      "forms": [],
+      "holdReason": "additional-verification-required"
+    },
+    {
+      "id": "E249",
+      "workbookRow": 255,
+      "lookupLabel": "Yale First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://www.yalefirstnation.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Yale First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E250",
+      "workbookRow": 256,
+      "lookupLabel": "Yaq̓it ʔa·knuqⱡi ‘it",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://tobaccoplains.org/",
+        "https://tobaccoplains.org/wp-content/uploads/2025/02/Kakin-Board-Callout_Professional.pdf",
+        "https://tobaccoplains.org/wp-content/uploads/2025/05/Immediate-Release_YQT-Opposes-Bill-15_May-9-2025.pdf",
+        "https://tobaccoplains.org/health/support-and-resources"
+      ],
+      "forms": [
+        {
+          "text": "Yaq̓it ʔa·knuqⱡi’it First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Yaq̓it ʔa·knuqⱡi‘it First Nation",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Yaq̓it ʔa·knuqⱡi'it First Nation",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "Tobacco Plains Indian Band",
+          "role": "historical-or-administrative-name",
+          "sourceColumn": "E",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E251",
+      "workbookRow": 257,
+      "lookupLabel": "Yekooche First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://yekooche.com/"
+      ],
+      "forms": [
+        {
+          "text": "Yekooche First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E252",
+      "workbookRow": 258,
+      "lookupLabel": "‘Namgis First Nation",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://namgis.bc.ca/",
+        "https://namgis.bc.ca/about-us/",
+        "https://namgis.bc.ca/membership/",
+        "https://namgis.bc.ca/contact-us/",
+        "https://namgis.bc.ca/health-wellness/",
+        "https://namgis.bc.ca/natural-resources-department/"
+      ],
+      "forms": [
+        {
+          "text": "'Na̱mg̱is First Nation",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "'Namgis",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "‘Namgis",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E253",
+      "workbookRow": 259,
+      "lookupLabel": "St'át'imc Chiefs Council",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://statimc.ca/about/statimc-chiefs-council/",
+        "https://statimc.ca/kukwpi7-mike-leach-remembered-as-an-inspirational-leader/",
+        "https://statimc.ca/category/statimc-chiefs-council/",
+        "https://statimc.ca/",
+        "https://statimc.ca/statimc-chiefs-council-declares-state-of-local-emergency-due-to-toxic-drug-crisis/",
+        "https://statimc.ca/our-scc-leadership/"
+      ],
+      "forms": [
+        {
+          "text": "St’át’imc Chiefs Council",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "St’at’imc Chiefs Council",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "SCC",
+          "role": "acronym",
+          "sourceColumn": "D",
+          "recognize": false,
+          "reason": "definition-required"
+        }
+      ]
+    },
+    {
+      "id": "E254",
+      "workbookRow": 260,
+      "lookupLabel": "Carrier Sekani Tribal Council",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://carriersekani.ca/",
+        "https://carriersekani.ca/about-cstc-and-the-csfns/csfns/",
+        "https://carriersekani.ca/about-cstc-and-the-csfns/",
+        "https://carriersekani.ca/about-cstc-and-the-csfns/history-of-the-cstc/"
+      ],
+      "forms": [
+        {
+          "text": "Carrier Sekani Tribal Council",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "CSTC",
+          "role": "acronym",
+          "sourceColumn": "D",
+          "recognize": false,
+          "reason": "definition-required"
+        }
+      ]
+    },
+    {
+      "id": "E255",
+      "workbookRow": 261,
+      "lookupLabel": "Ktunaxa Kinbasket Treaty Council",
+      "verificationBasis": "Related-body evidence",
+      "evidenceUrls": [
+        "https://ktunaxa.org/resources/statement-on-ktunaxa-nation-treaty-negotiations/",
+        "https://www2.gov.bc.ca/assets/gov/environment/natural-resource-stewardship/consulting-with-first-nations/agreements/knc_creston_ita_-_signed.pdf",
+        "https://ktunaxa.org/wp-content/uploads/2026/03/July-August_Issue-2014.pdf",
+        "https://www.firstpeopleslaw.com/files/file/5f3ecc4e4fdab/2014_08_08_Notice_of_Civil_Claim.pdf",
+        "https://iaac-aeic.gc.ca/050/documents/p80087/155314E.pdf",
+        "https://www2.gov.bc.ca/gov/content/environment/natural-resource-stewardship/consulting-with-first-nations/first-nations-negotiations/first-nations-a-z-listing/ktunaxa-nation"
+      ],
+      "forms": [],
+      "holdReason": "additional-verification-required"
+    },
+    {
+      "id": "E256",
+      "workbookRow": 262,
+      "lookupLabel": "Laich-Kwil-Tach Treaty Society",
+      "verificationBasis": "Related-body evidence",
+      "evidenceUrls": [
+        "https://wewaikai.com/governance/laich-kwil-tach-treaty-society/",
+        "https://weiwaikum.ca/about/our-culture/",
+        "https://bctreaty.ca/we-wai-kai-treaty-society/",
+        "https://news.gov.bc.ca/releases/2019irr0053-001813",
+        "https://www.bcafn.ca/first-nations-bc/vancouver-island-coast/we-wai-kai-nation-cape-mudge-first-nation",
+        "https://en.wikipedia.org/wiki/We_Wai_Kai_Nation"
+      ],
+      "forms": [],
+      "holdReason": "additional-verification-required"
+    },
+    {
+      "id": "E257",
+      "workbookRow": 263,
+      "lookupLabel": "Nicola Watershed Governance Partnership",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://nwgp.ca/",
+        "https://nwgp.ca/about-the-nwgp",
+        "https://nwgp.ca/governance",
+        "https://nwgp.ca/governance/relationships-with-communities-stakeholders-and-other-governments"
+      ],
+      "forms": [
+        {
+          "text": "Nicola Watershed Governance Partnership",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "NWGP",
+          "role": "acronym",
+          "sourceColumn": "D",
+          "recognize": false,
+          "reason": "definition-required"
+        }
+      ]
+    },
+    {
+      "id": "E258",
+      "workbookRow": 264,
+      "lookupLabel": "Deh Cho First Nations Tribal Council",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://dehcho.org/"
+      ],
+      "forms": [
+        {
+          "text": "Dehcho First Nations",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        }
+      ]
+    },
+    {
+      "id": "E259",
+      "workbookRow": 265,
+      "lookupLabel": "Ts’elxwéyeqw Tribe Management Ltd.",
+      "verificationBasis": "Official page read",
+      "evidenceUrls": [
+        "https://ttml.ca/what-we-do/",
+        "https://ttml.ca/"
+      ],
+      "forms": [
+        {
+          "text": "Ts’elxwéyeqw Tribe Management Ltd.",
+          "role": "observed-website-name",
+          "sourceColumn": "C",
+          "recognize": true
+        },
+        {
+          "text": "Ts’elxwéyeqw Tribe Management Limited",
+          "role": "other-observed-form",
+          "sourceColumn": "D",
+          "recognize": true
+        },
+        {
+          "text": "TTML",
+          "role": "acronym",
+          "sourceColumn": "D",
+          "recognize": false,
+          "reason": "definition-required"
+        }
+      ]
+    },
+    {
+      "id": "E260",
+      "workbookRow": 266,
+      "lookupLabel": "We Wai Kai Treaty Society",
+      "verificationBasis": "Related-body evidence",
+      "evidenceUrls": [
+        "https://wewaikai.com/governance/laich-kwil-tach-treaty-society/"
+      ],
+      "forms": [],
+      "holdReason": "additional-verification-required"
+    }
+  ]
+}

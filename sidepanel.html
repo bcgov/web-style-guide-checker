@@ -33,6 +33,15 @@
           <p class="eyebrow">Preview</p>
           <strong id="preview-lifecycle-title">Preview status</strong>
           <p id="preview-lifecycle-message"></p>
+          <div id="preview-removal-instructions" class="preview-removal-instructions" hidden>
+            <strong>Remove the pilot extension</strong>
+            <ol>
+              <li>In Chrome, enter <code>chrome://extensions</code> in a new tab. In Edge, enter <code>edge://extensions</code>.</li>
+              <li>Turn off <strong>Developer mode</strong> if you enabled it only for this pilot.</li>
+              <li>Find <strong>B.C. Web Style Guide Checker</strong>, select <strong>Remove</strong> and confirm.</li>
+            </ol>
+            <p>Removing the extension closes this window and deletes its saved findings, feedback notes and settings. Save anything you need first.</p>
+          </div>
           <span id="preview-lifecycle-version" class="preview-lifecycle-version"></span>
         </div>
         <div class="preview-lifecycle-actions">
@@ -79,7 +88,7 @@
             <div id="exclusion-scan-control">
               <label class="check-row scan-colour-control scan-exclude-control">
                 <input id="exclude-areas" type="checkbox" aria-controls="exclusion-scan-options" aria-expanded="false">
-                <span><strong>Exclude areas</strong><small>Skip selected areas when reviewing this page.</small></span>
+                <span><strong>Exclude areas</strong><small>Skip selected areas (like the page footer) when reviewing this page.</small></span>
               </label>
               <div id="exclusion-scan-options" class="exclusion-scan-options" hidden>
                 <p id="exclusion-settings-summary" class="hint">No areas selected</p>

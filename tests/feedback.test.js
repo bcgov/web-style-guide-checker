@@ -16,6 +16,10 @@ const batchStart = source.indexOf("function feedbackMailtoHref");
 const batchEnd = source.indexOf("function renderFeedback()");
 const reportStart = source.indexOf("function feedbackReportDate");
 const reportEnd = source.indexOf("async function copyFeedbackNotes");
+const csvStart = source.indexOf("const FEEDBACK_CSV_HEADER");
+const csvEnd = source.indexOf("function exportFeedbackCsv");
+const captureStart = source.indexOf("async function captureFeedbackContext");
+const captureEnd = source.indexOf("function feedbackContextPreview");
 
 assert.ok(typeStart >= 0 && typeEnd > typeStart, "Feedback constants must be present");
 assert.ok(labelStart >= 0 && labelEnd > labelStart, "Feedback type labels must be testable");
@@ -26,7 +30,7 @@ assert.ok(reportStart >= 0 && reportEnd > reportStart, "Feedback report helpers 
 const context = {
   navigator: { userAgent: "Mozilla/5.0 Chrome/151.0.0.0 Safari/537.36", platform: "Win32" },
   chrome: { runtime: { getManifest: () => ({ version: "1.3.0" }) } },
-  BCWebStyleGuideChecker: { ruleVersion: "1.3.0" },
+  BCWebStyleGuideChecker: { ruleVersion: "1.3.0", ruleBuild: "test-current-build" },
   canonicalUrl: value => String(value).split("#")[0],
   formatDate: value => new Date(value).toISOString(),
   normalizeSpace: value => String(value || "").replace(/\s+/g, " ").trim(),
@@ -34,7 +38,7 @@ const context = {
 };
 context.globalThis = context;
 vm.createContext(context);
-vm.runInContext(`${source.slice(typeStart, typeEnd)}\n${source.slice(labelStart, labelEnd)}\n${source.slice(browserStart, browserEnd)}\n${source.slice(reportStart, reportEnd)}\n${source.slice(batchStart, batchEnd)}\n;globalThis.feedbackTest = { feedbackSubject, feedbackReportText, feedbackMailtoHref, feedbackEmailBatchPlan };`, context);
+vm.runInContext(`${source.slice(typeStart, typeEnd)}\n${source.slice(labelStart, labelEnd)}\n${source.slice(browserStart, browserEnd)}\n${source.slice(reportStart, reportEnd)}\n${source.slice(batchStart, batchEnd)}\n${source.slice(csvStart, csvEnd)}\n${source.slice(captureStart, captureEnd)}\n;globalThis.feedbackTest = { feedbackSubject, feedbackReportText, feedbackMailtoHref, feedbackEmailBatchPlan, feedbackCsvRows, captureFeedbackContext, csvHeader: FEEDBACK_CSV_HEADER };`, context);
 
 function note(id, text, includeContext = true) {
   return {
@@ -62,6 +66,10 @@ function note(id, text, includeContext = true) {
 const included = note("feedback-1", "The checker did not flag the ampersand.");
 const excluded = note("feedback-2", "Add a shorter review shortcut.", false);
 const report = context.feedbackTest.feedbackReportText([included, excluded]);
+assert.match(report, /Report build: test-current-build/);
+assert.match(report, /Rules build when captured: Not recorded/, "Legacy notes must not be assigned the current build");
+included.context.rulesBuild = "test-captured-build";
+assert.match(context.feedbackTest.feedbackReportText([included]), /Rules build when captured: test-captured-build/);
 assert.match(report, /Notes included: 2/);
 assert.match(report, /Pages represented: 1/);
 assert.match(report, /Missed issue — Important/);
@@ -81,4 +89,23 @@ assert.equal(plan.batch.length + plan.overflow.length, verbose.length, "Overflow
 assert.ok(context.feedbackTest.feedbackMailtoHref(plan.batch).length <= 7000, "Prepared email batch must never exceed the safe encoded mailto size");
 assert.ok(context.feedbackTest.feedbackMailtoHref([...plan.batch, plan.overflow[0]]).length > 7000, "The next note should be excluded only because it would exceed the safe size");
 
-console.log("Feedback tests passed");
+const csv = context.feedbackTest.feedbackCsvRows([included, excluded]);
+const buildColumn = context.feedbackTest.csvHeader.indexOf("Rules build");
+assert.equal(csv[0][buildColumn], "test-captured-build");
+assert.equal(csv[1][buildColumn], "", "Legacy CSV notes must not inherit the exporting build");
+assert.equal(csv[0].length, context.feedbackTest.csvHeader.length);
+context.captureLiveFeedbackContext = async () => ({});
+context.hostnameFor = () => "example.gov.bc.ca";
+context.reportScopeLabel = () => "Page content";
+context.detectProfile = () => "standard";
+context.state = { activeReport: { page: { title: "Old scan", url: "https://example.gov.bc.ca/" }, ruleVersion: "1.2.0", ruleBuild: "old-scan-build" } };
+(async () => {
+  const captured = await context.feedbackTest.captureFeedbackContext();
+  assert.equal(captured.rulesVersion, "1.2.0", "Feedback about a saved scan must identify the rules that produced it");
+  assert.equal(captured.rulesBuild, "old-scan-build");
+  delete context.state.activeReport.ruleBuild;
+  assert.equal((await context.feedbackTest.captureFeedbackContext()).rulesBuild, "", "Unrecorded scan builds must remain unknown");
+  context.state.activeReport = null;
+  assert.equal((await context.feedbackTest.captureFeedbackContext()).rulesBuild, "test-current-build");
+  console.log("Feedback tests passed");
+})().catch(error => { console.error(error); process.exitCode = 1; });

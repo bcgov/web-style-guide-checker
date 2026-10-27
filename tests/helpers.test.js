@@ -301,4 +301,22 @@ for (const value of ["9:00 A.M. – 4:30 P.M.", "12 noon – 1:00 PM", "9 a.m. �
   assert.equal(helpers.dashSeparatorOccurrences(value, ranges).length, 0, `Time range must not fall through to dash-separator: ${value}`);
 }
 
+for (const [input, expected] of [["12:00 pm", "12 pm"], ["1:00 pm", "1 pm"], ["9am", "9 am"], ["9:45PM", "9:45 pm"], ["9 a.m. to 4 p.m.", "9 am"], ["9 A.M. PT", "9 am"]]) {
+  assert.equal(helpers.timeFormatOccurrences(input)[0].replacement, expected, input);
+}
+for (const input of ["9 am", "9 am.", "9:45 pm", "9\u00a0am", "noon", "midnight", "x9am", "9amazing", "13:00", "13 pm", "9:99 pm", "https://example.com/9am"]) {
+  assert.equal(helpers.timeFormatOccurrences(input).length, 0, input);
+}
+const wholeHour = helpers.timeFormatOccurrences("8:30 am to 12:00 pm and 1:00 pm to 4:30 pm");
+assert.deepEqual(wholeHour.map(item => item.text), ["12:00 pm", "1:00 pm"]);
+assert.deepEqual(wholeHour[0].reasons, ["Remove :00 from this whole-hour time."]);
+assert.equal(helpers.timeFormatOccurrences("We close at 9 a.m.")[0].text, "9 a.m", "Keep the sentence full stop outside the changed time");
+for (const name of ["100 Mile House", "70 Mile House", "108 Mile Ranch", "150 Mile House", "100 MILE HOUSE", "100\u00a0Mile\u00a0House", "100 Mile House’s residents"]) {
+  assert.equal(helpers.imperialUnitOccurrences(name).length, 0, name);
+}
+assert.deepEqual(helpers.imperialUnitOccurrences("Drive 5 miles from 100 Mile House and carry 20 pounds.").map(item => item.text), ["5 miles", "20 pounds"]);
+assert.deepEqual(helpers.imperialUnitOccurrences("100 Mile Houses; 1100 Mile House").map(item => item.text), ["100 Mile", "1100 Mile"]);
+assert.equal(helpers.imperialUnitOccurrences("See https://example.com/100miles").length, 0);
+assert.equal(helpers.indigenousNameRanges("100 Mile House").length, 0, "A numbered municipality must not be classified as an Indigenous name");
+
 console.log("Helper tests passed");

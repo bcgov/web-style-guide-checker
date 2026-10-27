@@ -37,10 +37,17 @@
     faq: ["FAQs", "https://www2.gov.bc.ca/gov/content/governments/services-for-government/service-experience-digital-delivery/web-content-development-guides/web-style-guide/writing-guide/faqs"],
     graphics: ["Accessible graphics", "https://www2.gov.bc.ca/gov/content/home/accessible-government/toolkit/accessible-digital-content/graphics"],
     contrast: ["Colour contrast", "https://www2.gov.bc.ca/gov/content/home/accessible-government/toolkit/accessible-digital-content/colour-contrast"],
+    indigenousCapitalization: ["Capitalization and formatting of Indigenous terms", "https://www2.gov.bc.ca/gov/content/governments/services-for-government/service-experience-digital-delivery/web-content-development-guides/web-style-guide/writing-guide-for-indigenous-content/capitalization-and-formatting-of-indigenous-terms"],
     tables: ["Tables", "https://www2.gov.bc.ca/gov/content/governments/services-for-government/service-experience-digital-delivery/web-content-development-guides/cms-lite-manual/ui-guidelines/text-editor/tables"]
   };
 
   const RULES = {
+    "email-link-destination": ["Links", "review", "Check the email destination", "The checker could not read the email destination because it contains invalid encoding or control characters.", "Check the link settings and enter the intended email address again.", "links"],
+    "table-supplemental": ["Tables", "fix", "Move the table out of the supplemental box", "The Web Style Guide does not allow tables inside CMS Lite supplemental boxes or intranet right-column boxes.", "Place the table in the main page content.", "formatting"],
+    "table-right-column": ["Tables", "fix", "Move the table out of the right-column box", "The Web Style Guide does not allow tables inside CMS Lite intranet right-column boxes.", "Place the table in the main page content.", "formatting"],
+    "table-layout": ["Tables", "review", "Check whether this table contains data", "The Web Style Guide allows tables only for tabular data, not page layout.", "If this table provides layout, replace it with a content box or another layout option available in your editor. If it contains tabular data, check that it has a descriptive caption and appropriate headers.", "tables"],
+    "indigenous-identity-case": ["Capitalization", "check", "Capitalize ‘Indigenous’", "Capitalize Indigenous when referring to Indigenous people.", "Write ‘Indigenous’ with a capital I.", "indigenousCapitalization"],
+    "indigenous-inuit-people": ["Plain language", "review", "Review ‘Inuit people’", "The Indigenous writing guide recommends ‘Inuit’ because the word already means people.", "Use ‘Inuit’ when referring to the people. Preserve exact wording in names, titles, quotations and self-identification.", "indigenousCapitalization"],
     "page-title-missing": ["Page information", "fix", "Add a page title", "Every page needs a clear, unique title.", "Add a concise, descriptive HTML title.", "headings"],
     "page-title-long": ["Page information", "check", "Shorten the page title", "The guide recommends keeping page titles under 70 characters.", "Keep the title concise while retaining the words people need to identify the page.", "headings"],
     "page-title-punctuation": ["Page information", "fix", "Remove punctuation from the page title", "Page titles should not end in punctuation unless they are questions.", "Remove the ending punctuation.", "headings"],
@@ -129,16 +136,16 @@
     "list-multiple-sentences": ["Lists", "check", "Shorten the list item", "List items are easiest to scan when they contain one sentence. A second sentence may be necessary in some cases.", "Keep one main idea in the item, or confirm that the additional sentence is necessary.", "lists"],
     "list-repetition": ["Lists", "review", "Remove repeated openings", "Repeated words at the start of several list items can delay the distinguishing information, especially for screen reader users.", "Move the unique information to the beginning when the repeated opening is substantial enough to affect scanning.", "lists"],
     "fake-list": ["Accessibility", "check", "Use a formatted list", "Content that looks like a list should use semantic list markup so browsers and assistive technology can identify its structure.", "Use the editor’s bulleted or numbered list controls. If these are sub-items, nest them under the related list item.", "lists"],
-    "table-headers": ["Tables", "fix", "Add table headers", "Tables need programmatic headers so people can understand the relationships in the data.", "Use th elements for row or column headings.", "tables"],
-    "table-caption": ["Tables", "review", "Check the table has a useful caption", "A short caption can make the purpose of tabular data clearer.", "Add a concise caption when the surrounding heading does not already identify the table.", "tables"],
-    "table-accordion": ["Tables", "fix", "Move the table out of the accordion", "The guide says never to use tables in accordions.", "Place the table in the main page content.", "formatting"],
+    "table-headers": ["Tables", "fix", "Add table headers", "Headers identify what each row or column contains and help screen-reader users understand the table.", "Mark row or column headings as header cells (th) in your editor.", "tables"],
+    "table-caption": ["Tables", "fix", "Add a descriptive table caption", "A caption tells people what the table shows. It must make sense on its own, including when a screen reader reads it separately from the surrounding content.", "Add a clear, specific title using the table’s Caption field or a caption element.", "tables"],
+    "table-accordion": ["Tables", "fix", "Move the table out of the accordion", "The Web Style Guide does not allow tables inside CMS Lite accordions.", "Place the table in the main page content.", "formatting"],
     "month-abbreviation": ["Numbers and dates", "check", "Write out the month", "Month names should be written in full when space is available.", "Use the full month name in body content.", "numbers"],
     "numeric-date": ["Numbers and dates", "check", "Write out the date", "Numeric dates are reserved for space-limited forms and tables and should use YYYY-MM-DD.", "Use a format such as ‘August 13, 2026’ in body content.", "numbers"],
     "incomplete-year": ["Numbers and dates", "check", "Complete the year", "This date appears to contain an incomplete year.", "Confirm the date and write the full 4-digit year.", "numbers"],
     "ordinal-date": ["Numbers and dates", "fix", "Remove the ordinal from the date", "Dates should not use ordinals.", "Write ‘January 18, 2003’, not ‘January 18th, 2003’.", "numbers"],
     "ordinal-word": ["Numbers and dates", "check", "Write out the ordinal", "Ordinal numbers under 10 are written as words in body content.", "Write ‘first’ to ‘ninth’ unless space is limited or the number appears in a chart, table or form.", "numbers"],
     "ordinal-superscript": ["Numbers and dates", "fix", "Remove superscript from the ordinal", "Ordinal endings use the same baseline formatting as the number.", "Use ordinary text such as ‘21st’ instead of raising the ordinal ending.", "numbers"],
-    "time-format": ["Numbers and dates", "check", "Fix the time format", "Whole hours should omit :00, and am and pm use lower case without periods.", "Use ‘9 am’ for a whole hour or ‘9:45 pm’ when minutes are needed.", "numbers"],
+    "time-format": ["Numbers and dates", "check", "Fix the time format", "Write whole hours without :00. Put a space before lowercase am or pm, without periods.", "Use ‘9 am’ for a whole hour or ‘9:45 pm’ when minutes are needed.", "numbers"],
     "time-zone": ["Numbers and dates", "check", "Use the general time zone", "Do not use standard or daylight time in web content. Use a general zone name or abbreviation instead.", "Use wording such as ‘Pacific time’ or an abbreviation such as ‘PT’ after a clock time.", "numbers"],
     "noon-midnight": ["Numbers and dates", "fix", "Use ‘noon’ or ‘midnight’", "The guide says to write noon and midnight without the number 12.", "Remove ‘12’ from ‘12 noon’ or ‘12 midnight’.", "numbers"],
     "phone-display-format": ["Numbers and dates", "fix", "Use hyphens in the phone number", "Phone numbers use hyphens between digit groups.", "Use a format such as 250-555-0123 or 1-800-555-0123.", "numbers"],
@@ -156,12 +163,12 @@
     "currency-range": ["Numbers and dates", "fix", "Use ‘to’ for the monetary range", "Monetary ranges use the word ‘to’ rather than a hyphen or dash.", "Write the range using ‘to’, such as ‘$200 to $400’.", "numbers"],
     "ampersand": ["Punctuation", "review", "Check the ampersand", "The guide says to write ‘and’ except in business names and citations.", "Replace & with ‘and’ unless it is part of a formal name or citation.", "punctuation"],
     "missing-space-after-ampersand": ["Punctuation", "fix", "Add the missing space", "A word that follows an ampersand needs a separating space.", "Add a space after the ampersand, then replace the ampersand with ‘and’ unless it is part of a formal name or citation.", "punctuation"],
-    "missing-space-after-punctuation": ["Punctuation", "fix", "Add the missing space", "A new sentence needs a space after the preceding punctuation mark.", "Add a space between the punctuation mark and the next sentence.", "punctuation"],
+    "missing-space-after-punctuation": ["Punctuation", "fix", "Add the missing space", "Use a space after punctuation between words or sentences.", "Add a space after the punctuation.", "punctuation"],
     "semicolon": ["Punctuation", "fix", "Replace the semicolon", "The guide recommends 2 sentences instead of a semicolon.", "Split the sentence at the semicolon.", "punctuation"],
     "exclamation": ["Punctuation", "fix", "Remove the exclamation mark", "Government web content should use a calm, direct tone.", "Use a period or rewrite the sentence.", "punctuation"],
     "em-dash": ["Punctuation", "fix", "Replace the em dash", "The guide recommends shorter sentences instead of em dashes.", "Split the sentence or use commas when appropriate.", "punctuation"],
     "range-dash": ["Punctuation", "fix", "Use ‘to’ for the range", "Number, date and time ranges should use the word ‘to’ instead of a dash.", "Replace the dash with ‘to’, such as ‘May 15 to July 31’, unless this is a fiscal year.", "punctuation"],
-    "slash": ["Punctuation", "check", "Replace the slash", "Slashes should be limited to URLs because forms such as ‘and/or’ can create ambiguity.", "Write the relationship explicitly.", "punctuation"],
+    "slash": ["Punctuation", "check", "Replace the slash", "A slash can make the relationship between words unclear.", "Use words that clearly state the relationship while preserving the intended meaning.", "punctuation"],
     "dash-separator": ["Punctuation", "check", "Replace the hyphen or dash separator", "The Web Style Guide says not to use em dashes (—). A hyphen (-) or en dash (–) is not a substitute for an em dash when it separates parts of a sentence.", "Rewrite the sentence as shorter sentences or use a comma where appropriate. If the first words are a short label, consider a colon.", "punctuation"],
     "wifi-format": ["Punctuation", "check", "Write ‘Wi-Fi’", "Use the familiar form ‘Wi-Fi’ in ordinary prose. A different form may be intentional in a network name or formal product name.", "Change the wording to ‘Wi-Fi’ unless this is an exact network, product or formal name.", "punctuation"],
     "apostrophe-plural": ["Punctuation", "review", "Check the apostrophe in the plural", "Apostrophes do not normally form plurals. They may instead show possession or omitted digits.", "Remove the apostrophe when this is a plural. Keep it when it correctly shows possession or omitted digits.", "punctuation"],
@@ -185,13 +192,14 @@
     "linked-image-alt": ["Accessibility", "fix", "Describe the linked image destination", "The alt text of a linked image should say where the link goes or what it does.", "Replace empty or filename-based alt text with the destination or action.", "graphics"],
     "form-label": ["Accessibility", "fix", "Label the form control", "People need a programmatic label to understand a form control.", "Associate a visible label or accessible name with the control.", "formatting"],
     "contrast": ["Accessibility", "check", "Increase the text contrast", "Text needs sufficient contrast against its background.", "Adjust the foreground or background colour so this text meets the required contrast ratio.", "contrast"],
-    "contrast-unverified": ["Accessibility", "review", "Verify the text contrast", "The rendered background or visual effect prevents a reliable automatic contrast measurement.", "Check this text in its rendered state with a dedicated contrast tool, including any image, gradient, transparency or blending effect.", "contrast"],
+    "contrast-unverified": ["Accessibility", "review", "Check the text contrast manually", "The checker could not reliably measure this text against its background.", "Use a contrast checker to compare the text colour with the background where the text appears on the page.", "contrast"],
     "proofreading-pubic": ["Proofreading", "check", "Check ‘pubic’", "‘Pubic’ is a valid anatomical word, but it is commonly typed when ‘public’ was intended in government content.", "Check whether you meant ‘public’. Keep ‘pubic’ if the anatomical wording is intentional.", "grammar"],
     "proofreading-repeat": ["Proofreading", "check", "Check the repeated word", "Some repeated function words are common typing errors.", "Remove the duplicate word if it was not intentional.", "grammar"],
     "moved-page-notice": ["Page information", "review", "Review the old moved-page notice", "A moved-content notice is usually temporary. If it remains long after the page was updated, people may still be reaching outdated content.", "Confirm whether the old page should now redirect to the replacement page, or update the notice if it still needs to remain available.", "plain"]
   };
 
   const RULE_VERSION = "1.3.3";
+  const RULE_BUILD = "2026-10-23-name-catalogue";
   const PER_RULE_FINDING_LIMIT = 500;
 
   const BUILT_IN_TERMS = [
@@ -221,6 +229,935 @@
     "Government Agents",
     "Government House"
   ].sort((first, second) => second.length - first.length);
+
+  // These names are recognition aids, not a spelling authority or an exhaustive
+  // catalogue. Match whole reviewed expressions; never exempt their words globally.
+  // Recognition boundaries are documented in docs/design-decisions.md.
+  const LEGACY_INDIGENOUS_NAMES = [
+    "Da’naxda’xw First Nation",
+    "?Akisq'nuk First Nation",
+    "?Aqam also known as St. Mary's Indian Band",
+    "?Aqam",
+    "St. Mary's Indian Band",
+    "?Esdilagh First Nation",
+    "Adams Lake Indian Band",
+    "Ahousaht",
+    "Aitchelitz First Nation",
+    "Ashcroft Indian Band",
+    "Beecher Bay First Nation also known as Scia'new",
+    "Beecher Bay First Nation",
+    "Scia'new",
+    "Binche Whut'en",
+    "Blueberry River First Nations",
+    "Bonaparte First Nation",
+    "Boothroyd Indian Band",
+    "Boston Bar First Nation",
+    "Cayoose Creek",
+    "Chawathil First Nation",
+    "Cheam First Nation",
+    "Cheslatta Carrier Nation",
+    "Coldwater Indian Band",
+    "Cook's Ferry Indian Band",
+    "Cowichan Tribes",
+    "Daylu Dena Council",
+    "Dease River",
+    "Ditidaht",
+    "Doig River",
+    "Dzawada'enuxw",
+    "Ehatteshaht",
+    "Esk'etemc",
+    "Esquimalt Nation",
+    "Fort Nelson",
+    "Gingolx Village Government",
+    "Gitanmaax",
+    "Gitanyow",
+    "Gitga'at First Nation",
+    "Gitlaxt'aamix Village Government (New Aiyansh)",
+    "Gitlaxt'aamix Village Government",
+    "New Aiyansh",
+    "Gitsegukla",
+    "Gitwangak",
+    "Gitwinksihlkw",
+    "Gitxaała Nation",
+    "Gwa'sala-Nakwaxda'xw Band",
+    "Gwawaenuk Tribe",
+    "Hagwilget Village Council",
+    "Haisla Nation",
+    "Halalt",
+    "Halfway River First Nation",
+    "Heiltsuk Nation",
+    "Hesquiaht",
+    "High Bar First Nation",
+    "Homalco First Nation",
+    "Hupačasath First Nation",
+    "Huu-ay-aht First Nations",
+    "Iskut",
+    "K'ómoks First Nation",
+    "Ka:'yu:'k't'h'/Che:k'tles7et'h' First Nations",
+    "Kanaka Bar",
+    "Katzie First Nation",
+    "Kispiox",
+    "Kitasoo",
+    "Kitselas",
+    "Kitsumkalum",
+    "Klahoose First Nation",
+    "Kwadacha",
+    "Kwakiutl",
+    "Kwantlen First Nation",
+    "Kwaw-kwaw-a-pilt First Nation",
+    "Kwiakah",
+    "Kwikwasut'inuxw Hax'wamis",
+    "Kwikwetlem First Nation",
+    "Lake Babine Nation",
+    "Lax Kw'alaams",
+    "Laxgalts'ap Village Government",
+    "Leq'a: mel",
+    "Lheidli T'enneh First Nation",
+    "Lhoosk'uz Dene Nation Formerly known as Kluskus",
+    "Lhoosk'uz Dene Nation",
+    "Kluskus",
+    "Lhtako Dene Nation",
+    "Lil'wat Nation",
+    "Lower Nicola",
+    "Lower Similkameen",
+    "Lyackson",
+    "Lytton",
+    "Malahat First Nation",
+    "Mamalilikulla-Qwe'Qwa'Sot'Em Band",
+    "Matsqui",
+    "McLeod Lake Indian Band",
+    "Metlakatla",
+    "Mowachaht/Muchalaht",
+    "Musqueam Nation",
+    "N'Quatqua",
+    "Nadleh Whuten",
+    "Nak'azdli Whut'en",
+    "Namgis First Nation",
+    "Nanoose First Nation",
+    "Nazko First Nation",
+    "Nee-Tahi-Buhn",
+    "Neskonlith Indian Band",
+    "Nicomen",
+    "Nooaitch Indian Band",
+    "Nuchatlaht",
+    "Nuxalk Nation",
+    "Okanagan Indian Band",
+    "Old Massett Village Council",
+    "Oregon Jack Creek",
+    "Osoyoos",
+    "Pacheedaht First Nation",
+    "Pauquachin",
+    "Penelakut Tribe",
+    "Penticton",
+    "Peters First Nation",
+    "Popkum",
+    "Prophet River Band, Dene Tsaa Tse K'Nai First Nation",
+    "Qualicum",
+    "Quatsino First Nation",
+    "Saik'uz First Nation",
+    "Samahquam",
+    "Saulteau First Nations",
+    "Seabird Island",
+    "Semiahmoo",
+    "Shackan",
+    "shishalh",
+    "Shuswap",
+    "Shxw'ow'hamel First Nation",
+    "Shxwhá:y Village",
+    "Sik-E-Dakh",
+    "Simpcw First Nation",
+    "Siska",
+    "Skatin Nations (Skookumchuck)",
+    "Skatin Nations",
+    "Skookumchuck",
+    "Skawahlook First Nation",
+    "Skeetchestn",
+    "Skidegate",
+    "Skin Tyee",
+    "Skowkale",
+    "Skuppah",
+    "Skwah First Nation",
+    "Skwlax te Secwepemculecw",
+    "Snuneymuxw First Nation",
+    "Songhees",
+    "Soowahlie",
+    "Splatsin",
+    "Spuzzum First Nation",
+    "Sq'ewlets",
+    "Squamish",
+    "Squiala First Nation",
+    "Stellat'en First Nation",
+    "Sts'ailes",
+    "Stswecem'c Xgat'tem First Nation",
+    "Stz'uminus First Nation",
+    "Sumas First Nation",
+    "T'it'q'et",
+    "T'Sou-ke First Nation",
+    "Tahltan",
+    "Takla Lake First Nation",
+    "Taku River Tlingit",
+    "Tk̓emlúps te Secwépemc",
+    "Tl'azt'en Nation",
+    "Tl'esqox",
+    "Tl'etinqox Government",
+    "Tla'amin Nation",
+    "Tla-o-qui-aht First Nations",
+    "Tlatlasikwala",
+    "Tlowitsis Tribe",
+    "Toquaht",
+    "Ts'kw'aylaxw First Nation",
+    "Tsal’alh First Nation",
+    "Tsartlip",
+    "Tsawout First Nation",
+    "Tsawwassen First Nation",
+    "Tsay Keh Dene",
+    "Tseshaht",
+    "Tseycum",
+    "Tsideldel First Nation (Formerly Known as Alexis Creek)",
+    "Tsideldel First Nation",
+    "Tsleil Waututh Nation",
+    "Tsq̓éscen̓ First Nation",
+    "Ts’il Kaz Koh (Burns Lake Band)",
+    "Ts’il Kaz Koh",
+    "Burns Lake Band",
+    "Ts’uubaa-asatx (Lake Cowichan First Nation)",
+    "Ts’uubaa-asatx",
+    "Lake Cowichan First Nation",
+    "Tzeachten",
+    "Uchucklesaht",
+    "Ulkatcho Indian Band",
+    "Union Bar",
+    "Upper Nicola",
+    "Upper Similkameen",
+    "We Wai Kai Nation (Cape Mudge First Nation)",
+    "We Wai Kai Nation",
+    "Cape Mudge First Nation",
+    "Wei Wai Kum (Campbell River Band)",
+    "Wei Wai Kum",
+    "Campbell River Band",
+    "West Moberly First Nations",
+    "Westbank First Nation",
+    "Wet'suwet'en First Nation",
+    "Whispering Pines/Clinton",
+    "Williams Lake First Nation",
+    "Witset First Nation",
+    "Wuikinuxv Nation",
+    "Xa'Xtsa (Douglas First Nation)",
+    "Xa'Xtsa",
+    "Douglas First Nation",
+    "Xat'sull (Soda Creek Indian Band)",
+    "Xat'sull",
+    "Soda Creek Indian Band",
+    "Xaxli'p First Nation",
+    "Xeni Gwet'in First Nations Government",
+    "Xwísten (Bridge River Indian Band)",
+    "Xwísten",
+    "Bridge River Indian Band",
+    "Yakweakwioose",
+    "Yale First Nation",
+    "yaqan nukiy",
+    "Yaq̓it ʔa·knuqⱡi ‘it First Nation (Tobacco Plains Indian Band)",
+    "Yaq̓it ʔa·knuqⱡi ‘it First Nation",
+    "Tobacco Plains Indian Band",
+    "Yekooche",
+    "Yunesit'in Government",
+    "Yuułuʔiłʔatḥ Government (Ucluelet FN)",
+    "Yuułuʔiłʔatḥ Government",
+    "Ucluelet FN",
+    "Da'naxda'xw/Awaetlala First Nation",
+    "Da'naxda'xw / Awaetlala First Nation",
+    "Da'naxda'xw/ Awaetlala First Nation",
+    "Da'naxda'xw Awaetlala Nation",
+    "Da̱'naxda'x̱w / Awa’etłala First Nation",
+    "Da̱'naxda'x̱w First Nation",
+    "Da'naxda'xw",
+    "Awaetlala",
+    "Awa’etłala",
+    "G̱ilakas’la",
+    "K'omoks First Nations",
+    "K'ómoks",
+    "Mamalikulla-Qwa'sot'em First Nation",
+    "Mamalilikulla-Qwe'Qwa'Sot'Em",
+    "Yaqan nu?kiy",
+    "Stó:lo Nation",
+    "Stó:lo Tribal Council",
+    "Sto:lo Xwexwilmexw Treaty Association",
+    "Leq'a:mel First Nation",
+    "Leq'a:mel",
+    "Tk'emlúps te Secwepemc",
+    "NIȽ TU,O",
+    "NIȽ TU,O Child and Family Services",
+    "Ch'ich'iyúy Elxwíkn (The Lions)",
+    "Ch'ich'iyúy Elxwíkn",
+    "Daajing Giids",
+    "?Akin'Um+Asnuq+I?It",
+    "?Akisq'nuk",
+    "?Aqam",
+    "ʔakink̓umǂasnuqǂiʔit (Tobacco Plains)",
+    "ʔakink̓umǂasnuqǂiʔit",
+    "Nisg̱a’a Lisims Government",
+    "Nisga'a Lisims Government",
+    "?Aq'am",
+    "Tsilhoot'in National Government",
+    "Tsilhqot'in National Government",
+    "Tŝilhqot’in National Government",
+    "Tl'etinqox-t'in Government Office",
+    "Tl'etinqox Government Office",
+    "In-SHUCK-ch Nation",
+    "In-SHUCK-ch"
+];
+
+  // BEGIN GENERATED INDIGENOUS NAME CATALOGUE
+  // Recognition forms only. Source records and decisions live in data/indigenous-name-catalogue.json.
+  const REVIEWED_INDIGENOUS_NAMES = [
+    "3Nations Society",
+    "ʔAkisq̓nuk First Nation",
+    "ʔAkisq̓nuk",
+    "ʔakisq̓nuk",
+    "ʔAKISQ̓NUK",
+    "ʔaq̓am",
+    "ʔaq̓am Community",
+    "St. Mary's Indian Band",
+    "ʔEsdilagh First Nation",
+    "?Esdilagh First Nation",
+    "ʔEsdilagh",
+    "Alexandria Indian Band",
+    "Adams Lake Indian Band",
+    "ʕaaḥuusʔatḥ",
+    "Ahousaht",
+    "Tŝideldel First Nation",
+    "Tŝideldel",
+    "Tsideldel FN",
+    "Alexis Creek First Nation",
+    "Tl'etinqox Government",
+    "Tl'etinqox",
+    "SC’IȺNEW̱ Nation",
+    "SC'IȺNEW̱ Nation (Beecher Bay)",
+    "SC’IȺNEW̱",
+    "Beecher Bay First Nation",
+    "Heiltsuk Nation",
+    "Haíɫzaqv",
+    "Haíɫzaqv Nation",
+    "Heiltsuk Tribal Council",
+    "Bella Bella Indian Band",
+    "Nuxalk Nation",
+    "Nuxalk",
+    "Binche Whut’en",
+    "Binche Whu’ten",
+    "Binche",
+    "Blueberry River First Nations",
+    "Bonaparte First Nation",
+    "St’uxwtéws",
+    "St̓uxwtéws",
+    "Bonaparte Indian Band",
+    "Boston Bar First Nation",
+    "Xwísten",
+    "Xwísten, Bridge River Indian Band",
+    "Bridge River Indian Band",
+    "Ts'il Kaz Koh",
+    "Ts’il Kaz Koh First Nation",
+    "Burns Lake Band",
+    "Wei Wai Kum First Nation",
+    "Wei Wai Kum",
+    "Campbell River Indian Band",
+    "Carcross/Tagish First Nation",
+    "Carrier Sekani First Nations",
+    "Carrier Sekani First Nations Society",
+    "Cayoose Creek Band",
+    "Sekw’el’was",
+    "Champagne and Aishihik First Nations Government",
+    "Champagne and Aishihik First Nations",
+    "Shadhäla yè Äshèyi Kwädǟn",
+    "Chawathil First Nation",
+    "Chowéthel",
+    "Chawathil",
+    "Stz’uminus First Nation",
+    "Stz'uminus",
+    "Chemainus First Nation",
+    "Cheslatta Carrier Nation",
+    "Cheslatta",
+    "Citxw Nlaka’pamux Assembly",
+    "Whispering Pines / Clinton Indian Band",
+    "Coastal First Nations",
+    "Coastal First Nations-Great Bear Initiative",
+    "Great Bear Initiative Society",
+    "Coldwater Indian Band",
+    "Cook's Ferry Indian Band",
+    "Cook's Ferry",
+    "Cowichan Tribes",
+    "Da̱'naxda'x̱w / Awa’etłala First Nation",
+    "Da’naxda’xw Awaetlala First Nation",
+    "Da̱'naxda'x̱w First Nation",
+    "Daylu Dena Council",
+    "Dease River First Nation",
+    "Ditidaht First Nation",
+    "Doig River First Nation",
+    "Tsáá? Ché Ne Dane",
+    "Xa'xtsa",
+    "Xa'xtsa - Douglas First Nation",
+    "XA'XTSA",
+    "Dzawada̱ʼenux̱w First Nation",
+    "Dzawada'enuxw",
+    "Musgamagw Dzawada'enuxw First Nation",
+    "Tsawataineuk First Nation",
+    "Ehattesaht First Nation",
+    "ʔiiḥatisatḥ činax̣int",
+    "Ehattesaht Chinehkint",
+    "Ehattesaht-Chinehkints",
+    "Esk’etemc",
+    "Esquimalt Nation",
+    "Xʷsepsəm",
+    "Fort Nelson First Nation",
+    "Gingolx",
+    "Gingolx Village Government",
+    "Gitanmaax Band",
+    "Gitanmaax",
+    "Gitanyow Hereditary Chiefs",
+    "Gitga’at First Nation",
+    "Gitgaat First Nation",
+    "Gitlax̱t’aamiks Village Government",
+    "Gitlaxt'aamiks Village Government",
+    "Nisga'a Villag̱e of New Aiyansh",
+    "Gitsegukla First Nation",
+    "Gitsegukla",
+    "Gitwangak Band",
+    "Gitwangak",
+    "Nisga'a Village of Gitwinksihlkw",
+    "Gitwinksihlkw",
+    "Gitxaala Nation",
+    "Gitxaała Nation",
+    "Gitxaała",
+    "Sik-E-Dakh (Glen Vowell Band)",
+    "Sik-E-Dakh",
+    "Glen Vowell Band",
+    "Gwa'sala-'Nakwaxda'xw Nations",
+    "Gwa’sala-Nakwaxda’xw Nations",
+    "Gwawaenuk Tribe",
+    "GWAWAENUK TRIBE",
+    "Council of the Haida Nation",
+    "Haida Nation",
+    "Haisla Nation",
+    "Haisla Nation Council",
+    "x̄á’isla",
+    "Kitamaat Village Council",
+    "Halalt First Nation",
+    "Halfway River First Nation",
+    "Hesquiaht First Nation",
+    "Hesquiaht",
+    "Llenllenéy'ten First Nation",
+    "Llenllenéy’ten",
+    "High Bar First Nation",
+    "Homalco First Nation",
+    "Xwémalhkwu First Nation",
+    "Xwemalhkwu First Nation",
+    "Hupačasath First Nation",
+    "Hupacasath First Nation",
+    "Huu-ay-aht",
+    "Huu-ay-aht First Nations",
+    "Iskut Band Council",
+    "Iskut Band",
+    "Ka:’yu:’k’t’h’ / Che:k’tles7et’h’",
+    "Ka:’yu:’k’t’h’/Che:k’tles7et’h’ First Nations",
+    "Kyuquot",
+    "Checleseht",
+    "Tk̓emlúps Te Secwépemc",
+    "Tk̓emlúps te Secwépemc",
+    "Tk’emlúps te Secwépemc",
+    "Kamloops Indian Band",
+    "Kanaka Bar Indian Band",
+    "Katzie First Nation",
+    "Anspayaxw Band",
+    "Kispiox Band",
+    "Kispiox Band Council",
+    "Kitselas First Nation",
+    "Kitsumkalum",
+    "KLAHOOSE FIRST NATION",
+    "Klahoose Nation",
+    "Lhoosk’uz Dené Nation",
+    "LHOOSK’UZ DENÉ NATION",
+    "Lhoosk’uz Dené",
+    "Kluskus Nation",
+    "KTUNAXA NATION COUNCIL",
+    "Ktunaxa Nation",
+    "Kwadacha Nation",
+    "Kwadacha Nation (Tsek'ene)",
+    "Kwakiutl Band Council",
+    "Kwakiutl Band",
+    "Kwakiutl First Nation",
+    "Kwiakah First Nation",
+    "Kwiakah Nation",
+    "Kwikwasut’inuxw Haxwa’mis",
+    "Kwikwetlem First Nation",
+    "kʷikʷəƛ̓əm (Kwikwetlem) First Nation",
+    "kʷikʷəƛ̓əm First Nation",
+    "K'ómoks First Nation",
+    "K’ómoks",
+    "Lake Babine Nation",
+    "Nisga’a Village of Laxgalts’ap",
+    "Laxgalts’ap Village Government",
+    "Laxgaltsap",
+    "Laxgalts'ap",
+    "Lax̱g̱alts’ap",
+    "Lax Kw’alaams Band",
+    "Leq'á:mel First Nation",
+    "Leq’á:mel Nation",
+    "Leq’á:mel",
+    "Lheidli T'enneh First Nation",
+    "Lheidli T’enneh",
+    "Fort George Indian Band",
+    "Liard First Nation",
+    "Líl̓wat Nation",
+    "Lil’wat Nation",
+    "Líl̓wat",
+    "Mount Currie Indian Band",
+    "T'it'q'et",
+    "T'ít'q'et",
+    "P’egp’íg’lha",
+    "Lillooet Tribal Council",
+    "Skwlāx te Secwepemcúl̓ecw",
+    "Lower Kootenay Band",
+    "Yaqan Nukiy",
+    "yaqan nukiy",
+    "Lower Stl'atl'imx Tribal Council",
+    "Lyackson First Nation",
+    "Lyackson (Leey’qsun) First Nation",
+    "Lyackson Nation",
+    "Lytton First Nation",
+    "Tl'kemtsin",
+    "TLKemchEEn",
+    "Maa-nulth Treaty Society",
+    "Maa-nulth First Nations",
+    "Malahat Nation",
+    "MÁLEXEŁ",
+    "Mamalilikulla First Nation",
+    "McLeod Lake Indian Band",
+    "McLeod Lake Band",
+    "Metlakatla First Nation",
+    "Metlakatla",
+    "Mowachaht / Muchalaht First Nation",
+    "Mowachaht-Muchalaht First Nations",
+    "MOWACHAHT / MUCHALAHT FIRST NATION",
+    "Musgamagw Dzawada'enuxw Tribal Council",
+    "Musqueam Indian Band",
+    "xʷməθkʷəy̓əm",
+    "Musqueam",
+    "Nak'azdli Whut'en",
+    "Nak’azdli",
+    "Snaw-naw-as First Nation",
+    "Snaw-naw-as (Nanoose) First Nation",
+    "Snaw-naw-as",
+    "Nanwakolas Council",
+    "Nanwakolas",
+    "Naut'sa mawt Tribal Council",
+    "Nazko First Nation",
+    "Nazko Band",
+    "NAZKO FIRST NATION",
+    "Nee Tahi Buhn Indian Band",
+    "NEE TAHI BUHN INDIAN BAND",
+    "Nee Tahi Buhn Band",
+    "Xeni Gwet’in First Nations Government",
+    "Neskonlith Indian Band",
+    "Nicomen Indian Band",
+    "Nicomen Band",
+    "Nisg̱a’a Lisims Government",
+    "Nisga’a",
+    "Nlaka’pamux Nation Tribal Council",
+    "NLAKA’PAMUX NATION TRIBAL COUNCIL",
+    "Nooaitch Indian Band",
+    "Nooaitch Band",
+    "Simpcw",
+    "Simpcw First Nation",
+    "Northern Shuswap Tribal Council",
+    "Northern Secwēpemc te Qelmūcw",
+    "Nuchatlaht Tribe",
+    "Nuchatlaht First Nation",
+    "Nuu-Chah-Nulth Tribal Council",
+    "Nuu-chah-nulth Tribal Council",
+    "Okanagan Indian Band",
+    "Okanagan Nation Alliance",
+    "Syilx Okanagan Nation",
+    "Osoyoos Indian Band",
+    "’Wuìk̓inux̌v Nation",
+    "Pacheedaht First Nation",
+    "Pauquachin First Nation",
+    "BOḰEĆEN",
+    "Penelakut Tribe",
+    "Penelakut First Nation",
+    "snpink'tn Indian Band",
+    "Peters First Nation",
+    "Prophet River First Nation",
+    "Qualicum First Nation",
+    "Quatsino First Nation",
+    "Ross River Dena Council",
+    "Saik'uz First Nation",
+    "SAMAHQUAM",
+    "Samahquam",
+    "Saulteau First Nations",
+    "Scw’exmx Tribal Council",
+    "Sq’éwqel (Seabird Island Band)",
+    "Sq’éwqel",
+    "Sq’éwqel Seabird Island Band",
+    "Seabird Island Band",
+    "Semiahmoo First Nation",
+    "Shackan Indian Band",
+    "Shuswap Nation Tribal Council",
+    "Shxw’ōwhámél",
+    "shxwowhamel",
+    "Shxwhá:y Village",
+    "SHXWA:Y VILLAGE",
+    "Shxwhá:y",
+    "Skway",
+    "shíshálh Nation",
+    "shishalh Nation",
+    "Skatin",
+    "Skatin Nations",
+    "Skawahlook First Nation",
+    "Sq’ewá:lxw",
+    "Skeetchestn Indian Band",
+    "Skidegate Band Council",
+    "Skin Tyee First Nation",
+    "Skin Tyee Nation",
+    "Skowkale First Nations",
+    "Sq'ewqéyl",
+    "Skowkale",
+    "Skuppah Indian Band",
+    "Tla’amin Nation",
+    "ɬaʔamɩn",
+    "Sliammon First Nation",
+    "Snuneymuxw First Nation",
+    "Xatśūll First Nation",
+    "Xatśūll",
+    "Soda Creek Indian Band",
+    "Songhees Nation",
+    "lək̓ʷəŋən",
+    "Lekwungen",
+    "T’Sou-ke First Nation",
+    "T’Sou-ke Nation",
+    "Soowahlie First Nation",
+    "Soowahlie Band",
+    "Soowahlie Band Administration",
+    "Splatsin",
+    "Splatsin Kukpi7 and Tkwamipla7",
+    "Spuzzum Nation",
+    "Spuzzum First Nation",
+    "Squamish Nation",
+    "Sḵwx̱wú7mesh Úxwumixw",
+    "Stellat'en",
+    "Stellat’en First Nation",
+    "Stellaquo Indian Band",
+    "Yunesit’in Government",
+    "Yunesitin",
+    "Yunesit’in",
+    "Gex Nats’inilht’ih",
+    "Sts'ailes",
+    "Stó:lō Service Agency",
+    "Stó:lō Service Agency Society",
+    "Stó:lō Nation Society",
+    "Sumas First Nation",
+    "Semá:th",
+    "Tahltan Band Council",
+    "Tahltan Band",
+    "Tahltan Central Government",
+    "Tahltan Nation",
+    "Taku River Tlingit First Nation",
+    "Te’mexw Treaty Association",
+    "Teslin Tlingit Council",
+    "Tl'azt'en Nation",
+    "Tla-o-qui-aht First Nation",
+    "TLATLASIKWALA FIRST NATION",
+    "Tlowitsis Nation",
+    "Toquaht Nation",
+    "Treaty 8 Tribal Association",
+    "Treaty 8 First Nations",
+    "Ts'kw'aylaxw First Nation",
+    "Tsartlip First Nation",
+    "W̱JOȽEȽP First Nation",
+    "W̱JOȽEȽP",
+    "W̱JOȽEȽP Band",
+    "SȾÁUTW̱ First Nation",
+    "Tsawwassen First Nation",
+    "Tsay Keh Dene Nation",
+    "Tsay Keh Dene",
+    "Ingenika Band",
+    "Tsetsaut Skii km Lax Ha Nation",
+    "TSKLH Nation",
+    "Tŝilhqot'in National Government",
+    "Tŝilhqot’in",
+    "Tsimshian First Nations Treaty Society",
+    "Tsimshian First Nations (TFN) Treaty Society",
+    "Tsleil-Waututh Nation",
+    "səlilwətaɬ",
+    "Tsq̓éscen̓ First Nation",
+    "Tsq’escném’c",
+    "Canim Lake Band",
+    "Ch’íyáqtel",
+    "Ch’íyáqtel (Tzeachten) First Nation",
+    "Ch’íyáqtel First Nation",
+    "Tzeachten First Nation",
+    "Uchucklesaht Tribe Government",
+    "Uchucklesaht Tribe",
+    "Uchucklesaht Government",
+    "Yuułuʔiłʔatḥ Government",
+    "Ucluelet First Nation",
+    "Ulkatcho First Nation",
+    "Ulkatcho",
+    "Upper Nicola Band",
+    "West Moberly First Nations",
+    "Westbank First Nation",
+    "Wet’suwet’en First Nation",
+    "Broman Lake Indian Band",
+    "Office of the Wet'suwet'en",
+    "Wet'suwet'en Nation",
+    "WITSET FIRST NATION",
+    "Witset First Nation",
+    "Xaxli’p",
+    "Yale First Nation",
+    "Yaq̓it ʔa·knuqⱡi’it First Nation",
+    "Tobacco Plains Indian Band",
+    "Yekooche First Nation",
+    "'Na̱mg̱is First Nation",
+    "'Namgis",
+    "St’át’imc Chiefs Council",
+    "St’at’imc Chiefs Council",
+    "Carrier Sekani Tribal Council",
+    "Nicola Watershed Governance Partnership",
+    "Dehcho First Nations",
+    "Ts’elxwéyeqw Tribe Management Ltd.",
+    "Ts’elxwéyeqw Tribe Management Limited"
+  ];
+  // END GENERATED INDIGENOUS NAME CATALOGUE
+  const INDIGENOUS_NAMES = [...LEGACY_INDIGENOUS_NAMES, ...REVIEWED_INDIGENOUS_NAMES];
+
+  const INDIGENOUS_STYLE_TERMS = [
+    "Chief and Council", "Elders and Knowledge Keepers", "Section 35 Rights",
+    "Aboriginal Rights and Title", "Aboriginal Rights", "Aboriginal Title",
+    "Indigenous Governments and Institutions", "Indigenous Governments", "Indigenous Institutions",
+    "First Nations Governments", "First Nation Governments"
+  ];
+  // These are geographical names, not measurements or language classifications.
+  // Keep complete phrases rather than allowing 'Mile' or 'House' globally.
+  const NUMBERED_PLACE_NAMES = ["100 Mile House", "70 Mile House", "108 Mile Ranch", "150 Mile House"];
+  const CONTEXTUAL_INDIGENOUS_STYLE_TERMS = [
+    "Grand Chief", "Hereditary Chief", "Knowledge Keepers", "Knowledge Keeper",
+    "Oral Tradition", "Chief", "Chiefs", "Clan", "Clans", "Elder", "Elders",
+    "Guardians", "Guardian", "Healers", "Healer", "Matriarch", "Nation", "Nations",
+    "Survivor", "Survivors", "Sweatlodge", "Treaty Rights"
+  ];
+  const ENGLISH_LANGUAGE_RULES = new Set([
+    "heading-title-case", "all-caps", "heading-colon-case", "list-lowercase",
+    "undefined-acronym", "acronym-in-heading", "acronym-definition-format",
+    "bc-abbreviation", "province-abbreviation",
+    "government-capitalization", "government-generic-term", "parliament-buildings",
+    "crown-capitalization", "grade-capitalization", "academic-degree-case", "academic-title",
+    "canadian-spelling", "canadian-spelling-context", "complex-phrase", "filler-phrase",
+    "negative-contraction", "latin-abbreviation", "proofreading-pubic", "proofreading-repeat",
+    "apostrophe-plural", "indigenous-identity-case", "indigenous-inuit-people"
+  ]);
+  const NAME_PROTECTED_RULES = new Set([
+    ...ENGLISH_LANGUAGE_RULES, "heading-parentheses", "heading-dash", "slash",
+    "missing-space-after-punctuation", "imperial-unit"
+  ]);
+
+  // Language-specific editorial advice must follow local language overrides.
+  // Structural, formatting, link-function and accessibility checks stay separate.
+  const LOCAL_LANGUAGE_RULES = new Set([
+    ...ENGLISH_LANGUAGE_RULES,
+    "page-title-punctuation", "heading-punctuation", "heading-dash", "heading-parentheses",
+    "paragraph-long", "sentence-long", "formal-sentence-starter", "passive-voice",
+    "list-punctuation", "list-introduction", "list-multiple-sentences", "list-repetition",
+    "ampersand", "missing-space-after-ampersand", "missing-space-after-punctuation",
+    "semicolon", "exclamation", "em-dash", "range-dash", "slash", "dash-separator", "wifi-format", "at-symbol",
+    ...Object.keys(RULES).filter(id => RULES[id][0] === "Numbers and dates" && id !== "phone-display-format")
+  ]);
+  const QUOTATION_REWRITE_RULES = new Set(LOCAL_LANGUAGE_RULES);
+
+  function whollyQuoted(value) {
+    const text = String(value || "").trim();
+    return Boolean(text) && rangeContains(quotedTextRanges(text), 0, text.length);
+  }
+
+  function citationTitleFollows(node, index, length) {
+    if (!node || node.nodeType !== 3 || !Number.isInteger(index)) return false;
+    if (normalizeSpace(node.nodeValue.slice(index + length))) return false;
+    const inline = "span,em,i,b,strong,a";
+    let current = node;
+    let next;
+    do {
+      next = current.nextSibling;
+      while (next && next.nodeType === 3 && !normalizeSpace(next.nodeValue)) next = next.nextSibling;
+      if (next || !current.parentElement || !current.parentElement.matches(inline)) break;
+      current = current.parentElement;
+    } while (current);
+    if (!next || next.nodeType !== 1) return false;
+    const title = next.matches("cite") ? next : next.matches(inline) ? next.querySelector("cite") : null;
+    const text = title && normalizeSpace(reviewText(title));
+    return Boolean(text && text === normalizeSpace(reviewText(next)));
+  }
+
+  function listReviewOpening(item, text, include) {
+    if (!textNodes(item, include).every(isEnglishText) || item.closest("blockquote,q,cite") || whollyQuoted(text)) return "";
+    // Retain the name in the content. Compare only the words following a complete
+    // leading name, so any finding points at the actual repeated wording.
+    const leadingName = indigenousNameRanges(text).find(range => range.start === 0);
+    const remainder = leadingName ? text.slice(leadingName.end).replace(/^[\s,:–—-]+/, "") : text;
+    const opening = firstWords(remainder, 2);
+    return /^[a-zà-öø-ÿ]/i.test(opening) ? opening : "";
+  }
+
+  // Normalize only canonical character composition, typographic apostrophes and
+  // whitespace. Retain a map to the original UTF-16 offsets used by highlighting.
+  function nameProjection(value) {
+    const original = String(value || "");
+    let text = "";
+    const starts = [], ends = [];
+    for (const match of original.matchAll(/\P{M}\p{M}*|\p{M}+/gu)) {
+      const normalized = match[0].normalize("NFC").replace(/[‘’]/g, "'");
+      for (const character of normalized) {
+        if (/\s/u.test(character) && text.endsWith(" ")) {
+          ends[ends.length - 1] = match.index + match[0].length;
+          continue;
+        }
+        const next = /\s/u.test(character) ? " " : character;
+        text += next;
+        for (let index = 0; index < next.length; index += 1) {
+          starts.push(match.index);
+          ends.push(match.index + match[0].length);
+        }
+      }
+    }
+    return { text, starts, ends };
+  }
+
+  function literalNameExpression(terms, allowNameEndings = true) {
+    const choices = Array.from(new Set(terms.map(term => nameProjection(term).text)))
+      .sort((first, second) => second.length - first.length).map(escapeRegExp);
+    const boundary = "[^\\p{L}\\p{M}\\p{N}_’'ʼ-]";
+    const possessive = allowNameEndings ? "[’'ʼ]s?(?=$|" + boundary + ")" : "[’'ʼ]s(?=$|" + boundary + ")";
+    const compound = allowNameEndings ? "|-(?:[Ll]ed|[Oo]wned|[Oo]perated|[Rr]un|[Bb]ased|[Mm]anaged|[Ss]upported|[Ff]unded)(?=$|[^\\p{L}\\p{M}\\p{N}_’'ʼ])" : "";
+    const openingQuote = allowNameEndings ? "|(?:^|[\\s([{])[’']" : "";
+    return new RegExp("(^|" + boundary + openingQuote + ")(" + choices.join("|") + ")(?=$|" + boundary + "|" + possessive + compound + ")", "gu");
+  }
+  const INDIGENOUS_NAME_EXPRESSION = literalNameExpression(INDIGENOUS_NAMES);
+  // Keep the existing English syllable/word model stable. Recognition of an
+  // additional name is not evidence that the whole passage is non-English.
+  const LEGACY_READABILITY_NAME_EXPRESSION = literalNameExpression(LEGACY_INDIGENOUS_NAMES, false);
+  const NUMBERED_PLACE_NAME_EXPRESSION = new RegExp(literalNameExpression(NUMBERED_PLACE_NAMES).source, "giu");
+  const INDIGENOUS_STYLE_EXPRESSION = literalNameExpression(INDIGENOUS_STYLE_TERMS);
+  const INDIGENOUS_CONTEXT_STYLE_EXPRESSION = literalNameExpression(CONTEXTUAL_INDIGENOUS_STYLE_TERMS);
+
+  function expressionRanges(value, expression) {
+    const projection = nameProjection(value);
+    const result = [];
+    // The shared expressions are read-only; each scan gets its own lastIndex.
+    const matcher = new RegExp(expression.source, expression.flags);
+    for (const match of projection.text.matchAll(matcher)) {
+      const start = match.index + match[1].length;
+      const end = start + match[2].length;
+      result.push({ start: projection.starts[start], end: projection.ends[end - 1] });
+    }
+    return result;
+  }
+
+  function indigenousNameRanges(value) {
+    const text = String(value || "");
+    return expressionRanges(text, INDIGENOUS_NAME_EXPRESSION)
+      .filter(range => !text.slice(range.start, range.end).includes("\u2029"));
+  }
+
+  function properNameRanges(value) {
+    const text = String(value || "");
+    return [...indigenousNameRanges(text), ...expressionRanges(text, NUMBERED_PLACE_NAME_EXPRESSION)]
+      .filter(range => !text.slice(range.start, range.end).includes("\u2029"));
+  }
+
+  function hasIndigenousContext(value) {
+    return /\b(?:Indigenous|Aboriginal|First Nations?|Inuit|Inuk|Métis)\b/iu.test(String(value || ""))
+      || indigenousNameRanges(value).length > 0;
+  }
+
+  function protectedCaseRanges(value) {
+    const text = String(value || "");
+    const names = properNameRanges(text);
+    const styles = expressionRanges(text, INDIGENOUS_STYLE_EXPRESSION);
+    if (hasIndigenousContext(text)) styles.push(...expressionRanges(text, INDIGENOUS_CONTEXT_STYLE_EXPRESSION));
+    for (const match of text.matchAll(/\bTreaty\s+\d+\s+Rights\b/g)) styles.push({ start: match.index, end: match.index + match[0].length });
+    return [...names, ...styles].sort((first, second) => first.start - second.start || second.end - first.end);
+  }
+
+  function orthographicWordRanges(value) {
+    return Array.from(String(value || "").matchAll(/[\p{L}\p{M}\p{N}]+(?:[’'ʼ:?·/-][\p{L}\p{M}\p{N}]+)*/gu))
+      .map(match => ({ start: match.index, end: match.index + match[0].length, text: match[0] }));
+  }
+
+  function languageSensitiveRanges(value) {
+    return orthographicWordRanges(value).filter(word => /[^A-Za-z]/u.test(word.text.replace(/[^\p{L}\p{M}]/gu, ""))
+      || /(?:\p{L}7\p{L}|^7\p{L})/u.test(word.text));
+  }
+
+  function rangeContains(ranges, index, length) {
+    return Number.isInteger(index) && ranges.some(range => index >= range.start && index + length <= range.end);
+  }
+
+  function rangeOverlaps(ranges, index, length) {
+    return Number.isInteger(index) && ranges.some(range => index < range.end && index + length > range.start);
+  }
+
+  function isEnglishText(node) {
+    let element = node && (node.nodeType === 1 ? node : node.parentElement);
+    while (element) {
+      if (element.hasAttribute("lang")) {
+        const language = normalizeSpace(element.getAttribute("lang"));
+        return Boolean(language) && isEnglishLanguage(language);
+      }
+      if (element.hasAttribute("xml:lang")) {
+        const language = normalizeSpace(element.getAttribute("xml:lang"));
+        return Boolean(language) && isEnglishLanguage(language);
+      }
+      element = element.parentElement;
+    }
+    return true;
+  }
+
+  function englishCaseText(value, ranges = protectedCaseRanges(value)) {
+    const text = String(value || "");
+    const opaque = [...ranges, ...languageSensitiveRanges(text), ...quotedTextRanges(text)].sort((first, second) => first.start - second.start || second.end - first.end);
+    let result = "", end = 0;
+    for (const range of opaque) {
+      if (range.start < end) continue;
+      result += text.slice(end, range.start) + "name";
+      end = range.end;
+    }
+    return result + text.slice(end);
+  }
+
+  function englishAllCapsText(value, ranges = protectedCaseRanges(value)) {
+    const text = String(value || "");
+    const opaque = [...ranges, ...languageSensitiveRanges(text), ...quotedTextRanges(text)];
+    return text.split("").map((character, index) => rangeOverlaps(opaque, index, 1) ? " " : character).join("");
+  }
+
+  function quotedTextRanges(value) {
+    const text = String(value || "");
+    const names = /[‘’']/.test(text) ? indigenousNameRanges(text) : [];
+    // A recorded orthographic apostrophe is not a quotation delimiter. Mask
+    // only these characters, keeping every original UTF-16 position intact.
+    const quotationText = text.replace(/[‘’']/g, (character, index) => rangeContains(names, index, 1) ? "\uFFFC" : character);
+    return Array.from(quotationText.matchAll(/“[^”]*”|"[^"\n]*"|‘[^’\n]+’|(?:^|[\s([{])'[^'\n]+'(?=$|[\s.,;:!?)\]}])/g))
+      .map(match => ({ start: match.index, end: match.index + match[0].length }));
+  }
+
+  function indigenousWordingOccurrences(value) {
+    const text = String(value || "");
+    const quoted = quotedTextRanges(text);
+    const result = [];
+    for (const match of text.matchAll(/\bindigenous(?=\s+(?:people|peoples|person|persons)\b)/g)) {
+      if (!rangeContains(quoted, match.index, match[0].length)) result.push({ ruleId: "indigenous-identity-case", text: match[0], index: match.index, replacement: "Indigenous" });
+    }
+    for (const match of text.matchAll(/\bInuit\s+people\b/g)) {
+      if (!rangeContains(quoted, match.index, match[0].length)) result.push({ ruleId: "indigenous-inuit-people", text: match[0], index: match.index, replacement: "" });
+    }
+    return result;
+  }
 
   // Keep this deliberately small. These are ordinary English words that are
   // commonly capitalized for emphasis and should not be treated as acronyms.
@@ -292,7 +1229,7 @@
   };
 
   const WELL_KNOWN_ACRONYMS = new Set([
-    "PDF", "DNA", "HTML", "CSS", "URL", "SEO", "SMS", "WCAG", "FAQ", "FAQs", "COVID", "BC",
+    "PDF", "DNA", "HTML", "CSS", "URL", "SEO", "SMS", "WCAG", "FAQ", "FAQs", "COVID", "BC", "US", "USA", "OK",
     "ID", "PO", "VSA", "IDIR", "RCMP", "CRC", "PSA", "PIA", "STRA", "CPPM", "BCID", "SIN", "ESS", "ERA", "ICBC",
     "PST", "GST", "HST", "HR", "HRU", "HRUs", "GUID", "GUIDs", "IM", "IT", "MCP", "KB", "MB", "GB",
     "NB", "NL", "NS", "NT", "PEI", "AB", "MB", "NU", "ON", "QC", "SK", "YT",
@@ -346,11 +1283,20 @@
       || /\bSTN\s+PROV\s+GOVT\b/.test(text);
   }
 
-  function isBcPostalAddressContext(value, index, element) {
-    if (element && element.closest && element.closest("address")) return true;
-    const text = String(value || "");
-    const after = text.slice(index + 2);
-    return /^[\s,]*(?:Canada\s*)?[ABCEGHJ-NPRSTVXY]\d[ABCEGHJ-NPRSTVWXYZ][ -]?\d[ABCEGHJ-NPRSTVWXYZ]\d\b/i.test(after);
+  function isBcPostalAddressContext(value, index, element, context = null) {
+    const text = context ? context.text : String(value || "");
+    const position = context ? context.offset + index : index;
+    const after = text.slice(position + 2);
+    if (/^[ \t\u00a0,]*(?:\n[ \t\u00a0,]*)?(?:Canada[ \t\u00a0]*)?[ABCEGHJ-NPRSTVXY]\d[ABCEGHJ-NPRSTVWXYZ][ -]?\d[ABCEGHJ-NPRSTVWXYZ]\d\b/i.test(after)) return true;
+    // An address can be recognizable even when its postal code is incomplete.
+    // The following text must look like an address ending, not "BC residents".
+    if (!/^[ \t\u00a0]*(?:$|[.,;)]|\n|[ABCEGHJ-NPRSTVXY]\d[ABCEGHJ-NPRSTVWXYZ]\b)/i.test(after)) return false;
+    const before = text.slice(Math.max(0, position - 240), position).split(/\u2029|\n[ \t]*\n/).pop();
+    const city = /^(?:[ \t\u00a0,]*\n?[ \t\u00a0,]*)(?:[\p{Lu}\d][\p{L}\p{M}\d’'.-]*[ \t\u00a0,]+){1,5}$/u;
+    const street = streetAddressOccurrences(before);
+    if (street.some(item => city.test(before.slice(item.end)))) return true;
+    const explicitAddress = element && element.closest && element.closest("address");
+    return Boolean(explicitAddress && city.test(before.split("\n").pop()));
   }
 
   const MANUAL_CHECKS = [
@@ -421,49 +1367,118 @@
   }
 
   function words(value) {
-    return normalizeSpace(value).match(/[A-Za-zÀ-ÖØ-öø-ÿ0-9]+(?:[’'][A-Za-zÀ-ÖØ-öø-ÿ]+)*/g) || [];
+    const text = normalizeSpace(value);
+    const tokens = Array.from(text.matchAll(/[\p{L}\p{N}][\p{L}\p{M}\p{N}]*(?:[’'ʼ][\p{L}\p{M}]+)*/gu));
+    // Preserve the existing word-count model when the recognition catalogue
+    // grows. New name exceptions must not retokenize ordinary English prose.
+    const names = /[?:·+\/-]/.test(text) ? expressionRanges(text, LEGACY_READABILITY_NAME_EXPRESSION) : [];
+    const result = [];
+    let previousEnd = -1, previousStart = -1;
+    for (const token of tokens) {
+      const separator = text.slice(previousEnd, token.index);
+      if (result.length && /^[?:·+\/-]+$/.test(separator) && rangeContains(names, previousStart, token.index + token[0].length - previousStart)) {
+        result[result.length - 1] += separator + token[0];
+      } else {
+        result.push(token[0]);
+        previousStart = token.index;
+      }
+      previousEnd = token.index + token[0].length;
+    }
+    return result;
+  }
+
+  function canEstimateEnglishReadability(value) {
+    const text = String(value || "").normalize("NFC");
+    if (expressionRanges(text, LEGACY_READABILITY_NAME_EXPRESSION).length) return false;
+    // This is a boundary of the English syllable model, not language detection.
+    return !words(text).some(word => /[^A-Za-zÀ-ÖØ-öø-ÿ0-9’'ʼ]/u.test(word) || /\p{L}7\p{L}|^7\p{L}/u.test(word));
+  }
+
+  function abbreviationOccurrences(value) {
+    const text = String(value || "");
+    const result = [];
+    const collect = (expression, kind) => {
+      for (const match of text.matchAll(expression)) {
+        if (result.some(item => match.index < item.end && match.index + match[0].length > item.start)) continue;
+        result.push({ start: match.index, end: match.index + match[0].length, text: match[0], kind });
+      }
+    };
+    collect(/\b(?:Ph\.D|Ed\.D|D\.Phil|M\.Sc|B\.Sc|M\.A|B\.A|M\.Ed|B\.Ed|M\.D|D\.D\.S)(?:\.|(?![\p{L}\p{M}]))/giu, "degree");
+    collect(/\b[ap]\.m\./gi, "time");
+    collect(/\b(?:sq|cu)\.[ \t]*[mk]?m\./gi, "unit");
+    collect(/\b(?:Mr|Mrs|Ms|Dr|Prof|St|Mt|No)\./g, "title");
+    collect(/\b(?:Mon|Tue|Tues|Wed|Thu|Thur|Thurs|Fri|Sat|Sun|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)\./g, "date");
+    collect(/\b(?:Inc|Ltd|Corp)\./gi, "company");
+    collect(/\b(?:[A-Za-z]\.){2,}/g, "initialism");
+    collect(/\b[A-Z]\.(?=\s+[A-Z][\p{L}\p{M}’'-]+)/gu, "initial");
+    return result.sort((a, b) => a.start - b.start);
+  }
+
+  function abbreviationContinues(text, item) {
+    let after = text.slice(item.end);
+    if (/^[’']s\b/i.test(after)) return true;
+    // Closing brackets/quotes belong to the preceding phrase. A following
+    // comma or another full stop supplies continuation or punctuation itself.
+    after = after.replace(/^[)\]”"’']*/, "");
+    if (/^[,;:]/.test(after) || /^\./.test(after)) return true;
+    const next = /^\s*([\p{L}\p{M}\d][\p{L}\p{M}\d’'-]*)/u.exec(after);
+    if (!next) return false;
+    const word = next[1];
+    if (/^[a-zà-öø-ÿ\d]/u.test(word)) return true;
+    if (/^(?:e\.g\.|i\.e\.)$/i.test(item.text)) return true;
+    if (item.kind === "date") return /^(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)/.test(word);
+    if (item.kind === "time") return /^(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)/.test(word);
+    const starters = /^(?:Another|Apply|Applications?|Check|Choose|Complete|Contact|Download|Find|Get|Government|However|If|It|Learn|Next|People|Please|Read|Register|Return|Review|Several|Submit|The|These|They|This|Those|To|Use|Visit|We|When|You)$/;
+    if (item.kind === "company") {
+      const titleWords = words(after);
+      return !starters.test(word) && !/[.!?]/.test(after) && titleWords.length > 0
+        && titleWords.every(token => /^[A-Z\d]/.test(token) || /^(?:and|of|the|for|in|on|to)$/.test(token));
+    }
+    if (["degree", "unit"].includes(item.kind)) return false;
+    return !starters.test(word);
   }
 
   function sentences(value) {
-    const clean = normalizeSpace(value);
-    if (!clean) return [];
-    const placeholder = "\ue000";
-    const commonSentenceStarters = new Set([
-      "apply", "check", "choose", "contact", "find", "get", "government", "however", "if", "it", "learn", "next", "people", "read", "the", "these", "they", "this", "those", "to", "use", "we", "when", "you"
-    ]);
-    const protectPeriods = value => value.replace(/\./g, placeholder);
-    let protectedText = clean
-      .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, protectPeriods)
-      .replace(/\b(?:https?:\/\/|www\.)[^\s<>"'“”‘’]+/gi, match => {
-        const trailing = (match.match(/[.!?]+$/) || [""])[0];
-        const address = trailing ? match.slice(0, -trailing.length) : match;
-        return protectPeriods(address) + trailing;
-      })
-      .replace(/\b\d+(?:\.\d+)+(?=\D|$)/g, protectPeriods)
-      .replace(/\b(?:Mr|Mrs|Ms|Dr|St|Mt|No)\./g, match => match.replace(".", placeholder))
-      .replace(/\b(?:Inc|Ltd|Corp)\./g, (suffix, offset, source) => {
-        const after = source.slice(offset + suffix.length);
-        const nextWord = (after.match(/^\s+([A-Za-zÀ-ÖØ-öø-ÿ][A-Za-zÀ-ÖØ-öø-ÿ’'-]*)/) || [])[1] || "";
-        if (!nextWord || commonSentenceStarters.has(nextWord.toLowerCase())) return suffix;
-        if (/^[a-zà-öø-ÿ]/.test(nextWord)) return suffix.replace(".", placeholder);
-        const titleLikeRemainder = !/[.!?]/.test(after);
-        return titleLikeRemainder ? suffix.replace(".", placeholder) : suffix;
-      });
-    protectedText = protectedText.replace(/\b(?:[A-Za-z]\.){2,}/g, (initialism, offset, source) => {
-      const after = source.slice(offset + initialism.length);
-      const normalizedInitialism = initialism.toLowerCase();
-      const isProtectedLatinAbbreviation = normalizedInitialism === "e.g." || normalizedInitialism === "i.e.";
-      const possessiveContinuation = /^[’']s\b/i.test(after);
-      const nextWord = (after.match(/^\s+([A-Za-zÀ-ÖØ-öø-ÿ][A-Za-zÀ-ÖØ-öø-ÿ’'-]*)/) || [])[1] || "";
-      const finalPeriodIsBoundary = !isProtectedLatinAbbreviation && !possessiveContinuation && (!nextWord || commonSentenceStarters.has(nextWord.toLowerCase()));
-      return initialism.replace(/\./g, (period, periodOffset) => {
-        const isFinal = periodOffset === initialism.length - 1;
-        return isFinal && finalPeriodIsBoundary ? period : placeholder;
-      });
+    const text = normalizeSpace(value);
+    if (!text) return [];
+    const protectedPositions = new Set();
+    const protect = (start, end, punctuation = ".") => {
+      for (let i = start; i < end; i += 1) if (punctuation.includes(text[i])) protectedPositions.add(i);
+    };
+    indigenousNameRanges(text).forEach(range => {
+      let end = range.end;
+      // A corporate suffix's final period can also end the sentence. The
+      // abbreviation logic below decides whether the following text continues.
+      while (end > range.start && /[.!?]/.test(text[end - 1])) end -= 1;
+      protect(range.start, end, ".!?");
     });
-    return (protectedText.match(/[^.!?]+(?:[.!?]+|$)/g) || [protectedText])
-      .map(sentence => normalizeSpace(sentence.replaceAll(placeholder, ".")))
-      .filter(Boolean);
+    missingSpaceProtectedRanges(text).filter(range => !indexInsideUrl(text, range.start)).forEach(range => protect(range.start, range.end));
+    for (const match of text.matchAll(/\b(?:https?:\/\/|www\.)[^\s<>"'“”‘’]+/gi)) {
+      const address = match[0].replace(/[.!?]+$/, "");
+      protect(match.index, match.index + address.length, ".!?");
+    }
+    for (const match of text.matchAll(/\b\d+(?:\.\d+)+(?=\D|$)/g)) protect(match.index, match.index + match[0].length);
+    for (const item of abbreviationOccurrences(text)) {
+      const hasFinalPeriod = item.text.endsWith(".");
+      protect(item.start, item.end - (hasFinalPeriod ? 1 : 0));
+      if (hasFinalPeriod && abbreviationContinues(text, item)) protectedPositions.add(item.end - 1);
+    }
+    const result = [];
+    let start = 0;
+    for (let i = 0; i < text.length; i += 1) {
+      if (!/[.!?]/.test(text[i]) || protectedPositions.has(i)) continue;
+      let end = i + 1;
+      while (end < text.length && /[.!?\])”"’']/.test(text[end]) && !protectedPositions.has(end)) end += 1;
+      const part = text.slice(start, end).trim();
+      if (/[\p{L}\p{N}]/u.test(part)) result.push(part);
+      else if (result.length) result[result.length - 1] += part;
+      start = end;
+      i = end - 1;
+    }
+    const tail = text.slice(start).trim();
+    if (/[\p{L}\p{N}]/u.test(tail)) result.push(tail);
+    else if (tail && result.length) result[result.length - 1] += tail;
+    return result;
   }
 
   function syllables(word) {
@@ -475,6 +1490,7 @@
   }
 
   function readingGrade(value) {
+    if (!canEstimateEnglishReadability(value)) return null;
     const wordList = words(value);
     const sentenceList = sentences(value);
     if (wordList.length < 30 || sentenceList.length === 0) return null;
@@ -483,7 +1499,7 @@
   }
 
   function readingGradeFromBlocks(blocks) {
-    const usable = (blocks || []).map(normalizeSpace).filter(value => words(value).length >= 4);
+    const usable = (blocks || []).map(normalizeSpace).filter(value => canEstimateEnglishReadability(value) && words(value).length >= 4);
     const wordList = usable.flatMap(words);
     if (wordList.length < 30) return { grade: null, words: wordList.length, sentences: 0 };
     const sentenceCount = usable.reduce((total, block) => {
@@ -520,16 +1536,42 @@
     return !normalizeSpace(before) || /[.!?]\s*[“”‘’'"(\[]*\s*$/.test(before);
   }
 
-  function headingStructureDetails(value) {
+  function headingStructureDetails(value, fileLabels = [], ignoredRanges = []) {
     const text = normalizeSpace(value);
-    const parentheses = [...text.matchAll(/\(([^()]*)\)/g)].find(match => !/^[A-Z][A-Z0-9.-]{1,9}s?$/.test(normalizeSpace(match[1])));
-    const dash = /[–—]|\s-\s/.exec(text);
-    const colon = /:\s*([a-zà-öø-ÿ])/.exec(text);
+    const names = [...indigenousNameRanges(text), ...ignoredRanges];
+    const parentheses = [...text.matchAll(/\(([^()]*)\)/g)].find(match => !rangeContains(names, match.index, match[0].length) && !/^[A-Z][A-Z0-9.-]{1,9}s?$/.test(normalizeSpace(match[1])) && !fileLabels.includes(match[0]));
+    const dash = [...text.matchAll(/[–—]|\s-\s/g)].find(match => !rangeContains(names, match.index, match[0].length)) || null;
+    const colonRanges = [...names, ...languageSensitiveRanges(text)];
+    const colon = [...text.matchAll(/:\s*([a-zà-öø-ÿ])/g)].find(match => !rangeContains(colonRanges, match.index + match[0].length - 1, 1)) || null;
     return { dash, parentheses, colon };
   }
 
   function isWifiVariant(value) {
     return /^(?:WIFI|WiFi|Wifi|wifi)$/.test(String(value || ""));
+  }
+
+  function timeFormatOccurrences(value) {
+    const text = String(value || "");
+    const results = [];
+    const expression = /(?<![\p{L}\p{M}\p{N}:])(\d{1,2})(?::(\d{2}))?(\s*)([ap])(\.?)(m)(\.?)(?![\p{L}\p{M}\p{N}])/giu;
+    for (const match of text.matchAll(expression)) {
+      if (indexInsideUrl(text, match.index) || Number(match[1]) < 1 || Number(match[1]) > 12 || (match[2] && Number(match[2]) > 59)) continue;
+      const reasons = [];
+      if (!match[3]) reasons.push("Add a space before am or pm.");
+      if (/[APM]/.test(match[4] + match[6])) reasons.push("Use lower case for am and pm.");
+      if (match[5]) reasons.push("Remove the periods from am or pm.");
+      if (match[2] === "00") reasons.push("Remove :00 from this whole-hour time.");
+      if (!reasons.length) continue;
+      // An ordinary full stop after 'am' is sentence punctuation. For a.m./p.m.,
+      // keep a final sentence full stop while removing abbreviation periods.
+      const after = text.slice(match.index + match[0].length);
+      const sentenceStop = match[7] && (!match[5] || !normalizeSpace(after) || /^\s*[”"')\]]*(?:\s*$|\s+[A-Z][a-z])/.test(after));
+      const raw = sentenceStop ? match[0].slice(0, -1) : match[0];
+      const minutes = match[2] && match[2] !== "00" ? ":" + match[2] : "";
+      const replacement = match[1] + minutes + " " + match[4].toLowerCase() + "m";
+      results.push({ text: raw, index: match.index, replacement, reasons });
+    }
+    return results;
   }
 
   function indexInsideUrl(value, index) {
@@ -654,6 +1696,16 @@
     return results;
   }
 
+  function singleCellLayoutCandidate(table, include) {
+    const rows = Array.from(table.rows || []);
+    if (rows.length !== 1 || rows[0].cells.length !== 1) return false;
+    const cell = rows[0].cells[0];
+    // Count the complete structure before applying visibility/exclusion rules.
+    if (cell.rowSpan !== 1 || cell.colSpan !== 1 || table.querySelector("table")) return false;
+    if (include && (!include(rows[0]) || !include(cell))) return false;
+    return Boolean(normalizeSpace(reviewText(cell)) || cell.querySelector("img,svg,input,button,select,textarea"));
+  }
+
   function measurementDetails(value) {
     const text = String(value || "");
     const plural = /\b(\d+(?:\.\d+)?)\s*(kms|kgs|mLs|Ls|mms|cms|hs|ts)\b/g.exec(text);
@@ -664,6 +1716,15 @@
     const spacing = /\b(\d+(?:\.\d+)?)(km|kg|mL|L|mm|cm|h|t)\b/g.exec(text);
     if (spacing) return { ruleId: "metric-spacing", text: spacing[0], index: spacing.index, replacement: `${spacing[1]} ${spacing[2]}` };
     return null;
+  }
+
+  function imperialUnitOccurrences(value) {
+    const text = String(value || "");
+    const names = properNameRanges(text);
+    const expression = /(?<![\p{L}\p{M}\p{N}.])\d+(?:\.\d+)?[ \t\u00a0\u2007\u202f]*(?:inches?|feet|foot|yards?|miles?|pounds?|ounces?|fahrenheit|°F)(?![\p{L}\p{M}\p{N}])/giu;
+    return Array.from(text.matchAll(expression))
+      .filter(match => !indexInsideUrl(text, match.index) && !rangeContains(names, match.index, match[0].length))
+      .map(match => ({ text: match[0], index: match.index }));
   }
 
   function educationContext(value) {
@@ -712,17 +1773,84 @@
     return Number(value).toLocaleString("en-CA", { maximumFractionDigits: 0, useGrouping: true });
   }
 
+  function numberedCompanyRanges(value) {
+    return Array.from(String(value || "").matchAll(/(?<![\p{L}\p{M}\p{N}_])\d{4,}[ \t\u00a0\u2007\u202f]+B\.?C\.?[ \t\u00a0\u2007\u202f]+(?:Limited|Ltd\.?)(?![\p{L}\p{M}\p{N}_])/giu))
+      .map(match => ({ start: match.index, end: match.index + match[0].length, kind: "company" }));
+  }
+
+  function streetAddressOccurrences(value, element) {
+    const text = String(value || "");
+    const space = "[ \\t\\u00a0\\u2007\\u202f]+";
+    const suffix = "(?:st(?:reet)?|rd|road|ave(?:nue)?|blvd|boulevard|dr(?:ive)?|ln|lane|ct|court|cres(?:cent)?|pl(?:ace)?|hwy|highway|terr(?:ace)?|way)";
+    const number = "\\d{1,6}[a-z]?(?:[-–]\\d{1,6}[a-z]?)?";
+    const word = "[\\p{L}\\p{M}\\d][\\p{L}\\p{M}\\d’'.-]*";
+    const expression = new RegExp("(?<![\\p{L}\\p{M}\\p{N}_])(" + number + ")" + space + "((?:" + word + space + "){1,5}?)" + suffix + "\\b\\.?", "giu");
+    const titleWords = new RegExp("^(?:(?:[\\p{Lu}\\d][\\p{L}\\p{M}\\d’'.-]*|de|la|du|des|of|the)" + space + "){1,5}$", "u");
+    const explicit = Boolean(element && element.closest && element.closest("address"));
+    const result = [];
+    for (const match of text.matchAll(expression)) {
+      const after = text.slice(match.index + match[0].length, match.index + match[0].length + 100);
+      const postalEnding = /^[ \t\u00a0,]+(?:[\p{L}\p{M}’'.-]+[ \t\u00a0,]+){1,5}BC[ \t\u00a0]+[ABCEGHJ-NPRSTVXY]\d[ABCEGHJ-NPRSTVWXYZ][ -]?\d[ABCEGHJ-NPRSTVWXYZ]\d\b/iu.test(after);
+      if (!explicit && !titleWords.test(match[2]) && !postalEnding) continue;
+      result.push({ start: match.index, end: match.index + match[0].length, number: match[1] });
+    }
+    return result;
+  }
+
+  function labelledIdentifierRanges(value) {
+    const text = String(value || "");
+    const ranges = [];
+    const space = "[ \\t\\u00a0]";
+    const token = "[A-Z]{0,6}\\d{1,10}[A-Z]?(?:[-/][A-Z0-9]{1,10})*";
+    const collect = expression => {
+      for (const match of text.matchAll(expression)) {
+        const start = match.index + match[0].lastIndexOf(match[1]);
+        ranges.push({ start, end: start + match[1].length, kind: "identifier" });
+      }
+    };
+    collect(new RegExp("\\b(?:ministerial" + space + "+order(?:" + space + "+(?:number|no\\.?))?|explanatory" + space + "+plan|(?:order|plan)" + space + "+(?:number|no\\.?)|(?:order|plan)" + space + "*[:#])" + space + "*[:#]?" + space + "*(" + token + ")\\b", "gi"));
+    collect(new RegExp("\\b(?:see|refer to|under|shown on)" + space + "+(?:the" + space + "+)?(?:plan|order)" + space + "+(" + token + ")\\b", "gi"));
+    collect(new RegExp("(?:^|[\\n\\u2029(])" + space + "*(?:plan|order)" + space + "+(" + token + ")(?=" + space + "*(?:$|[\\n\\u2029)]|\\.$))", "gi"));
+    const legal = new RegExp("\\bPLAN" + space + "+(" + token + ")\\b", "gi");
+    for (const match of text.matchAll(legal)) {
+      const before = text.slice(Math.max(0, match.index - 180), match.index).split(/[\n\u2029]/).pop();
+      const after = text.slice(match.index + match[0].length);
+      if (/\b(?:DISTRICT LOT|LOT|BLOCK)\s+[A-Z0-9]+\b/i.test(before)
+        && /^(?:[ \t\u00a0]*(?:$|[),.;\n\u2029]|(?:BLOCK|LOT|DISTRICT|PLAN)\b))/i.test(after)) {
+        const start = match.index + match[0].lastIndexOf(match[1]);
+        ranges.push({ start, end: start + match[1].length, kind: "identifier" });
+      }
+    }
+    return ranges;
+  }
+
+  function numberIdentifierRanges(value, element) {
+    const text = String(value || "");
+    const ranges = numberedCompanyRanges(text);
+    streetAddressOccurrences(text, element).forEach(item => ranges.push({ start: item.start, end: item.start + item.number.length, kind: "street" }));
+    ranges.push(...labelledIdentifierRanges(text));
+    for (const expression of [
+      /\b(?:1[- .])?\d{3}[- .]\d{3}[- .]\d{4}\b/g,
+      /\b\d{4}-\d{2}-\d{2}\b/g,
+      /\b[A-Z][A-Z0-9]{0,15}[-/]\d{4,}(?:[-/][A-Z0-9]+)*\b/g,
+      /#[ \t\u00a0]*\d+(?:[-/]\d+)+\b/g,
+      /\b(?:ID|identifier|number|no\.?|PIN|ISBN)[ \t\u00a0]*[:#-]?[ \t\u00a0]*[A-Z]{0,6}\d+(?:[-/]\d+)+\b/gi
+    ]) for (const match of text.matchAll(expression)) ranges.push({ start: match.index, end: match.index + match[0].length, kind: "identifier" });
+    return ranges;
+  }
+
   function numberSeparatorOccurrences(value, element) {
     const text = String(value || "");
-    if (element && element.closest && element.closest("code,pre,address")) return [];
+    if (element && element.closest && element.closest("code,pre")) return [];
     const results = [];
-    const expression = /\b\d{4,}\b/g;
+    const expression = /(?<![\p{L}\p{M}\p{N}_])\d{4,}(?![\p{L}\p{M}\p{N}_])/gu;
+    const ranges = numberIdentifierRanges(text, element);
     let match;
     while ((match = expression.exec(text))) {
       const before = text.slice(0, match.index);
       const after = text.slice(match.index + match[0].length);
       const number = Number(match[0]);
-      if (indexInsideUrl(text, match.index)) continue;
+      if (indexInsideUrl(text, match.index) || rangeContains(ranges, match.index, match[0].length)) continue;
       const likelyYear = match[0].length === 4 && (
         (number >= 1900 && number <= 2099)
         || /\b(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},\s*$/i.test(before)
@@ -731,7 +1859,7 @@
       );
       if (likelyYear) continue;
       if (/(?:US)?\$\s*$/i.test(before)) continue;
-      if (/[\d./-]\s*$/.test(before) || /^\s*[./-]\d/.test(after)) continue;
+      if (/[\d.,/]$/.test(before) || /^[.,/]\d/.test(after)) continue;
       if (/\b(?:version|build|release)\s*$/i.test(before)) continue;
       if (/\b(?:account|application|asset|case|confirmation|customer|employee|file|invoice|licen[cs]e|model|order|permit|personal|policy|record|reference|registration|serial|ticket|transaction|user)?\s*(?:ID|identifier|number|no\.?|PIN|ISBN)\s*[:#-]?\s*$/i.test(before)) continue;
       if (/\b(?:call|fax|phone|telephone|tel|TTY)\s*[:#-]?\s*$/i.test(before)) continue;
@@ -773,6 +1901,7 @@
       const start = handle.index + handle[0].lastIndexOf(handle[1]);
       ranges.push({ start, end: start + handle[1].length });
     }
+    collect(/\b(?:mailto|tel|urn|doi|data):[^\s<>]+/gi);
     collect(/\b[A-Z0-9][A-Z0-9_.-]*\.(?:7z|csv|docx?|gif|html?|jpe?g|js|json|ods|odt|odp|pdf|png|pptx?|rar|rtf|svg|txt|webp|xlsx?|xml|zip)\b/gi);
     collect(/\b(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:app|biz|ca|cloud|co|com|dev|edu|gov|info|int|io|mil|net|online|org|site|uk|us)\b(?:\/[^\s]*)?/gi);
     return ranges;
@@ -786,11 +1915,14 @@
     if (linkedTechnicalToken) return [];
     const results = [];
     const protectedRanges = missingSpaceProtectedRanges(text);
-    const expression = /[.!?](?=[A-ZÀ-ÖØ-Þ])/g;
+    const abbreviations = abbreviationOccurrences(text);
+    const expression = /[.!?](?=[A-ZÀ-ÖØ-Þ])|[,:](?=[\p{L}])/gu;
     let match;
     while ((match = expression.exec(text))) {
       const index = match.index;
       if (indexInsideUrl(text, index) || protectedRanges.some(range => index >= range.start && index < range.end)) continue;
+      if (match[0] === "." && abbreviations.some(item => index >= item.start && index < item.end - (item.text.endsWith(".") ? 1 : 0))) continue;
+      if (rangeContains(properNameRanges(text), index, 2) || rangeOverlaps(languageSensitiveRanges(text), index, 2)) continue;
       const next = text.slice(index + 1);
       if (match[0] === "." && /^[A-ZÀ-ÖØ-Þ](?:\.|$)/.test(next) && /[A-ZÀ-ÖØ-Þ]$/.test(text.slice(0, index))) continue;
       if (match[0] === "." && /^[A-Z0-9]{2,5}\b/.test(next)) continue;
@@ -933,6 +2065,10 @@
 
   function proposeExactPhrase(value, matchStart, token) {
     const text = String(value || "");
+    const company = numberedCompanyRanges(text).find(range => matchStart >= range.start && matchStart + String(token || "").length <= range.end);
+    if (company) return text.slice(company.start, company.end);
+    const name = indigenousNameRanges(text).find(range => matchStart >= range.start && matchStart + String(token || "").length <= range.end);
+    if (name) return text.slice(name.start, name.end);
     const spans = tokenSpans(text);
     const tokenIndex = spans.findIndex(span => matchStart >= span.start && matchStart < span.end);
     if (tokenIndex < 0) return token || "";
@@ -958,9 +2094,9 @@
   function validateExceptionPhrase(phrase, token) {
     const clean = normalizeSpace(phrase);
     const tokenText = normalizeSpace(token);
-    const termWords = words(clean);
+    const termWords = orthographicWordRanges(clean);
     if (termWords.length < 1 || termWords.length > 8) return { valid: false, reason: "Choose an exact term containing 1 to 8 words." };
-    if (/[*?{}[\]]/.test(clean)) return { valid: false, reason: "Wildcards and patterns are not allowed." };
+    if (/[*{}[\]]/.test(clean) || (clean.includes("?") && !indigenousNameRanges(clean).some(range => range.start === 0 && range.end === clean.length))) return { valid: false, reason: "Wildcards and patterns are not allowed." };
     if (clean === "BC" && tokenText === "BC") {
       return { valid: false, reason: "Enter the complete formal name. ‘BC’ by itself cannot be allowed." };
     }
@@ -968,8 +2104,8 @@
     if (!containsExactToken) {
       return { valid: false, reason: "The term must contain the exact flagged text." };
     }
-    if (termWords.length === 1) return { valid: true, phrase: clean };
-    const otherWords = termWords.filter(word => word !== tokenText);
+    if (termWords.length === 1 || indigenousNameRanges(clean).some(range => range.start === 0 && range.end === clean.length)) return { valid: true, phrase: clean };
+    const otherWords = termWords.map(word => word.text).filter(word => word !== tokenText);
     if (!otherWords.some(word => /^[A-Z][A-Za-zÀ-ÖØ-öø-ÿ’'-]+$/.test(word) || /^[A-Z0-9]{2,}$/.test(word))) {
       return { valid: false, reason: "Include the formal name around the flagged text." };
     }
@@ -981,8 +2117,8 @@
     if (exception.ruleId === "bc-abbreviation" && normalizeSpace(exception.phrase) === "BC") return false;
     if (exception.page && canonicalUrl(exception.page) !== canonicalUrl(pageUrl || "")) return false;
     if (exception.domain && exception.domain !== "*" && exception.domain !== hostname) return false;
-    const flags = exception.ruleId === "proofreading-pubic" ? "i" : "";
-    const expression = new RegExp("(^|[^A-Za-zÀ-ÖØ-öø-ÿ0-9’'-])" + escapeRegExp(exception.phrase) + "(?=$|[^A-Za-zÀ-ÖØ-öø-ÿ0-9’'-])", flags);
+    const flags = exception.ruleId === "proofreading-pubic" ? "iu" : "u";
+    const expression = new RegExp("(^|[^\\p{L}\\p{M}\\p{N}_’'ʼ-])" + escapeRegExp(exception.phrase) + "(?=$|[^\\p{L}\\p{M}\\p{N}_’'ʼ-])", flags);
     return expression.test(String(text || ""));
   }
 
@@ -992,8 +2128,8 @@
       if (exception.ruleId === "bc-abbreviation" && normalizeSpace(exception.phrase) === "BC") return false;
       if (exception.page && canonicalUrl(exception.page) !== canonicalUrl(pageUrl || "")) return false;
       if (exception.domain && exception.domain !== "*" && exception.domain !== hostname) return false;
-      const flags = exception.ruleId === "proofreading-pubic" ? "gi" : "g";
-      const expression = new RegExp("(^|[^A-Za-zÀ-ÖØ-öø-ÿ0-9’'-])(" + escapeRegExp(exception.phrase) + ")(?=$|[^A-Za-zÀ-ÖØ-öø-ÿ0-9’'-])", flags);
+      const flags = exception.ruleId === "proofreading-pubic" ? "giu" : "gu";
+      const expression = new RegExp("(^|[^\\p{L}\\p{M}\\p{N}_’'ʼ-])(" + escapeRegExp(exception.phrase) + ")(?=$|[^\\p{L}\\p{M}\\p{N}_’'ʼ-])", flags);
       let match;
       while ((match = expression.exec(String(text || "")))) {
         const start = match.index + match[1].length;
@@ -1124,7 +2260,26 @@
     return output;
   }
 
+  function englishAcronymPart(node) {
+    if (isEnglishText(node)) return node.nodeValue || "";
+    const block = node.parentElement.closest("p,li,h1,h2,h3,h4,h5,h6,dd,dt,figcaption,blockquote");
+    const text = normalizeSpace(node.nodeValue);
+    return block && isEnglishText(block) && indigenousNameRanges(text).some(range => range.start === 0 && range.end === text.length) ? node.nodeValue : "";
+  }
+
+  function englishAcronymText(element) {
+    return textNodes(element).map(englishAcronymPart).join(" ");
+  }
+
   function readabilityBlockText(element) {
+    if (!element) return "";
+    const languageNodes = textNodes(element);
+    if (languageNodes.length ? languageNodes.some(node => !isEnglishText(node)) : !isEnglishText(element)) return "";
+    const text = contentBlockText(element);
+    return canEstimateEnglishReadability(text) ? text : "";
+  }
+
+  function contentBlockText(element) {
     if (!element) return "";
     if (element.tagName === "LI") {
       if (element.querySelector(":scope > p,:scope > div,:scope > blockquote")) return "";
@@ -1258,10 +2413,9 @@
       if (text) {
         const wordCount = words(text).length;
         if (element.tagName === "LI" ? wordCount >= 5 : wordCount >= 4) current.readabilityBlocks.push(text);
-        if (element.tagName === "LI" || /^(P|DD|DT|BLOCKQUOTE|FIGCAPTION)$/.test(element.tagName)) {
-          if (!(element.tagName === "BLOCKQUOTE" && element.querySelector("p"))) current.densityTexts.push(text);
-        }
       }
+      const densityText = contentBlockText(element);
+      if (densityText && (element.tagName === "LI" || /^(P|DD|DT|BLOCKQUOTE|FIGCAPTION)$/.test(element.tagName))) current.densityTexts.push(densityText);
     });
     return sections.map(section => {
       const reading = readingGradeFromBlocks(section.readabilityBlocks);
@@ -1421,6 +2575,8 @@
     const text = normalizeSpace(value);
     if (!text || /\?$/.test(text)) return false;
     if (/(?:B\.C\.|N\.[BLST]\.|P\.E\.I\.)$/.test(text)) return false;
+    if (/\b(?:Ltd|Inc|Corp)\.$/i.test(text)
+      && indigenousNameRanges(text).some(range => range.end === text.length)) return false;
     return /[.!:;]$/.test(text);
   }
 
@@ -1429,6 +2585,29 @@
     if (!text) return "none";
     if (/^[\s,.;:!?…–—()[\]{}'"“”‘’]+$/.test(text)) return "punctuation-only";
     return endsStylePunctuation(text) || /,$/.test(text) ? "terminal" : "none";
+  }
+
+  function emailLinkComparison(href, label) {
+    const recipient = String(href || "").trim().replace(/^mailto:/i, "").split("?")[0];
+    let address;
+    try { address = decodeURIComponent(recipient); }
+    catch (_) { return { invalid: true, address: "", matches: false, punctuationOnly: false }; }
+    // Do not erase internal control characters or decode twice. Both can change
+    // the recipient or hide a malformed destination.
+    if (/[\u0000-\u001f\u007f]/.test(address)) return { invalid: true, address: "", matches: false, punctuationOnly: false };
+    const canonical = value => String(value).trim().split(",").map(part => part.trim().toLowerCase()).join(",");
+    address = address.trim();
+    const displayed = String(label || "").trim();
+    const matches = canonical(displayed) === canonical(address);
+    const punctuationOnly = !matches && Boolean(address)
+      && /[.,;:!]+$/.test(displayed)
+      && canonical(displayed.replace(/[.,;:!]+$/, "")) === canonical(address);
+    return { invalid: false, address, matches, punctuationOnly };
+  }
+
+  function emailComparisonEvidence(value) {
+    return String(value || "").replace(/[\u0000-\u001f\u007f\u200b-\u200f\u202a-\u202e\u2060-\u2069\ufeff]/g,
+      character => `⟦U+${character.charCodeAt(0).toString(16).toUpperCase().padStart(4, "0")}⟧`);
   }
 
   function listEndingNeedsRemoval(value) {
@@ -1785,10 +2964,36 @@
     return Boolean(nearestHeading && /^on this page:?$/i.test(normalizeSpace(reviewText(nearestHeading))));
   }
 
+  function isAccordionListItem(item) {
+    if (!item || item.tagName !== "LI") return false;
+    const candidates = [];
+    for (const details of item.querySelectorAll("details")) {
+      if (details.closest("li") === item && details.querySelector(":scope > summary")) candidates.push([details]);
+    }
+    for (const trigger of item.querySelectorAll("button[aria-expanded][aria-controls],[role='button'][aria-expanded][aria-controls]")) {
+      if (trigger.closest("li") !== item || !/^(true|false)$/.test(trigger.getAttribute("aria-expanded"))) continue;
+      const ids = new Set(normalizeSpace(trigger.getAttribute("aria-controls")).split(" ").filter(Boolean));
+      // Look within this item: some source pages repeat the same panel ID in
+      // separate accordion rows. Do not resolve those IDs against the document.
+      const panels = Array.from(item.querySelectorAll("[id]")).filter(panel => panel.closest("li") === item && ids.has(panel.id) && !trigger.contains(panel) && !panel.contains(trigger));
+      if (panels.length) candidates.push([trigger, ...panels]);
+    }
+    return candidates.some(parts => {
+      const walker = item.ownerDocument.createTreeWalker(item, 4);
+      let node;
+      while ((node = walker.nextNode())) {
+        if (parts.some(part => part.contains(node)) || node.parentElement.closest("script,style,svg,[aria-hidden='true']")) continue;
+        if (normalizeSpace(node.nodeValue)) return false;
+      }
+      return !Array.from(item.querySelectorAll("img,video,audio,input,select,textarea,table")).some(element => !parts.some(part => part.contains(element)));
+    });
+  }
+
   function isMeaningfulList(list) {
     if (!list) return false;
     const items = Array.from(list.children || []).filter(item => item.tagName === "LI");
     return items.some(item => {
+      if (isAccordionListItem(item)) return false;
       if (normalizeSpace(reviewText(item))) return true;
       return Boolean(item.querySelector("a[href],img[src],button,input,select,textarea,table,iframe,video,audio"));
     });
@@ -1801,8 +3006,8 @@
       if (/s$/.test(value) && !/ss$/.test(value) && value.length > 3) return value.slice(0, -1);
       return value;
     };
-    const firstWords = words(first).map(normalizeAnchorWord);
-    const secondWords = words(second).map(normalizeAnchorWord);
+    const firstWords = orthographicWordRanges(nameProjection(first).text).map(word => normalizeAnchorWord(word.text));
+    const secondWords = orthographicWordRanges(nameProjection(second).text).map(word => normalizeAnchorWord(word.text));
     if (!firstWords.length || !secondWords.length) return 0;
     if (firstWords.join(" ") === secondWords.join(" ")) return 1;
     const firstSet = new Set(firstWords);
@@ -2376,18 +3581,190 @@
       return "Content";
     }
 
+    const orthographyCache = new WeakMap();
+    function localTextContext(node) {
+      const blockSelector = "p,li,dd,dt,td,th,h1,h2,h3,h4,h5,h6,blockquote,div,section,article,main,body,address,figcaption";
+      const root = node.parentElement.closest(blockSelector) || node.parentElement;
+      let context = orthographyCache.get(root);
+      if (!context) {
+        let text = "";
+        const offsets = new Map();
+        const preserveLines = /^(?:pre|pre-wrap|pre-line|break-spaces)$/.test(doc.defaultView.getComputedStyle(root).whiteSpace);
+        function visit(current) {
+          if (current.nodeType === 3) {
+            offsets.set(current, text.length);
+            text += preserveLines ? current.nodeValue : current.nodeValue.replace(/[\r\n\f]/g, " ");
+            return;
+          }
+          if (current.nodeType !== 1) return;
+          if (current !== root && current.tagName === "BR" && inScanArea(current)) { text += "\n"; return; }
+          if (current !== root && (!inScanArea(current) || current.matches("script,style,noscript,svg,code,pre,nav") || current.matches(blockSelector))) {
+            text += "\u2029";
+            return;
+          }
+          for (const child of current.childNodes) visit(child);
+        }
+        visit(root);
+        context = { root, text, offsets };
+        orthographyCache.set(root, context);
+      }
+      context = { ...context, offset: context.offsets.get(node) };
+      const entry = orthographyCache.get(context.root);
+      if (!entry.caseRanges) {
+        entry.caseRanges = protectedCaseRanges(entry.text);
+        entry.sensitiveRanges = languageSensitiveRanges(entry.text);
+      }
+      return { ...context, caseRanges: entry.caseRanges, sensitiveRanges: entry.sensitiveRanges };
+    }
+
+    function localOccurrences(node, key, find, technical = false) {
+      const context = localTextContext(node);
+      if (!Number.isInteger(context.offset)) return [];
+      const entry = orthographyCache.get(context.root);
+      if (!entry[key]) entry[key] = find(context.text, context.root);
+      return entry[key].filter(match => {
+        if (match.index < context.offset || match.index >= context.offset + node.nodeValue.length) return false;
+        const end = match.index + match.text.length;
+        return !Array.from(context.offsets).some(([part, offset]) => {
+          if (match.index >= offset + part.nodeValue.length || end <= offset) return false;
+          if (!isEnglishText(part)) return true;
+          if (part.parentElement.closest("blockquote,q,cite")) return true;
+          if (!technical) return false;
+          if (part.parentElement.closest("abbr,code,kbd,pre,samp,var")) return true;
+          const link = part.parentElement.closest("a[href]");
+          return Boolean(link && !/\s/.test(normalizeSpace(reviewText(link))) && /[.@]/.test(reviewText(link)));
+        });
+      }).map(match => ({ match, context }));
+    }
+
+    function englishToken(node, index, token) {
+      if (!isEnglishText(node)) return false;
+      const context = localTextContext(node);
+      const start = context.offset + index;
+      if (/[\p{L}\p{M}\p{N}_]$/u.test(context.text.slice(0, start)) || /^[\p{L}\p{M}\p{N}_]/u.test(context.text.slice(start + token.length))) return false;
+      return !rangeContains(context.caseRanges, start, token.length) && !rangeOverlaps(context.sensitiveRanges, start, token.length);
+    }
+
+    function elementLanguageText(element) {
+      const metadata = element.tagName === "TITLE";
+      function visit(node) {
+        if (node.nodeType === 3) return (metadata || inScanArea(node.parentElement)) ? (isEnglishText(node) ? node.nodeValue : node.nodeValue.replace(/\S/g, "\uFFFC")) : "";
+        if (node.nodeType !== 1 || (!metadata && !inScanArea(node))) return "";
+        if (node.tagName === "BR") return " ";
+        return Array.from(node.childNodes).map(visit).join("");
+      }
+      return normalizeSpace(visit(element));
+    }
+
+    function caseProjection(element, value) {
+      const text = normalizeSpace(value);
+      if (normalizeSpace(reviewText(element)) !== text) return isEnglishText(element) ? englishCaseText(text) : "";
+      const languageText = elementLanguageText(element);
+      if (languageText.length !== text.length) return englishCaseText(languageText);
+      const languageRanges = Array.from(languageText.matchAll(/\uFFFC+/g)).map(match => ({ start: match.index, end: match.index + match[0].length }));
+      return englishCaseText(text, [...protectedCaseRanges(text), ...languageRanges]);
+    }
+
+    function allCapsProjection(element, value) {
+      const text = normalizeSpace(value);
+      const languageText = elementLanguageText(element);
+      if (languageText.length !== text.length) return englishAllCapsText(languageText);
+      const languageRanges = languageText.length === text.length
+        ? Array.from(languageText.matchAll(/\uFFFC+/g)).map(match => ({ start: match.index, end: match.index + match[0].length })) : [];
+      return englishAllCapsText(text, [...protectedCaseRanges(text), ...languageRanges]);
+    }
+
+    function occurrenceIndexInElement(element, node, index, token, text) {
+      const raw = reviewText(element);
+      const walker = doc.createTreeWalker(element, 4);
+      let current, offset = 0;
+      while ((current = walker.nextNode())) {
+        if (excludedFromReview(current.parentElement)) continue;
+        const start = raw.indexOf(current.nodeValue, offset);
+        if (start < 0) continue;
+        if (current === node) {
+          const position = normalizeSpace(raw.slice(0, start + index) + "\uFFFC").length - 1;
+          if (text.slice(position, position + token.length) === token) return position;
+          break;
+        }
+        offset = start + current.nodeValue.length;
+      }
+      return exactTokenIndex(text, token);
+    }
+
+    function headingTokenIsEnglish(element, text, index, length) {
+      const languageText = elementLanguageText(element);
+      return languageText.length === text.length
+        ? !languageText.slice(index, index + length).includes("\uFFFC")
+        : isEnglishText(element) && textNodes(element, inScanArea).every(isEnglishText);
+    }
+
+    function quotedOccurrence(node, index, length) {
+      const element = node.nodeType === 3 ? node.parentElement : node;
+      if (element.closest("blockquote,q,cite")) return true;
+      if (node.nodeType !== 3) return false;
+      const context = localTextContext(node);
+      return rangeContains(quotedTextRanges(context.text), context.offset + index, length);
+    }
+
     function add(ruleId, element, evidence, detail, metadata) {
       const rule = RULES[ruleId];
       const allowedLinkCheck = metadata && metadata.includeExcludedLink === true && ["broken-anchor", "empty-fragment-link"].includes(ruleId);
       if (!rule || (excludedFromReview(element) && !allowedLinkCheck)) return;
       const meta = metadata || {};
+      const sourceNode = meta.sourceNode || element;
+      const matchIndex = meta.matchIndex;
+      const matchLength = String(meta.matchText || meta.flaggedToken || "").length;
+      const sourceMatchIndex = Number.isInteger(meta.sourceMatchIndex) ? meta.sourceMatchIndex : matchIndex;
+      if (LOCAL_LANGUAGE_RULES.has(ruleId)) {
+        const projectedCaseRule = ["heading-title-case", "all-caps"].includes(ruleId);
+        const indexedHeading = sourceNode.nodeType === 1 && /^(?:H[1-6]|TITLE)$/.test(sourceNode.tagName)
+          && Number.isInteger(matchIndex) && matchLength;
+        if (indexedHeading) {
+          if (!headingTokenIsEnglish(sourceNode, normalizeSpace(meta.contextText || evidence), matchIndex, matchLength)) return;
+        } else if (!isEnglishText(sourceNode) && !(projectedCaseRule && /[A-Za-z]/.test(elementLanguageText(element)))) return;
+        if (!projectedCaseRule && sourceNode.nodeType === 1 && !indexedHeading && textNodes(sourceNode, inScanArea).some(node => !isEnglishText(node))) return;
+      }
+      if (QUOTATION_REWRITE_RULES.has(ruleId)) {
+        const sourceElement = sourceNode.nodeType === 3 ? sourceNode.parentElement : sourceNode;
+        if (sourceElement.closest("blockquote,q,cite")) return;
+        if (ruleId === "academic-title" && citationTitleFollows(sourceNode, sourceMatchIndex, matchLength)) return;
+        if (sourceNode.nodeType === 3) {
+          if (Number.isInteger(sourceMatchIndex) && matchLength) {
+            if (quotedOccurrence(sourceNode, sourceMatchIndex, matchLength)) return;
+          } else {
+            // Whole-text heuristics have no trustworthy occurrence to isolate.
+            // Withhold them in a mixed quoted passage instead of guessing.
+            const context = localTextContext(sourceNode);
+            if (rangeOverlaps(quotedTextRanges(context.text), context.offset, sourceNode.nodeValue.length)) return;
+          }
+        } else {
+          const text = meta.contextText || evidence || reviewText(sourceNode);
+          if (Number.isInteger(matchIndex) && matchLength && rangeContains(quotedTextRanges(text), matchIndex, matchLength)) return;
+          if (whollyQuoted(text)) return;
+        }
+      }
+      if (NAME_PROTECTED_RULES.has(ruleId) && Number.isInteger(matchIndex) && matchLength) {
+        const text = meta.contextText || evidence || "";
+        let ranges = protectedCaseRanges(text);
+        let sensitive = languageSensitiveRanges(text);
+        let index = matchIndex;
+        if (sourceNode && sourceNode.nodeType === 3) {
+          const context = localTextContext(sourceNode);
+          ranges = context.caseRanges;
+          sensitive = context.sensitiveRanges;
+          index = sourceMatchIndex + context.offset;
+        }
+        if (rangeContains(ranges, index, matchLength)) return;
+        if (ENGLISH_LANGUAGE_RULES.has(ruleId) && ruleId !== "all-caps" && rangeOverlaps(sensitive, index, matchLength)) return;
+      }
       const rawContext = normalizeSpace(meta.contextText || evidence || (element && reviewText(element)) || "");
       const matchedException = meta.matchedException || (meta.matchIndex === undefined
         ? savedExceptions.find(item => exceptionMatches(item, ruleId, rawContext, hostname, pageUrl))
         : null);
       totals[ruleId] = (totals[ruleId] || 0) + 1;
       if (!matchedException) detectedOpenTotals[ruleId] = (detectedOpenTotals[ruleId] || 0) + 1;
-      if ((retainedTotals[ruleId] || 0) >= PER_RULE_FINDING_LIMIT) return;
+      if ((retainedTotals[ruleId] || 0) >= PER_RULE_FINDING_LIMIT) return true;
       retainedTotals[ruleId] = (retainedTotals[ruleId] || 0) + 1;
       if (!matchedException) retainedOpenTotals[ruleId] = (retainedOpenTotals[ruleId] || 0) + 1;
       const source = SOURCES[rule[5]];
@@ -2439,11 +3816,48 @@
       const duplicate = issues.find(item => item.ruleId === finding.ruleId && item.selector === finding.selector && item.evidence === finding.evidence && item.automaticStatus === finding.automaticStatus && (item.matchIndex === undefined ? "" : item.matchIndex) === (finding.matchIndex === undefined ? "" : finding.matchIndex));
       if (duplicate) duplicate.occurrenceCount += 1;
       else issues.push(finding);
+      return true;
+    }
+
+    function headingFileLabelRanges(element, text) {
+      const ranges = [];
+      const raw = reviewText(element);
+      for (const link of Array.from(element.querySelectorAll("a[href]")).filter(inScanArea)) {
+        const href = (link.getAttribute("href") || "").trim();
+        if (!href || /^(?:#|mailto:|tel:|javascript:|data:)/i.test(href)) continue;
+        // Locate this occurrence through its source nodes; identical label text
+        // elsewhere in the heading must not inherit the exception.
+        const walker = doc.createTreeWalker(element, 4);
+        let node, cursor = 0, rawStart = -1;
+        while ((node = walker.nextNode())) {
+          if (!inScanArea(node.parentElement)) continue;
+          const index = raw.indexOf(node.nodeValue, cursor);
+          if (index < 0) continue;
+          if (link.contains(node)) { rawStart = index; break; }
+          cursor = index + node.nodeValue.length;
+        }
+        if (rawStart < 0) continue;
+        const linkedText = normalizeSpace(reviewText(link));
+        const start = normalizeSpace(raw.slice(0, rawStart) + "\uFFFC").length - 1;
+        if (text.slice(start, start + linkedText.length) !== linkedText) continue;
+        for (const label of linkedText.matchAll(/\([^()]*\)/g)) {
+          if (assetLabel(label[0]).type) ranges.push({ start: start + label.index, end: start + label.index + label[0].length });
+        }
+        const adjacent = adjacentAssetLabel(link);
+        const following = /^\s*(\([^()]*\))/.exec(text.slice(start + linkedText.length));
+        if (adjacent && adjacent.type && following && assetLabel(following[1]).type) {
+          const labelStart = start + linkedText.length + following[0].indexOf(following[1]);
+          ranges.push({ start: labelStart, end: labelStart + following[1].length });
+        }
+      }
+      return ranges;
     }
 
     function inspectHeadingText(element, text, wholeHeadingAllCaps = false) {
-      if (!englishLanguage || !text) return;
-      const structure = headingStructureDetails(text);
+      if (!text) return;
+      const languageText = elementLanguageText(element);
+      const ignoredRanges = languageText.length === text.length ? Array.from(languageText.matchAll(/\uFFFC+/g)).map(match => ({ start: match.index, end: match.index + match[0].length })) : [];
+      const structure = headingStructureDetails(text, [], [...ignoredRanges, ...headingFileLabelRanges(element, text)]);
       if (structure.dash) add("heading-dash", element, text, null, {
         matchText: structure.dash[0].trim(),
         matchIndex: structure.dash.index
@@ -2452,13 +3866,20 @@
         matchText: structure.parentheses[0],
         matchIndex: structure.parentheses.index
       });
-      if (structure.colon) add("heading-colon-case", element, text, null, {
+      if (structure.colon && (languageText.length === text.length || textNodes(element, inScanArea).every(isEnglishText))) add("heading-colon-case", element, text, null, {
         matchText: structure.colon[0],
         replacement: structure.colon[0].replace(structure.colon[1], structure.colon[1].toUpperCase()),
         matchIndex: structure.colon.index
       });
 
-      const headingAcronyms = wholeHeadingAllCaps ? [] : [...text.matchAll(/\b[A-Z][A-Z0-9]{1,5}\b/g)]
+      const candidates = element.querySelector("br") ? textNodes(element, inScanArea).flatMap(node => [...node.nodeValue.matchAll(/\b[A-Z][A-Z0-9]{1,5}\b/g)].filter(match => englishToken(node, match.index, match[0])).map(match => {
+        const index = occurrenceIndexInElement(element, node, match.index, match[0], text);
+        return Object.assign([match[0]], { index });
+      })) : [...text.matchAll(/\b[A-Z][A-Z0-9]{1,5}\b/g)];
+      const headingAcronyms = wholeHeadingAllCaps ? [] : candidates
+        .filter(match => !rangeContains(protectedCaseRanges(text), match.index, match[0].length))
+        .filter(match => !rangeOverlaps(languageSensitiveRanges(text), match.index, match[0].length))
+        .filter(match => headingTokenIsEnglish(element, text, match.index, match[0].length))
         .filter(match => !isWifiVariant(match[0]))
         .filter(match => !isWellKnownAcronym(match[0]))
         .filter(match => !(intranetProfile && INTRANET_HEADING_ACRONYMS.has(match[0])))
@@ -2485,7 +3906,7 @@
       if (!title) add("page-title-missing", titleTarget, "No page title found");
       if (title.length >= 70) add("page-title-long", titleTarget, title + " (" + title.length + " characters)");
       if (englishLanguage && title && endsStylePunctuation(title)) add("page-title-punctuation", titleTarget, title);
-      if (englishLanguage && title && isLikelyTitleCase(title)) add("heading-title-case", titleTarget, title);
+      if (title && isLikelyTitleCase(caseProjection(titleTarget, title))) add("heading-title-case", titleTarget, title);
       inspectHeadingText(titleTarget, title, Boolean(allCapsHeadingDetails(title)));
       if (profile !== "cms-lite" && !doc.querySelector("meta[name='description'][content]:not([content=''])")) add("meta-description", doc.documentElement, "No metadata description found");
       if (scope === "whole" && !normalizeSpace(doc.documentElement.getAttribute("lang"))) add("document-language", doc.documentElement, "The html element has no lang attribute");
@@ -2545,11 +3966,11 @@
       if (formattingTypes.length) add("heading-formatting", heading, text, null, {
         diagnostics: [`Formatting found inside this heading: ${formattingTypes.join(", ")}.`]
       });
-      if (englishLanguage && isLikelyTitleCase(text) && !(titleIsAuthoredH1 && heading === titleTarget)) add("heading-title-case", heading, text);
-      const allCapsHeading = englishLanguage ? allCapsHeadingDetails(text) : null;
+      if (isLikelyTitleCase(caseProjection(heading, text)) && !(titleIsAuthoredH1 && heading === titleTarget)) add("heading-title-case", heading, text);
+      const allCapsHeading = allCapsHeadingDetails(allCapsProjection(heading, text));
       if (allCapsHeading) add("all-caps", heading, text, null, {
-        matchText: allCapsHeading.text,
-        matchIndex: allCapsHeading.index
+        matchText: text,
+        matchIndex: 0
       });
       inspectHeadingText(heading, text, Boolean(allCapsHeading));
       previousLevel = level;
@@ -2665,8 +4086,9 @@
 
     const elementTexts = textElements(root, inScanArea);
     elementTexts.filter(item => item.tagName === "P").forEach(paragraph => {
-      if (!englishLanguage) return;
+      if (!textNodes(paragraph, inScanArea).every(isEnglishText) || paragraph.closest("blockquote,q,cite")) return;
       const paragraphText = normalizeSpace(reviewText(paragraph));
+      if (whollyQuoted(paragraphText)) return;
       const sentenceList = sentences(paragraphText);
       const paragraphWords = words(paragraphText).length;
       const tooManySentences = sentenceList.length > 5;
@@ -2698,7 +4120,7 @@
       .filter(item => item.text)
       .filter(item => words(item.text).length >= (item.element.tagName === "LI" ? 5 : 4))
       .map(item => item.text);
-    const gradeResult = englishLanguage ? readingGradeFromBlocks(proseBlocks) : { grade: null, words: 0, sentences: 0 };
+    const gradeResult = readingGradeFromBlocks(proseBlocks);
     const grade = gradeResult.grade;
     const contentSections = englishLanguage ? buildContentSections(root, inScanArea, documentOrder) : [];
     const sectionReadingReviews = contentSections.filter(section => sectionReadingThreshold(section.reading));
@@ -2733,48 +4155,65 @@
         const source = variants
           .map(variant => variant.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+"))
           .join("|");
-        const expression = new RegExp("\\b(?:" + source + ")\\b", "i");
+        const expression = new RegExp("\\b(?:" + source + ")\\b", "gi");
         nodes.forEach(node => {
-          const match = expression.exec(node.nodeValue);
-          if (match) {
+          expression.lastIndex = 0;
+          let match;
+          while ((match = expression.exec(node.nodeValue))) {
+            if (["assist", "assistance"].includes(pair[0])) {
+              const context = localTextContext(node).text;
+              if (hasIndigenousContext(context) && /\b(?:funding|funds|revenue|financial)\b/i.test(context)) return;
+            }
             const controlledReplacement = SIMPLE_PHRASE_REPLACEMENTS.get(pair[0]);
             const replacement = controlledReplacement && controlledReplacement.get(match[0].toLowerCase()) || pair[1];
-            add(ruleId, node.parentElement, node.nodeValue, "Consider ‘" + replacement + "’ when it preserves the intended meaning.", {
+            if (add(ruleId, node.parentElement, node.nodeValue, "Consider ‘" + replacement + "’ when it preserves the intended meaning.", {
+              sourceNode: node,
               matchText: match[0],
               replacement,
               contextText: node.nodeValue,
               matchIndex: match.index,
               capKey: pair[0]
-            });
+            })) break;
           }
         });
       });
     };
-    if (englishLanguage) {
-      scanPhrases(SIMPLE_PHRASES, "complex-phrase");
-      scanPhrases(FILLER_PHRASES, "filler-phrase");
-      nodes.forEach(node => {
-        const individualMatch = /\bindividuals\b/i.exec(node.nodeValue);
-        if (individualMatch) add("complex-phrase", node.parentElement, node.nodeValue, "Consider ‘people’ when it preserves the intended meaning.", {
+    scanPhrases(SIMPLE_PHRASES, "complex-phrase");
+    scanPhrases(FILLER_PHRASES, "filler-phrase");
+    nodes.forEach(node => {
+      for (const individualMatch of node.nodeValue.matchAll(/\bindividuals\b/gi)) {
+        if (add("complex-phrase", node.parentElement, node.nodeValue, "Consider ‘people’ when it preserves the intended meaning.", {
+          sourceNode: node,
           matchText: individualMatch[0],
           replacement: "people",
           contextText: node.nodeValue,
           matchIndex: individualMatch.index,
           capKey: "individual"
-        });
-      });
-    }
+        })) break;
+      }
+    });
 
     nodes.forEach(node => {
       const value = node.nodeValue;
       const parent = node.parentElement;
-      if (!englishLanguage) return;
-      if (/\b(?:ain|aren|can|couldn|daren|didn|doesn|don|hadn|hasn|haven|isn|mightn|mustn|needn|shan|shouldn|wasn|weren|won|wouldn)['’]t\b/i.test(value)) add("negative-contraction", parent, value);
-      if (/\b(?:e\.g\.|i\.e\.)/i.test(value)) add("latin-abbreviation", parent, value);
+      const nodeAdd = (ruleId, element, evidence, detail, metadata) => add(ruleId, element, evidence, detail, { ...metadata, sourceNode: node });
+      if (isEnglishText(node) && !parent.closest("blockquote,q,cite,h1,h2,h3,h4,h5,h6,a[href]")) {
+        const context = localTextContext(node);
+        indigenousWordingOccurrences(context.text).filter(match => match.index >= context.offset && match.index < context.offset + value.length).forEach(match => {
+          add(match.ruleId, parent, context.text, null, { matchText: match.text, replacement: match.replacement, matchIndex: match.index, sourceNode: parent, contextText: context.text });
+        });
+      }
+      if (!englishLanguage && !isEnglishText(node)) return;
+      for (const match of value.matchAll(/\b(?:ain|aren|can|couldn|daren|didn|doesn|don|hadn|hasn|haven|isn|mightn|mustn|needn|shan|shouldn|wasn|weren|won|wouldn)['’]t\b/gi)) {
+        if (nodeAdd("negative-contraction", parent, value, null, { matchText: match[0], matchIndex: match.index })) break;
+      }
+      for (const match of value.matchAll(/\b(?:e\.g\.|i\.e\.)/gi)) {
+        if (nodeAdd("latin-abbreviation", parent, value, null, { matchText: match[0], matchIndex: match.index })) break;
+      }
       if (!parent.closest("blockquote,q")) {
         const pubicExpression = /\bpubic\b/gi;
         let pubicMatch;
-        while ((pubicMatch = pubicExpression.exec(value))) add("proofreading-pubic", parent, value, null, {
+        while ((pubicMatch = pubicExpression.exec(value))) nodeAdd("proofreading-pubic", parent, value, null, {
           flaggedToken: pubicMatch[0],
           matchText: pubicMatch[0],
           proposedPhrase: pubicMatch[0],
@@ -2785,7 +4224,7 @@
         });
         const repeatedWordExpression = /\b(the|to|of|and|a|an|for|with)\s+\1\b/gi;
         let repeatedWordMatch;
-        while ((repeatedWordMatch = repeatedWordExpression.exec(value))) add("proofreading-repeat", parent, value, null, {
+        while ((repeatedWordMatch = repeatedWordExpression.exec(value))) nodeAdd("proofreading-repeat", parent, value, null, {
           flaggedToken: repeatedWordMatch[0],
           matchText: repeatedWordMatch[0],
           contextText: value,
@@ -2793,20 +4232,23 @@
         });
       }
       const postalCode = postalCodeDetails(value, parent);
-      if (postalCode) add("postal-code-format", parent, value, null, {
+      if (postalCode) nodeAdd("postal-code-format", parent, value, null, {
         matchText: postalCode.text,
         replacement: postalCode.replacement,
         matchIndex: postalCode.index,
         contextText: value
       });
       const approvedRanges = approvedTermRanges(value);
+      const identifierContext = localTextContext(node);
+      const companyRanges = numberedCompanyRanges(identifierContext.text);
       const bcExpression = /\bBC\b/g;
       let bcMatch;
       while ((bcMatch = bcExpression.exec(value))) {
         if (isInsideRange(bcMatch.index, approvedRanges)) continue;
-        if (isBcPostalAddressContext(value, bcMatch.index, parent)) continue;
+        if (isBcPostalAddressContext(value, bcMatch.index, parent, identifierContext)) continue;
+        if (rangeContains(companyRanges, identifierContext.offset + bcMatch.index, bcMatch[0].length)) continue;
         const proposal = proposeExactPhrase(value, bcMatch.index, bcMatch[0]);
-        add("bc-abbreviation", parent, value, null, {
+        nodeAdd("bc-abbreviation", parent, value, null, {
           flaggedToken: bcMatch[0],
           matchText: bcMatch[0],
           replacement: "B.C.",
@@ -2823,7 +4265,7 @@
         const precedingProvinceContext = value.slice(Math.max(0, provinceMatch.index - 20), provinceMatch.index);
         if (provinceMatch[0] === "NT" && /\b\d{1,2}(?::\d{2})?\s*(?:am|pm)\s*$/i.test(precedingProvinceContext)) continue;
         const replacement = PROVINCE_ABBREVIATIONS[provinceMatch[0]];
-        add("province-abbreviation", parent, value, null, {
+        nodeAdd("province-abbreviation", parent, value, null, {
           flaggedToken: provinceMatch[0],
           matchText: provinceMatch[0],
           replacement,
@@ -2839,7 +4281,7 @@
       let bcGovernmentMatch;
       while ((bcGovernmentMatch = bcGovernmentExpression.exec(value))) {
         const governmentIndex = bcGovernmentMatch.index + bcGovernmentMatch[0].lastIndexOf("Government");
-        add("government-capitalization", parent, value, null, {
+        nodeAdd("government-capitalization", parent, value, null, {
           flaggedToken: "Government",
           matchText: "Government",
           replacement: "government",
@@ -2859,7 +4301,7 @@
         const after = value.slice(governmentMatch.index + governmentMatch[0].length);
         if (/^\s+of\s+(?:the\s+)?[A-ZÀ-ÖØ-Þ]/.test(after)) continue;
         if (/^\s+(?:Street|St\.?|Road|Rd\.?|Avenue|Ave\.?|Boulevard|Blvd\.?|Drive|Dr\.?|Lane|Way)\b/.test(after)) continue;
-        add("government-capitalization", parent, value, null, {
+        nodeAdd("government-capitalization", parent, value, null, {
           flaggedToken: governmentMatch[0],
           matchText: governmentMatch[0],
           replacement: "government",
@@ -2882,7 +4324,7 @@
           if (/^Ministry$/.test(term) && /^\s+of\s+[A-ZÀ-ÖØ-Þ]/.test(value.slice(match.index + match[0].length))) continue;
           const termIndex = match.index + match[0].indexOf(term);
           if (/^[A-ZÀ-ÖØ-Þ]/.test(term) && isSentenceInitial(value, termIndex)) continue;
-          add("government-generic-term", parent, value, null, {
+          nodeAdd("government-generic-term", parent, value, null, {
             flaggedToken: term,
             matchText: term,
             replacement: term.toLowerCase(),
@@ -2895,11 +4337,11 @@
       });
 
       const parliamentBuildings = /\b[Pp]arliament buildings\b/g.exec(value);
-      if (parliamentBuildings) add("parliament-buildings", parent, value, null, {
+      if (parliamentBuildings) nodeAdd("parliament-buildings", parent, value, null, {
         matchText: parliamentBuildings[0], replacement: "Parliament Buildings", matchIndex: parliamentBuildings.index
       });
       const crownTerm = /\bcrown\s+(?:land|counsel|corporation)\b/g.exec(value);
-      if (crownTerm) add("crown-capitalization", parent, value, null, {
+      if (crownTerm) nodeAdd("crown-capitalization", parent, value, null, {
         matchText: crownTerm[0], replacement: crownTerm[0].replace(/^crown/, "Crown"), matchIndex: crownTerm.index
       });
 
@@ -2908,7 +4350,7 @@
       while ((canadianMatch = canadianExpression.exec(value))) {
         const replacementBase = CANADIAN_SPELLINGS[canadianMatch[0].toLowerCase()];
         const replacement = /^[A-Z]/.test(canadianMatch[0]) ? replacementBase[0].toUpperCase() + replacementBase.slice(1) : replacementBase;
-        add("canadian-spelling", parent, value, null, {
+        nodeAdd("canadian-spelling", parent, value, null, {
           flaggedToken: canadianMatch[0],
           matchText: canadianMatch[0],
           replacement,
@@ -2921,7 +4363,7 @@
 
       const contextualCanadianMatch = canadianSpellingContextDetails(value);
       if (contextualCanadianMatch) {
-        add("canadian-spelling-context", parent, value, null, {
+        nodeAdd("canadian-spelling-context", parent, value, null, {
           flaggedToken: contextualCanadianMatch.text,
           matchText: contextualCanadianMatch.text,
           replacement: contextualCanadianMatch.replacement,
@@ -2934,11 +4376,11 @@
       }
 
       const gradeMatch = /\bgrade\s+(?:\d+|[A-K])\b/g.exec(value);
-      if (gradeMatch && educationContext(reviewText(parent) || value)) add("grade-capitalization", parent, value, null, {
+      if (gradeMatch && educationContext(reviewText(parent) || value)) nodeAdd("grade-capitalization", parent, value, null, {
         matchText: gradeMatch[0], replacement: gradeMatch[0].replace(/^grade/, "Grade"), matchIndex: gradeMatch.index
       });
       const degreeMatch = academicDegreeDetails(value);
-      if (degreeMatch && parent.closest("p,li,dd,dt,blockquote")) add("academic-degree-case", parent, value, null, {
+      if (degreeMatch && parent.closest("p,li,dd,dt,blockquote")) nodeAdd("academic-degree-case", parent, value, null, {
         flaggedToken: degreeMatch.text,
         matchText: degreeMatch.text,
         replacement: degreeMatch.replacement,
@@ -2948,7 +4390,7 @@
         matchedException: exceptionAtIndex(savedExceptions, "academic-degree-case", value, degreeMatch.index, hostname, pageUrl)
       });
       const doctorMatch = /\bDr\.\s+[A-ZÀ-ÖØ-Þ][A-Za-zÀ-ÖØ-öø-ÿ’'-]+(?:\s+[A-ZÀ-ÖØ-Þ][A-Za-zÀ-ÖØ-öø-ÿ’'-]+){0,2}/g.exec(value);
-      if (doctorMatch && !isLikelyStreetAbbreviation(value, doctorMatch.index, parent)) add("academic-title", parent, value, null, {
+      if (doctorMatch && !isLikelyStreetAbbreviation(value, doctorMatch.index, parent)) nodeAdd("academic-title", parent, value, null, {
         flaggedToken: doctorMatch[0],
         matchText: doctorMatch[0],
         proposedPhrase: doctorMatch[0],
@@ -2957,28 +4399,29 @@
         matchedException: exceptionAtIndex(savedExceptions, "academic-title", value, doctorMatch.index, hostname, pageUrl)
       });
       if (/[!?;]/.test(value)) {
-        if (value.includes("!")) add("exclamation", parent, value);
+        for (const match of value.matchAll(/!/g)) {
+          if (nodeAdd("exclamation", parent, value, null, { matchText: "!", matchIndex: match.index })) break;
+        }
         if (value.includes(";")) {
           const semanticContainer = parent.closest("li,h1,h2,h3,h4,h5,h6");
           const terminalSemicolonHandledElsewhere = semanticContainer && /;\s*$/.test(normalizeSpace(reviewText(semanticContainer)));
           if (!terminalSemicolonHandledElsewhere) {
-            const semicolonIndex = value.indexOf(";");
-            add("semicolon", parent, value, null, {
-              matchText: ";",
-              matchIndex: semicolonIndex,
-              contextText: value
-            });
+            for (const match of value.matchAll(/;/g)) {
+              if (nodeAdd("semicolon", parent, value, null, {
+                matchText: ";", matchIndex: match.index, contextText: value
+              })) break;
+            }
           }
         }
       }
-      missingSpaceAfterSentencePunctuationOccurrences(value, parent).forEach(occurrence => add("missing-space-after-punctuation", parent, value, null, {
-        matchText: occurrence.text,
-        replacement: occurrence.replacement,
-        matchIndex: occurrence.index,
-        contextText: value
-      }));
+      localOccurrences(node, "spacingOccurrences", missingSpaceAfterSentencePunctuationOccurrences, true).forEach(({ match, context }) => {
+        nodeAdd("missing-space-after-punctuation", context.root, context.text, null, {
+          matchText: match.text, replacement: match.replacement, matchIndex: match.index,
+          sourceMatchIndex: match.index - context.offset, contextText: context.text
+        });
+      });
       const rangeOccurrences = rangeDashOccurrences(value);
-      rangeOccurrences.forEach(range => add("range-dash", parent, value, null, {
+      rangeOccurrences.forEach(range => nodeAdd("range-dash", parent, value, null, {
         matchText: range.text,
         replacement: range.replacement,
         matchIndex: range.index,
@@ -2994,56 +4437,61 @@
         while ((emDashMatch = emDashExpression.exec(value))) {
           const insideRange = rangeOccurrences.some(range => emDashMatch.index >= range.index && emDashMatch.index < range.index + range.text.length)
             || currencyDashRanges.some(range => emDashMatch.index >= range.start && emDashMatch.index < range.end);
-          if (!insideRange) add("em-dash", parent, value, null, { matchText: "—", matchIndex: emDashMatch.index, contextText: value });
+          if (!insideRange) nodeAdd("em-dash", parent, value, null, { matchText: "—", matchIndex: emDashMatch.index, contextText: value });
         }
-        dashSeparatorOccurrences(value, rangeOccurrences).forEach(separator => add("dash-separator", parent, value, null, {
+        dashSeparatorOccurrences(value, rangeOccurrences).forEach(separator => nodeAdd("dash-separator", parent, value, null, {
           matchText: separator.text,
           matchIndex: separator.index,
           contextText: value
         }));
       }
-      doubleSpaceOccurrences(value).forEach(doubleSpace => add("double-space", parent, doubleSpace.evidence, null, {
+      doubleSpaceOccurrences(value).forEach(doubleSpace => nodeAdd("double-space", parent, doubleSpace.evidence, null, {
         matchText: `⟦${doubleSpace.count} spaces⟧`,
         matchIndex: doubleSpace.index
       }));
-      if (optionalChecks.nonBreakingSpace && !parent.closest("code,pre")) nonBreakingSpaceOccurrences(value).forEach(space => add("non-breaking-space", parent, space.evidence, null, {
+      if (optionalChecks.nonBreakingSpace && !parent.closest("code,pre")) nonBreakingSpaceOccurrences(value).forEach(space => nodeAdd("non-breaking-space", parent, space.evidence, null, {
         matchText: "⟦non-breaking space⟧",
         matchIndex: space.evidence.indexOf("⟦non-breaking space⟧")
       }));
       const slashExpression = /\b(?:and\s*\/\s*or|he\s*\/\s*she|she\s*\/\s*he|his\s*\/\s*her|her\s*\/\s*his|he\s*\/\s*him|she\s*\/\s*her|s\s*\/\s*he)\b/gi;
       let slashMatch;
       while ((slashMatch = slashExpression.exec(value))) {
-        if (!indexInsideUrl(value, slashMatch.index)) add("slash", parent, value, null, {
+        const andOr = /^and\s*\/\s*or$/i.test(slashMatch[0]);
+        const suggestion = andOr ? "Use ‘and’ when both apply, ‘or’ when either applies, or wording such as ‘email, phone or both’ when both are also possible. Confirm the intended meaning before changing the sentence." : null;
+        if (!indexInsideUrl(value, slashMatch.index)) nodeAdd("slash", parent, value, suggestion, {
           matchText: slashMatch[0], matchIndex: slashMatch.index, contextText: value
         });
       }
       const wifiExpression = /\b(?:WIFI|WiFi|Wifi|wifi)\b/g;
       let wifiMatch;
       while ((wifiMatch = wifiExpression.exec(value))) {
-        if (!indexInsideUrl(value, wifiMatch.index)) add("wifi-format", parent, value, null, {
+        if (!indexInsideUrl(value, wifiMatch.index)) nodeAdd("wifi-format", parent, value, null, {
           matchText: wifiMatch[0], replacement: "Wi-Fi", matchIndex: wifiMatch.index, contextText: value
         });
       }
       const joinedAmpersand = /&([A-ZÀ-ÖØ-Þ][a-zà-öø-ÿ]{2,})/.exec(value);
-      if (joinedAmpersand && !parent.closest("code,pre")) add("missing-space-after-ampersand", parent, value, null, {
+      if (joinedAmpersand && !parent.closest("code,pre")) nodeAdd("missing-space-after-ampersand", parent, value, null, {
         matchText: joinedAmpersand[0], replacement: `& ${joinedAmpersand[1]}`, matchIndex: joinedAmpersand.index
       });
-      if (value.includes("&") && !parent.closest("code,pre")) add("ampersand", parent, value);
+      if (!parent.closest("code,pre")) for (const match of value.matchAll(/&/g)) {
+        if (nodeAdd("ampersand", parent, value, null, { matchText: "&", matchIndex: match.index })) break;
+      }
       const nonEmailAtText = value
         .replace(/\b[^\s@]+@[^\s@]+\.[^\s@]+\b/g, "")
         .replace(/(^|\s)@[A-Za-z0-9_]{2,}\b/g, "$1");
-      if (nonEmailAtText.includes("@")) add("at-symbol", parent, value, null, { matchText: "@", matchIndex: value.indexOf("@") });
+      if (nonEmailAtText.includes("@")) nodeAdd("at-symbol", parent, value, null, { matchText: "@", matchIndex: value.indexOf("@") });
       const boldContainer = parent.closest("strong,b");
-      const fullBoldAllCaps = boldContainer && allCapsHeadingDetails(normalizeSpace(reviewText(boldContainer)));
+      const allCapsContainer = boldContainer || parent.closest("h1,h2,h3,h4,h5,h6");
+      const fullBoldAllCaps = allCapsContainer && allCapsHeadingDetails(allCapsProjection(allCapsContainer, reviewText(allCapsContainer)));
       const allCapsTokens = fullBoldAllCaps ? [] : Array.from(value.matchAll(/\b[A-Z][A-Z’']{1,}\b/g))
-        .filter(match => isCommonAllCapsWord(match[0]));
+        .filter(match => isCommonAllCapsWord(match[0]) && englishToken(node, match.index, match[0]));
       let allCapsGroup = [];
       const finishAllCapsGroup = () => {
         if (!allCapsGroup.length) return;
         const first = allCapsGroup[0];
         const last = allCapsGroup[allCapsGroup.length - 1];
         const end = last.index + last[0].length;
-        add("all-caps", parent, value, null, {
+        nodeAdd("all-caps", parent, value, null, {
           matchText: value.slice(first.index, end),
           matchIndex: first.index
         });
@@ -3057,72 +4505,89 @@
       finishAllCapsGroup();
       const septemberAbbreviation = /\bSept\.?\s+\d{1,2}\b/i.test(value);
       const otherMonthAbbreviation = /\b(?:Jan|Feb|Aug|Sep|Oct|Nov|Dec)\.?\s+\d{1,2}\b/i.test(value);
-      if (septemberAbbreviation || (otherMonthAbbreviation && !parent.closest("table,form"))) add("month-abbreviation", parent, value);
+      if (septemberAbbreviation || (otherMonthAbbreviation && !parent.closest("table,form"))) nodeAdd("month-abbreviation", parent, value);
       const ambiguousNumericDate = /\b(?:0?[1-9]|1[0-2])[\/.-](?:0?[1-9]|[12]\d|3[01])[\/.-](?:\d{2}|\d{4})\b/.test(value)
         || /\b(?:1[3-9]|2\d|3[01])[\/.-](?:0?[1-9]|1[0-2])[\/.-](?:\d{2}|\d{4})\b/.test(value);
       const isoDate = /\b\d{4}-\d{2}-\d{2}\b/.test(value);
       const yearFirstNumericDate = /\b\d{4}[/.](?:0?[1-9]|1[0-2])[/.](?:0?[1-9]|[12]\d|3[01])\b/.test(value);
-      if ((ambiguousNumericDate || isoDate || yearFirstNumericDate) && !parent.closest("table,form")) add("numeric-date", parent, value);
+      if ((ambiguousNumericDate || isoDate || yearFirstNumericDate) && !parent.closest("table,form")) nodeAdd("numeric-date", parent, value);
       const incompleteYear = /\b(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},\s*(\d{3})(?!\d)\b/i.exec(value);
       if (incompleteYear) {
         const yearIndex = incompleteYear.index + incompleteYear[0].lastIndexOf(incompleteYear[1]);
-        add("incomplete-year", parent, value, null, {
+        nodeAdd("incomplete-year", parent, value, null, {
           matchText: incompleteYear[1], matchIndex: yearIndex, contextText: value
         });
       }
-      if (/\b(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2}(?:st|nd|rd|th)\b/i.test(value)) add("ordinal-date", parent, value);
+      if (/\b(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2}(?:st|nd|rd|th)\b/i.test(value)) nodeAdd("ordinal-date", parent, value);
       const ordinalWord = /\b[1-9](?:st|nd|rd|th)\b/i.exec(value);
       const ordinalIsDate = ordinalWord && /(?:January|February|March|April|May|June|July|August|September|October|November|December)\s*$/i.test(value.slice(Math.max(0, ordinalWord.index - 14), ordinalWord.index));
-      if (ordinalWord && !ordinalIsDate && !parent.closest("table,form")) add("ordinal-word", parent, value, null, {
+      if (ordinalWord && !ordinalIsDate && !parent.closest("table,form")) nodeAdd("ordinal-word", parent, value, null, {
         matchText: ordinalWord[0], matchIndex: ordinalWord.index
       });
-      if (/\b(?:1[0-2]|0?[1-9]):00\s*(?:a\.?m\.?|p\.?m\.?)\b/i.test(value)
-        || /\b\d{1,2}(?::\d{2})?\s*(?:A\.?M\.?|P\.?M\.?)\b/.test(value)
-        || /\b\d{1,2}(?::\d{2})?\s*(?:a\.m\.|p\.m\.)\b/i.test(value)
-        || /\b\d{1,2}(?::\d{2})?(?:am|pm)\b/i.test(value)) add("time-format", parent, value);
+      timeFormatOccurrences(value).forEach(time => nodeAdd("time-format", parent, value,
+        time.reasons.join(" ") + ` Write ‘${time.replacement}’.`, {
+          matchText: time.text, matchIndex: time.index, replacement: time.replacement, contextText: value
+        }));
       const clockZone = /\b\d{1,2}(?::\d{2})?\s*(?:am|pm)\s+(PST|PDT|MST|MDT|CST|CDT|EST|EDT|AST|ADT|NST|NDT)\b/i.exec(value);
       const writtenZone = /\b(?:(?:Pacific|mountain|central|eastern|Atlantic|Newfoundland)\s+)?(?:standard|daylight)\s+time\b/i.exec(value);
-      if (clockZone) add("time-zone", parent, value, null, {
+      if (clockZone) nodeAdd("time-zone", parent, value, null, {
         matchText: clockZone[1], replacement: TIME_ZONE_REPLACEMENTS[clockZone[1].toUpperCase()] || "general time zone", matchIndex: clockZone.index + clockZone[0].lastIndexOf(clockZone[1])
       });
-      else if (writtenZone) add("time-zone", parent, value, null, { matchText: writtenZone[0], matchIndex: writtenZone.index });
-      if (/\b12\s+(?:noon|midnight)\b/i.test(value)) add("noon-midnight", parent, value);
-      if (/\b\d+(?:\.\d+)?\s*(?:inches?|feet|foot|yards?|miles?|pounds?|ounces?|fahrenheit|°F)\b/i.test(value)) add("imperial-unit", parent, value);
+      else if (writtenZone) nodeAdd("time-zone", parent, value, null, { matchText: writtenZone[0], matchIndex: writtenZone.index });
+      if (/\b12\s+(?:noon|midnight)\b/i.test(value)) nodeAdd("noon-midnight", parent, value);
+      const measurementContext = localTextContext(node);
+      if (!measurementContext.imperialOccurrences) {
+        const cached = orthographyCache.get(measurementContext.root);
+        cached.imperialOccurrences = imperialUnitOccurrences(measurementContext.text);
+        measurementContext.imperialOccurrences = cached.imperialOccurrences;
+      }
+      for (const measurement of measurementContext.imperialOccurrences) {
+        if (measurement.index < measurementContext.offset || measurement.index >= measurementContext.offset + value.length) continue;
+        const end = measurement.index + measurement.text.length;
+        if (Array.from(measurementContext.offsets).some(([part, offset]) => measurement.index < offset + part.nodeValue.length && end > offset && !isEnglishText(part))) continue;
+        const target = end > measurementContext.offset + value.length ? measurementContext.root : parent;
+        nodeAdd("imperial-unit", target, measurementContext.text, null, {
+          matchText: measurement.text, matchIndex: measurement.index,
+          sourceMatchIndex: measurement.index - measurementContext.offset, contextText: measurementContext.text
+        });
+      }
       const measurement = measurementDetails(value);
-      if (measurement) add(measurement.ruleId, parent, value, null, {
+      if (measurement) nodeAdd(measurement.ruleId, parent, value, null, {
         matchText: measurement.text, replacement: measurement.replacement, matchIndex: measurement.index
       });
-      if (/\b\d+(?:\.\d+)?\s+°[cC]\b/.test(value) || /\b\d+(?:\.\d+)?°c\b/.test(value)) add("celsius-format", parent, value);
-      if (/\b\d+(?:\.\d+)?%/.test(value) && !parent.closest("table,figure")) add("percent-symbol", parent, value);
-      if (/[¼½¾⅓⅔⅛⅜⅝⅞]/.test(value)) add("fraction-symbol", parent, value);
+      if (/\b\d+(?:\.\d+)?\s+°[cC]\b/.test(value) || /\b\d+(?:\.\d+)?°c\b/.test(value)) nodeAdd("celsius-format", parent, value);
+      if (/\b\d+(?:\.\d+)?%/.test(value) && !parent.closest("table,figure")) nodeAdd("percent-symbol", parent, value);
+      if (/[¼½¾⅓⅔⅛⅜⅝⅞]/.test(value)) nodeAdd("fraction-symbol", parent, value);
 
-      numberSeparatorOccurrences(value, parent).forEach(numberOccurrence => {
-        add("number-comma", parent, value, null, {
+      localOccurrences(node, "numberOccurrences", numberSeparatorOccurrences).forEach(({ match: numberOccurrence, context }) => {
+        nodeAdd("number-comma", context.root, context.text, null, {
           matchText: numberOccurrence.text,
           replacement: numberOccurrence.replacement,
-          matchIndex: numberOccurrence.index
+          matchIndex: numberOccurrence.index,
+          sourceMatchIndex: numberOccurrence.index - context.offset,
+          contextText: context.text
         });
       });
 
       const cents = /\$(0\.\d{2})\b/.exec(value);
-      if (cents) add("currency-cents", parent, value, null, {
+      if (cents) nodeAdd("currency-cents", parent, value, null, {
         matchText: `$${cents[1]}`, replacement: `${Math.round(Number(cents[1]) * 100)} cents`, matchIndex: cents.index
       });
       const trailingZeros = /(?:US)?\$(?:[1-9]\d*|[1-9]\d{0,2}(?:,\d{3})+)\.00\b/.exec(value);
-      if (trailingZeros) add("currency-trailing-zeros", parent, value, null, {
+      if (trailingZeros) nodeAdd("currency-trailing-zeros", parent, value, null, {
         matchText: trailingZeros[0], replacement: trailingZeros[0].replace(/\.00$/, ""), matchIndex: trailingZeros.index
       });
       const missingCurrencyComma = /((?:US)?\$)(\d{4,})(\.\d+)?(?![\d,])/.exec(value);
-      if (missingCurrencyComma) add("currency-comma", parent, value, null, {
+      if (missingCurrencyComma) nodeAdd("currency-comma", parent, value, null, {
         matchText: missingCurrencyComma[0], replacement: `${missingCurrencyComma[1]}${formattedCurrency(missingCurrencyComma[2])}${missingCurrencyComma[3] || ""}`, matchIndex: missingCurrencyComma.index
       });
       const currencyRange = /(?:US)?\$\d[\d,.]*\s*[-–—]\s*(?:US)?\$?\d[\d,.]*/.exec(value);
-      if (currencyRange) add("currency-range", parent, value, null, {
+      if (currencyRange) nodeAdd("currency-range", parent, value, null, {
         matchText: currencyRange[0], replacement: currencyRange[0].replace(/\s*[-–—]\s*/, " to "), matchIndex: currencyRange.index
       });
 
       const apostrophePlural = /\b(?:\d{3,4}|[A-Z]{2,6})['’]s\b/.exec(value);
-      if (apostrophePlural) add("apostrophe-plural", parent, value, null, {
+      if (apostrophePlural) nodeAdd("apostrophe-plural", parent, value, null, {
         matchText: apostrophePlural[0], matchIndex: apostrophePlural.index
       });
     });
@@ -3169,19 +4634,19 @@
     });
 
     const firstAcronymOccurrences = new Map();
-    const acronymTextParts = nodes.map(node => node.nodeValue || "");
+    const acronymTextParts = nodes.map(englishAcronymPart);
     nodes.forEach((node, nodeIndex) => {
       const expression = /\b[A-Z][A-Z0-9]{1,5}s?\b/g;
       let match;
       while ((match = expression.exec(node.nodeValue))) {
-        if (acronymContextExcluded(node.nodeValue, match.index, match[0])) continue;
+        if (!englishToken(node, match.index, match[0]) || quotedOccurrence(node, match.index, match[0].length) || acronymContextExcluded(node.nodeValue, match.index, match[0])) continue;
         const base = acronymBase(match[0]);
         if (!firstAcronymOccurrences.has(base)) firstAcronymOccurrences.set(base, { node, nodeIndex, index: match.index, token: match[0] });
       }
     });
     firstAcronymOccurrences.forEach((occurrence, acronym) => {
       const displayedAcronym = occurrence.token || acronym;
-      if (!englishLanguage) return;
+      if (!isEnglishText(occurrence.node)) return;
       if (isWifiVariant(acronym) || isWifiVariant(displayedAcronym)) return;
       if (isCommonAllCapsWord(acronym) || isCommonAllCapsWord(displayedAcronym)) return;
       if (isWellKnownAcronym(acronym) || isWellKnownAcronym(displayedAcronym)) return;
@@ -3192,7 +4657,7 @@
       const element = parent.closest("h1,h2,h3,h4,h5,h6,p,li,dd,dt,figcaption,blockquote") || parent;
       const elementText = normalizeSpace(reviewText(element) || occurrence.node.nodeValue || displayedAcronym);
       if (isPostalAcronymContext(acronym, elementText, element)) return;
-      const exactIndex = exactTokenIndex(elementText, displayedAcronym);
+      const exactIndex = occurrenceIndexInElement(element, occurrence.node, occurrence.index, displayedAcronym, elementText);
       const termIndex = Math.max(0, exactIndex);
       const definitionStyle = acronymDefinitionStyleInText(elementText, displayedAcronym)
         || acronymDefinitionStyleAcrossParts(acronymTextParts, occurrence.nodeIndex, occurrence.index, displayedAcronym);
@@ -3210,12 +4675,14 @@
       if (definitionStyle) return;
       if (exactIndex >= 0 && builtInTermAtIndex(elementText, exactIndex)) return;
       add("undefined-acronym", element || root, elementText, null, {
+        sourceNode: occurrence.node,
         flaggedToken: displayedAcronym,
         matchText: displayedAcronym,
         proposedPhrase: proposeExactPhrase(elementText, termIndex, displayedAcronym),
         contextText: elementText,
         evidencePrefix: "First use: ",
         matchIndex: termIndex,
+        sourceMatchIndex: occurrence.index,
         diagnostics: [`No earlier definition in the form “full term (${acronym})” was found in the scanned content.`],
         matchedException: exceptionAtIndex(savedExceptions, "undefined-acronym", elementText, termIndex, hostname, pageUrl)
       });
@@ -3392,9 +4859,13 @@
         if (words(linkText).length > 15) add("long-link-text", link, linkText);
         if (link.target && link.target.toLowerCase() === "_blank") add("new-tab", link, linkText || href);
         if (/news\.gov\.bc\.ca|\/news-releases?\//i.test(href)) add("news-release-link", link, linkText || href);
-        if (/^mailto:/i.test(href)) {
-          const address = decodeURIComponent(href.replace(/^mailto:/i, "").split("?")[0]);
-          if (linkText.toLowerCase() !== address.toLowerCase()) add("email-link-text", link, linkText + " → " + address);
+        if (/^mailto:/i.test(href.trim())) {
+          const email = emailLinkComparison(href, linkText);
+          const punctuationReported = email.punctuationOnly && linkPunctuationIssue(linkText) === "terminal"
+            && !splitLinkMembers.has(link) && !adjacentLinkMembers.has(link);
+          if (email.invalid) add("email-link-destination", link, "The email destination could not be read safely.");
+          else if (!email.matches && !punctuationReported) add("email-link-text", link,
+            emailComparisonEvidence(linkText) + " → " + emailComparisonEvidence(email.address || "[No recipient address]"));
         }
         if (/^tel:/i.test(href) && !isValidTelHref(href)) add("phone-link-format", link, href);
       }
@@ -3497,9 +4968,9 @@
       const navigationalList = Boolean(list.closest("nav,[role='navigation']")) || onThisPageList;
       let depth = 1;
       let ancestor = list.parentElement && list.parentElement.closest("ul,ol");
-      while (ancestor) { depth += 1; ancestor = ancestor.parentElement && ancestor.parentElement.closest("ul,ol"); }
+      while (ancestor) { if (isMeaningfulList(ancestor)) depth += 1; ancestor = ancestor.parentElement && ancestor.parentElement.closest("ul,ol"); }
       if (depth > 2 && !navigationalList) add("list-depth", list, "List depth: " + depth);
-      const items = Array.from(list.children).filter(item => item.tagName === "LI");
+      const items = Array.from(list.children).filter(item => item.tagName === "LI" && !isAccordionListItem(item));
       if (items.length > 7 && !navigationalList) add("list-long", list, items.length + " items");
       const listComponent = list.closest(CMS_LITE_COMPONENT_SELECTORS);
       const precedingBlocks = Array.from(root.querySelectorAll("p,h1,h2,h3,h4,h5,h6,summary"))
@@ -3509,17 +4980,19 @@
       const precedingBlock = precedingBlocks[precedingBlocks.length - 1] || null;
       const precedingParagraph = precedingBlock && precedingBlock.tagName === "P" ? precedingBlock : null;
       const precedingText = precedingParagraph ? normalizeSpace(reviewText(precedingParagraph)) : "";
-      if (englishLanguage && !navigationalList && items.length >= 2 && precedingParagraph && precedingText && !/:$/.test(precedingText) && !listIntroductionParagraphs.has(precedingParagraph)) {
+      if (!navigationalList && items.length >= 2 && precedingParagraph && precedingText && !/:$/.test(precedingText) && !listIntroductionParagraphs.has(precedingParagraph)) {
         listIntroductionParagraphs.add(precedingParagraph);
         add("list-introduction", precedingParagraph, precedingText);
       }
       items.forEach(item => {
         const ownText = normalizeSpace(Array.from(item.childNodes).filter(node => node.nodeType === 3 || !/^(UL|OL)$/.test(node.tagName || "")).map(node => reviewText(node)).join(" "));
-        if (!englishLanguage || navigationalList) return;
+        if (navigationalList) return;
         const fakeSublist = fakeListDetails(item, { allowInsideListItem: true });
         if (fakeSublist) add("fake-list", item, `${fakeSublist.count} sub-items made with ${fakeSublist.marker}: ${fakeSublist.evidence}`);
         if (listEndingNeedsRemoval(ownText)) add("list-punctuation", item, ownText);
-        if (/^[a-zà-öø-ÿ]/.test(ownText)) add("list-lowercase", item, ownText);
+        const firstNode = textNodes(item, inScanArea).find(node => node.parentElement.closest("li") === item);
+        const firstWord = firstNode && /\S+/.exec(firstNode.nodeValue);
+        if (firstWord && englishToken(firstNode, firstWord.index, firstWord[0]) && /^[a-zà-öø-ÿ]/.test(ownText)) add("list-lowercase", item, ownText);
         const itemSentences = sentences(ownText);
         if (itemSentences.length > 1) add("list-multiple-sentences", item, `${itemSentences.length} sentences: ${ownText}`);
       });
@@ -3527,8 +5000,8 @@
         const itemLinks = item.querySelectorAll("a");
         return itemLinks.length === 1 && normalizeSpace(reviewText(item)) === normalizeSpace(reviewText(itemLinks[0]));
       });
-      if (englishLanguage && !navigationalList && !linkDirectory) {
-        const openings = items.map(item => firstWords(reviewText(item), 2)).map(opening => /^[a-zà-öø-ÿ]/i.test(opening) ? opening : "");
+      if (!navigationalList && !linkDirectory) {
+        const openings = items.map(item => listReviewOpening(item, normalizeSpace(reviewText(item)), inScanArea));
         const counts = new Map();
         openings.filter(Boolean).forEach(opening => counts.set(opening, (counts.get(opening) || 0) + 1));
         const repeated = Array.from(counts.entries()).find(([opening, count]) => {
@@ -3541,7 +5014,9 @@
           });
           return maxConsecutive >= 3 || count / Math.max(1, items.length) >= 0.5;
         });
-        if (repeated) add("list-repetition", list, `Repeated opening: ‘${repeated[0]}’ in ${repeated[1]} of ${items.length} items`);
+        if (repeated) add("list-repetition", list, `Repeated opening: ‘${repeated[0]}’ in ${repeated[1]} of ${items.length} items`, null, {
+          sourceNode: items[openings.indexOf(repeated[0])]
+        });
       }
     });
 
@@ -3552,9 +5027,22 @@
     });
 
     Array.from(root.querySelectorAll("table")).filter(inScanArea).forEach(table => {
-      if (!table.querySelector("th")) add("table-headers", table, excerpt(reviewText(table)));
-      if (!table.querySelector("caption")) add("table-caption", table, excerpt(reviewText(table)));
-      if (table.closest("details,[class*='accordion' i],[class*='collapse' i]")) add("table-accordion", table, excerpt(reviewText(table)));
+      const own = selector => Array.from(table.querySelectorAll(selector)).filter(element => element.closest("table") === table);
+      const presentation = /^(presentation|none)$/.test(table.getAttribute("role") || "");
+      const layoutCandidate = singleCellLayoutCandidate(table, inScanArea);
+      if (layoutCandidate || presentation) {
+        add("table-layout", table, excerpt(reviewText(table)), presentation
+          ? "This table is marked as a layout table. Replace it with a content box or another layout option available in your editor. Tables must contain tabular data."
+          : null, { diagnostics: [presentation ? "This table is marked as a layout table." : "This table has one cell and may be used to create a content box."] });
+      } else {
+        if (!own("th").length) add("table-headers", table, excerpt(reviewText(table)));
+        const caption = own("caption")[0];
+        if (!caption || !normalizeSpace(reviewText(caption))) add("table-caption", table, excerpt(reviewText(table)));
+      }
+      if (profile === "cms-lite") {
+        if (table.closest(".accordion,.accordion-container,.panel-group,.panel-collapse,details")) add("table-accordion", table, excerpt(reviewText(table)));
+        if (table.closest("#cmf-ui-supplementary-content")) add(intranetProfile ? "table-right-column" : "table-supplemental", table, excerpt(reviewText(table)));
+      }
     });
 
     Array.from(root.querySelectorAll("strong,b")).filter(inScanArea).forEach(element => {
@@ -3572,10 +5060,10 @@
       if (nearby && levels < 4 && nearby.querySelector("figure")) return;
       const formattedHeading = formattedHeadingDetails(element, inScanArea);
       if (formattedHeading) {
-        add(formattedHeading.allCaps ? "formatted-all-caps-heading" : "formatted-heading", formattedHeading.block, formattedHeading.text);
+        add(formattedHeading.allCaps && allCapsHeadingDetails(allCapsProjection(element, formattedHeading.text)) ? "formatted-all-caps-heading" : "formatted-heading", formattedHeading.block, formattedHeading.text);
         return;
       }
-      const standaloneAllCaps = allCapsHeadingDetails(normalizeSpace(reviewText(element)));
+      const standaloneAllCaps = allCapsHeadingDetails(allCapsProjection(element, reviewText(element)));
       if (standaloneAllCaps) {
         add("all-caps", element, reviewText(element), null, {
           matchText: standaloneAllCaps.text,
@@ -3671,7 +5159,7 @@
             reason
           };
           unsupportedContrast.signature = ["text", "unverified", unsupportedContrast.foreground, unsupportedContrast.background, required, displayState, responsibility, reason].join("/");
-          add("contrast-unverified", element, `Automatic measurement is unreliable (${reason}): ${text}`, null, { contrast: unsupportedContrast });
+          add("contrast-unverified", element, text, null, { contrast: unsupportedContrast });
           return;
         }
         const effectiveForeground = composite(foreground, background);
@@ -3696,7 +5184,7 @@
           const reasons = Array.from(new Set(backgroundResult.reasons));
           baseContrast.reason = reasons.join(", ");
           baseContrast.signature = ["text", "unverified", colourKey(effectiveForeground), colourKey(background), required, displayState, responsibility, reasons.join("|")].join("/");
-          add("contrast-unverified", element, `Automatic measurement is unreliable (${reasons.join(", ")}): ${text}`, null, { contrast: baseContrast });
+          add("contrast-unverified", element, text, null, { contrast: baseContrast });
           return;
         }
         baseContrast.signature = ["text", "confirmed", colourKey(effectiveForeground), colourKey(background), required, displayState, responsibility].join("/");
@@ -3730,6 +5218,7 @@
 
     return {
       ruleVersion: RULE_VERSION,
+      ruleBuild: RULE_BUILD,
       scannedAt: new Date().toISOString(),
       page: {
         title: title || "Untitled page",
@@ -3793,19 +5282,32 @@
     scanPage,
     createExternalFinding,
     ruleVersion: RULE_VERSION,
+    ruleBuild: RULE_BUILD,
     builtInTerms: BUILT_IN_TERMS.slice(),
     exceptionEligibleRules: Array.from(EXCEPTION_ELIGIBLE_RULES),
     helpers: {
       normalizeSpace,
       comparisonText,
       words,
+      canEstimateEnglishReadability,
       sentences,
+      abbreviationOccurrences,
       syllables,
       readingGrade,
       readingGradeFromBlocks,
       shouldFlagReadingGrade,
       sectionReadingThreshold,
       isEnglishLanguage,
+      indigenousNameRanges,
+      protectedCaseRanges,
+      languageSensitiveRanges,
+      orthographicWordRanges,
+      nameProjection,
+      englishCaseText,
+      englishAllCapsText,
+      isEnglishText,
+      indigenousWordingOccurrences,
+      englishAcronymText,
       passiveVoiceParticiple,
       headingStructureDetails,
       excerptAroundMatch,
@@ -3813,7 +5315,9 @@
       dashSeparatorOccurrences,
       indexInsideUrl,
       isWifiVariant,
+      timeFormatOccurrences,
       measurementDetails,
+      imperialUnitOccurrences,
       educationContext,
       academicDegreeDetails,
       canadianSpellingContextDetails,
@@ -3834,6 +5338,12 @@
       isPostalAcronymContext,
       isBcPostalAddressContext,
       numberSeparatorOccurrences,
+      numberedCompanyRanges,
+      numberIdentifierRanges,
+      streetAddressOccurrences,
+      labelledIdentifierRanges,
+      emailLinkComparison,
+      singleCellLayoutCandidate,
       missingSpaceAfterSentencePunctuationOccurrences,
       doubleSpaceDetails,
       doubleSpaceOccurrences,

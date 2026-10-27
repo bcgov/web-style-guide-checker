@@ -162,7 +162,7 @@ function lifecycleDisplayContent(result) {
     },
     "build-expired": {
       title: "This preview has expired",
-      message: customMessage || `This preview build expired on ${result && result.builtInExpiry ? result.builtInExpiry : "its configured expiry date"}. Get a current preview before continuing.`,
+      message: customMessage || `This pilot build expired on ${result && result.builtInExpiry ? result.builtInExpiry : "its configured expiry date"} and can no longer scan pages. Remove it using the steps below.`,
       warning: false
     }
   };
@@ -189,6 +189,9 @@ function renderPreviewLifecycle(result) {
   const content = lifecycleDisplayContent(result);
   const blocked = Boolean(result && result.blocksUse);
   const current = !result || result.kind === "current";
+  const showRemoval = Boolean(result && ["build-expired", "pilot-ended"].includes(result.kind));
+  const removal = elements["preview-removal-instructions"];
+  if (removal) removal.hidden = !showRemoval;
 
   [
     "scan-button",
@@ -219,7 +222,7 @@ function renderPreviewLifecycle(result) {
       : `Preview v${installed}`;
 
   const downloadLink = elements["preview-download-link"];
-  downloadLink.hidden = !result.downloadUrl;
+  downloadLink.hidden = !result.downloadUrl || showRemoval;
   if (result.downloadUrl) downloadLink.href = result.downloadUrl;
 
   elements["preview-continue-button"].hidden = result.kind !== "update-recommended";
@@ -261,7 +264,7 @@ function cacheElements() {
     "excluded-areas-data-count", "clear-excluded-areas", "exclusion-settings-summary", "manage-exclusions", "exclude-areas", "exclusion-scan-options", "exclusion-settings-areas", "exclusion-report-summary", "exclusion-report-text", "manage-report-exclusions", "optional-exclusions-summary", "page-scan-coverage", "exclusion-scan-control", "standard-exclusion-slot", "cms-exclusion-slot", "cms-more-scan-options", "batch-exclusion-summary", "batch-use-exclusions", "manage-batch-exclusions", "menu-exclusions",
     "exclusions-dialog", "exclusions-close", "exclusions-page-address", "show-all-exclusions", "exclusion-save-heading", "exclusion-save-close", "exclusion-duplicate-notice", "exclusion-enabled-choice", "exclusion-enabled", "choose-exclusion", "exclusions-status", "exclusions-list", "exclusion-save-dialog", "exclusion-save-form", "exclusion-selection-description", "exclusion-name", "exclusion-page-address", "exclusion-site-radio", "exclusion-site-address", "exclusion-stability-note", "exclusion-save-status", "exclusion-save-cancel", "exclusion-save-button", "exclusion-save-add", "exclusion-save-rescan", "exclusion-reselect", "exclusion-skip-links",
     "active-page-label", "return-review-button", "feedback-header-button", "feedback-header-count", "profile-badge", "colour-control-row", "colour-control", "scope-note", "scan-button", "scan-permission-button", "cache-note",
-    "preview-lifecycle-banner", "preview-lifecycle-title", "preview-lifecycle-message", "preview-lifecycle-version", "preview-download-link", "preview-continue-button", "preview-check-again-button",
+    "preview-lifecycle-banner", "preview-lifecycle-title", "preview-lifecycle-message", "preview-lifecycle-version", "preview-removal-instructions", "preview-download-link", "preview-continue-button", "preview-check-again-button",
     "scan-settings", "cancel-settings-button", "stale-report-banner", "stale-report-title", "stale-report-message", "stale-rescan-button",
     "cms-lite-settings", "cms-whole-scan", "standard-scope-settings", "choose-section-button", "clear-section-button", "section-scope-label",
     "current-loading", "current-error", "current-error-message", "current-results", "export-page-button",
@@ -1296,7 +1299,8 @@ async function cachedPageChanged(tab, report) {
 }
 
 function showStaleState(report, pageChanged) {
-  const rulesChanged = Boolean(report && report.ruleVersion !== globalThis.BCWebStyleGuideChecker.ruleVersion);
+  const rulesChanged = Boolean(report && (report.ruleVersion !== globalThis.BCWebStyleGuideChecker.ruleVersion
+    || (report.ruleBuild || "") !== (globalThis.BCWebStyleGuideChecker.ruleBuild || "")));
   elements["stale-report-banner"].hidden = !rulesChanged && !pageChanged;
   elements["stale-rescan-button"].hidden = false;
   if (pageChanged) {
@@ -1570,7 +1574,7 @@ async function injectScanner(tabId, options) {
 
           report.editorRegion = index + 1;
           report.editorSource = editorSource;
-          editorTextByReport.set(report, text);
+          editorTextByReport.set(report, globalThis.BCWebStyleGuideChecker.helpers.englishAcronymText(frameBody));
 
           return report;
         })
@@ -4430,9 +4434,10 @@ function renderedEvidence(finding) {
 function renderedContrastDetails(finding) {
   const contrast = finding && finding.contrast;
   if (!contrast) return "";
-  const measurement = contrast.status === "confirmed"
-    ? `<strong>${escapeHtml(Number(contrast.ratio).toFixed(2))}:1</strong> measured · ${escapeHtml(Number(contrast.required).toFixed(1))}:1 minimum`
-    : `<strong>Manual verification needed</strong>${contrast.reason ? ` · ${escapeHtml(contrast.reason)}` : ""}`;
+  if (contrast.status !== "confirmed") {
+    return contrast.reason ? `<div class="contrast-details"><span>Background or effect:</span> ${escapeHtml(contrast.reason)}</div>` : "";
+  }
+  const measurement = `<strong>${escapeHtml(Number(contrast.ratio).toFixed(2))}:1</strong> measured · ${escapeHtml(Number(contrast.required).toFixed(1))}:1 minimum`;
   return `<div class="contrast-details">
     <div>${measurement}</div>
   </div>`;
@@ -4838,7 +4843,7 @@ function renderPageDetails(section = "overview") {
     const grade = cmsEditorMode
       ? "Reading grade unavailable across multiple CMS Lite fields"
       : report.stats.readingGrade === null
-        ? "Not enough prose"
+        ? "Reading grade not available"
         : `Estimated grade ${report.stats.readingGrade}`;
     elements["page-details"].innerHTML = `
       <div class="details-landing">
@@ -5849,7 +5854,8 @@ async function captureFeedbackContext(finding = null) {
     selectedText: (live.selection && live.selection.selectedText) || "",
     finding: findingContext,
     extensionVersion: chrome.runtime.getManifest().version,
-    rulesVersion: globalThis.BCWebStyleGuideChecker.ruleVersion,
+    rulesVersion: (report && report.ruleVersion) || globalThis.BCWebStyleGuideChecker.ruleVersion,
+    rulesBuild: report ? report.ruleBuild || "" : globalThis.BCWebStyleGuideChecker.ruleBuild || "",
     browser: browserLabel(),
     capturedAt: new Date().toISOString()
   };
@@ -5869,6 +5875,7 @@ function feedbackContextPreview(context) {
     finding && finding.evidence ? metadataDefinition("Finding evidence", finding.evidence) : "",
     metadataDefinition("Extension version", context && context.extensionVersion),
     metadataDefinition("Rules version", context && context.rulesVersion),
+    context && context.rulesBuild ? metadataDefinition("Rules build", context.rulesBuild) : "",
     metadataDefinition("Browser", context && context.browser)
   ].join("");
 }
@@ -6052,6 +6059,7 @@ function feedbackReportText(notes = readyFeedbackNotes()) {
     `Created: ${formatDate(new Date().toISOString())}`,
     `Extension version: ${version}`,
     `Rules version: ${globalThis.BCWebStyleGuideChecker.ruleVersion}`,
+    `Report build: ${globalThis.BCWebStyleGuideChecker.ruleBuild || "Not recorded"}`,
     `Browser: ${browserLabel()}`,
     `Notes included: ${notes.length}`,
     `Pages represented: ${includedPages.size}`,
@@ -6083,6 +6091,7 @@ function feedbackReportText(notes = readyFeedbackNotes()) {
       }
     }
     lines.push(`Captured: ${formatDate(context.capturedAt || note.createdAt)}`, `Captured with extension v${context.extensionVersion || version} · rules v${context.rulesVersion || globalThis.BCWebStyleGuideChecker.ruleVersion}`);
+    lines.push(`Rules build when captured: ${context.rulesBuild || "Not recorded"}`);
   });
   return lines.join("\n");
 }
@@ -6153,7 +6162,7 @@ async function handleFeedbackCopyMode(mode) {
 
 const FEEDBACK_CSV_HEADER = [
   "Note ID", "Created", "Sent", "Sent at", "Feedback type", "Important", "Feedback note", "Include page context", "Page title", "Page URL", "Domain", "Site type", "Review area", "Page section",
-  "Selected page text", "Finding", "Rule ID", "Category", "Review level", "Flagged wording", "Finding evidence", "Extension version", "Rules version", "Browser"
+  "Selected page text", "Finding", "Rule ID", "Category", "Review level", "Flagged wording", "Finding evidence", "Extension version", "Rules version", "Browser", "Rules build"
 ];
 
 function feedbackCsvRows(notes = state.feedbackNotes) {
@@ -6166,7 +6175,7 @@ function feedbackCsvRows(notes = state.feedbackNotes) {
       included ? context.pageTitle || "" : "", included ? context.pageUrl || "" : "", included ? context.domain || "" : "", included ? context.detectedProfile || "" : "",
       included ? context.scanScope || "" : "", included ? context.pageSection || "" : "", included ? context.selectedText || "" : "", included ? finding.title || "" : "",
       included ? finding.ruleId || "" : "", included ? finding.category || "" : "", included ? finding.severity || "" : "", included ? finding.flaggedWording || "" : "",
-      included ? finding.evidence || "" : "", context.extensionVersion || chrome.runtime.getManifest().version, context.rulesVersion || globalThis.BCWebStyleGuideChecker.ruleVersion, context.browser || ""
+      included ? finding.evidence || "" : "", context.extensionVersion || chrome.runtime.getManifest().version, context.rulesVersion || globalThis.BCWebStyleGuideChecker.ruleVersion, context.browser || "", context.rulesBuild || ""
     ];
   });
 }

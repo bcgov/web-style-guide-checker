@@ -167,6 +167,48 @@ function has(report, ruleId) {
   assert.equal(has(report, "ordinal-superscript"), true, "Larger ordinal endings must not be superscripted");
   report = await scan(page, "<p>The meeting begins at 9am.</p>");
   assert.equal(has(report, "time-format"), true);
+  for (const profile of ["standard", "cms-lite"]) {
+    report = await scan(page, '<h2>100 Mile House</h2><p>Visit 100 Mile House.</p><p>Visit <span>100 Mile</span> House.</p><p>Visit 100 <strong>Mile House</strong>.</p><p>100&nbsp;Mile&nbsp;House’s services</p>', { profile });
+    assert.equal(has(report, "imperial-unit"), false, profile);
+    assert.equal(has(report, "heading-title-case"), false, profile);
+    report = await scan(page, '<p>Drive 5 miles from 100 Mile House, then carry 20 pounds.</p><p>From <span>100 Mile House</span>, drive <strong>7</strong> miles.</p>', { profile });
+    const measurements = report.issues.filter(issue => issue.ruleId === "imperial-unit");
+    assert.deepEqual(measurements.map(issue => issue.matchText), ["5 miles", "20 pounds", "7 miles"], profile);
+    for (const issue of measurements) assert.equal(issue.evidence.slice(issue.evidenceMatchIndex, issue.evidenceMatchIndex + issue.matchText.length), issue.matchText);
+    assert.doesNotMatch(measurements[2].selector, /strong/, "A measurement split across markup must be located in its containing passage");
+  }
+  report = await scan(page, '<h2>Walk A Mile Today</h2><p>Drive 100 miles from the house.</p><p>It is 5 feet wide and weighs 20 pounds.</p>');
+  assert.equal(has(report, "heading-title-case"), true, "Do not allow the individual words Mile or House globally");
+  assert.deepEqual(report.issues.filter(issue => issue.ruleId === "imperial-unit").map(issue => issue.matchText), ["100 miles", "5 feet", "20 pounds"]);
+  report = await scan(page, '<p>“5 miles” is quoted. Drive 7 miles from 100 Mile House.</p><p lang="crk">5 miles</p><p><span lang="en">6 </span><span lang="crk">miles</span></p>');
+  assert.deepEqual(report.issues.filter(issue => issue.ruleId === "imperial-unit").map(issue => issue.matchText), ["7 miles"]);
+  report = await scan(page, "<p>The office opens from 8:30 am to 12:00 pm and 1:00 pm to 4:30 pm.</p>");
+  const timeFindings = report.issues.filter(issue => issue.ruleId === "time-format");
+  assert.deepEqual(timeFindings.map(issue => issue.matchText), ["12:00 pm", "1:00 pm"]);
+  for (const issue of timeFindings) {
+    assert.match(issue.suggestion, /Remove :00/);
+    assert.doesNotMatch(issue.suggestion, /Add a space|Use lower case|Remove the periods/);
+    assert.equal(issue.evidence.slice(issue.evidenceMatchIndex, issue.evidenceMatchIndex + issue.matchText.length), issue.matchText);
+  }
+  report = await scan(page, "<p>Seek and/or obtain consent.</p><p>Use https://example.com/and/or for this service.</p>");
+  assert.equal(report.issues.filter(issue => issue.ruleId === "slash").length, 1);
+  assert.match(report.issues.find(issue => issue.ruleId === "slash").suggestion, /‘and’.*‘or’.*or both/);
+  assert.equal(report.issues.find(issue => issue.ruleId === "slash").replacement, "", "Do not choose a legal or policy meaning automatically");
+
+  const accordionRow = (id, content) => `<li class="accordion-group__row"><div><button aria-expanded="true" aria-controls="${id}">Organizational Data</button><div id="${id}" class="accordion__content">${content}</div></div></li>`;
+  report = await scan(page, `<ul id="layout">${accordionRow('panel', '<p>The Government provides services. People can apply.</p>')}${accordionRow('panel', '<p>Another complete paragraph.</p>')}</ul>`);
+  for (const rule of ["list-punctuation", "list-multiple-sentences", "list-introduction", "list-repetition"]) assert.equal(has(report, rule), false, rule);
+  assert.equal(report.pageDetails.counts.lists, 0, "Layout-only accordion wrappers are not authored lists");
+  assert.equal(has(report, "government-capitalization"), true, "Continue reviewing the accordion's actual content");
+  report = await scan(page, `<ul id="layout">${accordionRow('panel', '<p>Choose an option:</p><ul id="real-list"><li>First option.</li><li>Second option</li></ul>')}</ul>`);
+  assert.equal(report.pageDetails.counts.lists, 1);
+  assert.deepEqual(report.issues.filter(issue => issue.ruleId === "list-punctuation").map(issue => issue.evidence), ["First option."]);
+  report = await scan(page, '<ul><li><details open><summary>Services</summary><p>First sentence. Second sentence.</p></details></li></ul>');
+  assert.equal(has(report, "list-multiple-sentences"), false);
+  report = await scan(page, `<ul><li>Ordinary list item.</li>${accordionRow('panel', '<p>First sentence. Second sentence.</p>')}</ul>`);
+  assert.deepEqual(report.issues.filter(issue => issue.ruleId === "list-punctuation").map(issue => issue.evidence), ["Ordinary list item."]);
+  report = await scan(page, '<ul class="accordion"><li>Ordinary list item.</li><li>Another ordinary item.</li></ul>');
+  assert.equal(has(report, "list-punctuation"), true, "A class name alone must not exempt real list content");
 
   report = await scan(page, "<p>Choose the service that applies</p><ul><li>Apply online</li><li>Call the office</li></ul>");
   assert.equal(has(report, "list-introduction"), true);
@@ -676,6 +718,7 @@ function has(report, ruleId) {
   report = await scan(page, `<div style="background:linear-gradient(#fff,#000)"><p id="gradient-text" style="color:#777">Text over a gradient</p></div>`, { canControlColour: true });
   const gradientContrast = report.issues.find(issue => issue.ruleId === "contrast-unverified" && issue.selector === "#gradient-text");
   assert.ok(gradientContrast, "Gradient backgrounds must produce a manual verification finding instead of being skipped");
+  assert.equal(gradientContrast.evidence, "Text over a gradient");
   assert.match(gradientContrast.contrast.reason, /gradient background/);
   assert.equal(report.issues.some(issue => issue.ruleId === "contrast" && issue.selector === "#gradient-text"), false, "An unreliable background must not be reported as a confirmed ratio");
 

@@ -825,6 +825,11 @@ body[data-surface="workspace"] dialog { margin: auto; }
 .preview-lifecycle-copy .eyebrow { margin-bottom: 2px; }
 .preview-lifecycle-copy > strong { display: block; color: var(--navy); }
 .preview-lifecycle-copy > p:not(.eyebrow) { margin: 3px 0 0; }
+.preview-removal-instructions { margin-top: 12px; }
+.preview-removal-instructions ol { margin: 8px 0; padding-left: 22px; }
+.preview-removal-instructions li + li { margin-top: 6px; }
+.preview-removal-instructions p { margin: 8px 0 0; }
+.preview-removal-instructions code { overflow-wrap: anywhere; }
 .preview-lifecycle-version {
   display: block;
   margin-top: 5px;

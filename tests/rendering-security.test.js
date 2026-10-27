@@ -114,6 +114,17 @@ const metadata = context.metadataDefinition(hostile, hostile);
 assert.doesNotMatch(metadata, /<img\b/i, "Hostile metadata must not create markup");
 assert.match(metadata, /&lt;img/);
 
+const unverifiedContrast = context.renderFinding({
+  ruleId: "contrast-unverified", severity: "review", fingerprint: "contrast-example",
+  title: "Check the text contrast manually", why: "The checker could not reliably measure this text against its background.",
+  evidence: "SERVICES", suggestion: "Use a contrast checker to compare the text colour with the background.",
+  contrast: { status: "unverified", reason: hostile }
+});
+assert.equal((unverifiedContrast.match(/manually/g) || []).length, 1);
+assert.doesNotMatch(unverifiedContrast, /Manual verification needed|Manual check needed|<img\b/i);
+assert.match(unverifiedContrast, /Background or effect:/);
+assert.match(unverifiedContrast, /&lt;img/);
+
 const innerHtmlSinks = source.match(/\.innerHTML\s*=/g) || [];
 assert.equal(innerHtmlSinks.length, 30, "A new innerHTML sink requires an explicit rendering-security review and updated hostile-text coverage");
 
