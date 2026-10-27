@@ -10,10 +10,10 @@ const server = http.createServer((req,res)=>{
   const pathname = new URL(req.url,'http://localhost').pathname;
   if(pathname.startsWith('/services/') || pathname.startsWith('/other/')) {res.setHeader('Content-Type','text/html');res.end(pathname === '/services/no-shared-areas' ? fixtureHtml.replace('id="shared"','id="different-sidebar"').replace('id="other-area"','id="different-advice"') : fixtureHtml);return;}
   const file = path.join(root,pathname);
-  if(!file.startsWith(root+'/')) {res.writeHead(403);res.end();return;}
+  if(!file.startsWith(root+path.sep)) {res.writeHead(403);res.end();return;}
   try {
     let data=fs.readFileSync(file);
-    if(file.endsWith('/sidepanel.js')) data=data.toString().replace(/\ninit\(\)\.catch\([\s\S]*$/,'');
+    if(path.basename(file)==='sidepanel.js') data=data.toString().replace(/\ninit\(\)\.catch\([\s\S]*$/,'');
     res.setHeader('Content-Type',({'.js':'text/javascript','.html':'text/html','.css':'text/css','.png':'image/png','.woff2':'font/woff2'})[path.extname(file)]||'application/octet-stream');res.end(data);
   } catch {res.writeHead(404);res.end();}
 });

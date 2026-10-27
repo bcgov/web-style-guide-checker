@@ -87,6 +87,7 @@
     "undefined-acronym": ["Plain language", "review", "Define the acronym on first use", "Write a term in full the first time, followed by its abbreviation in parentheses, unless the short form is widely better known.", "Define it on first use or confirm it is better known than the long form.", "abbreviations"],
     "acronym-definition-format": ["Plain language", "check", "Put the acronym in parentheses", "The Web Style Guide places an acronym in parentheses immediately after the full term.", "Use the full term followed by the acronym in parentheses.", "abbreviations"],
     "bc-abbreviation": ["Capitalization", "check", "Write B.C. with periods", "The province abbreviation uses periods except in brand and company names.", "Change ‘BC’ to ‘B.C.’ unless it is part of a formal brand such as BC Hydro or BC Ferries.", "abbreviations"],
+    "bc-abbreviation": ["Capitalization", "check", "Write B.C. with periods", "Use B.C. in ordinary text. Mailing addresses and formal brand or company names follow their required forms.", "Write ‘B.C.’ unless this is a mailing address or part of a formal brand or company name.", "abbreviations"],
     "province-abbreviation": ["Capitalization", "check", "Check the province or territory abbreviation", "N.B., N.L., N.S., N.T. and P.E.I. use periods in B.C. government content.", "Add the required periods when this abbreviation names a province or territory.", "abbreviations"],
     "government-capitalization": ["Capitalization", "check", "Use lower case for ‘government’", "Use lower case for government in general or descriptive references. Capitalize it only as part of a full formal name.", "Use ‘government’ unless the complete phrase is an official name, such as ‘Government of British Columbia’.", "capitalization"],
     "government-generic-term": ["Capitalization", "check", "Check the government term’s capitalization", "Generic references such as ‘the ministry’, ‘the cabinet’ and ‘the B.C. legislature’ use lower case.", "Use lower case unless the wording is part of a full formal name.", "capitalization"],
@@ -107,6 +108,7 @@
     "new-tab": ["Links", "review", "Confirm the link needs a new tab", "Links should open in the same tab by default. A new tab can make sense when preserving an in-progress task or secure session.", "Change the link setting so it opens in the same tab, unless a new tab helps someone keep an in-progress form or secure session open.", "links"],
     "news-release-link": ["Links", "review", "Check the news release link", "News release links can become stale and should generally be replaced after 30 days.", "Link to maintained, static content where possible and confirm this news release remains necessary.", "links"],
     "email-link-text": ["Links", "fix", "Use the email address as link text", "The guide says an email link should display the email address.", "Use the full email address as the linked text.", "links"],
+    "email-link-destination": ["Links", "review", "Check the email destination", "The checker could not read the email destination because it contains invalid encoding or control characters.", "Check the link settings and enter the intended email address again.", "links"],
     "email-link-missing": ["Links", "fix", "Link the email address", "This email address is inside a link element that has no destination.", "Add a mailto link for the displayed address, or remove the empty link markup if the address should not be linked.", "links"],
     "phone-unlinked": ["Links", "fix", "Link the phone number", "Phone numbers should be clickable.", "Wrap the number in a tel link using international dialling format.", "links"],
     "phone-link-format": ["Links", "fix", "Fix the phone link", "Telephone links should use international dialling format.", "Use a value such as tel:+1-250-555-0123.", "links"],
@@ -138,6 +140,9 @@
     "fake-list": ["Accessibility", "check", "Use a formatted list", "Content that looks like a list should use semantic list markup so browsers and assistive technology can identify its structure.", "Use the editor’s bulleted or numbered list controls. If these are sub-items, nest them under the related list item.", "lists"],
     "table-headers": ["Tables", "fix", "Add table headers", "Headers identify what each row or column contains and help screen-reader users understand the table.", "Mark row or column headings as header cells (th) in your editor.", "tables"],
     "table-caption": ["Tables", "fix", "Add a descriptive table caption", "A caption tells people what the table shows. It must make sense on its own, including when a screen reader reads it separately from the surrounding content.", "Add a clear, specific title using the table’s Caption field or a caption element.", "tables"],
+    "table-layout": ["Tables", "review", "Check whether this table contains data", "The Web Style Guide allows tables only for tabular data, not page layout.", "If this table provides layout, replace it with a content box or another layout option available in your editor. If it contains tabular data, check that it has a descriptive caption and appropriate headers.", "tables"],
+    "table-right-column": ["Tables", "fix", "Move the table out of the right-column box", "The Web Style Guide does not allow tables inside CMS Lite intranet right-column boxes.", "Place the table in the main page content.", "formatting"],
+    "table-supplemental": ["Tables", "fix", "Move the table out of the supplemental box", "The Web Style Guide does not allow tables inside CMS Lite supplemental boxes or intranet right-column boxes.", "Place the table in the main page content.", "formatting"],
     "table-accordion": ["Tables", "fix", "Move the table out of the accordion", "The Web Style Guide does not allow tables inside CMS Lite accordions.", "Place the table in the main page content.", "formatting"],
     "month-abbreviation": ["Numbers and dates", "check", "Write out the month", "Month names should be written in full when space is available.", "Use the full month name in body content.", "numbers"],
     "numeric-date": ["Numbers and dates", "check", "Write out the date", "Numeric dates are reserved for space-limited forms and tables and should use YYYY-MM-DD.", "Use a format such as ‘August 13, 2026’ in body content.", "numbers"],
@@ -172,7 +177,7 @@
     "dash-separator": ["Punctuation", "check", "Replace the hyphen or dash separator", "The Web Style Guide says not to use em dashes (—). A hyphen (-) or en dash (–) is not a substitute for an em dash when it separates parts of a sentence.", "Rewrite the sentence as shorter sentences or use a comma where appropriate. If the first words are a short label, consider a colon.", "punctuation"],
     "wifi-format": ["Punctuation", "check", "Write ‘Wi-Fi’", "Use the familiar form ‘Wi-Fi’ in ordinary prose. A different form may be intentional in a network name or formal product name.", "Change the wording to ‘Wi-Fi’ unless this is an exact network, product or formal name.", "punctuation"],
     "apostrophe-plural": ["Punctuation", "review", "Check the apostrophe in the plural", "Apostrophes do not normally form plurals. They may instead show possession or omitted digits.", "Remove the apostrophe when this is a plural. Keep it when it correctly shows possession or omitted digits.", "punctuation"],
-    "double-space": ["Formatting", "fix", "Remove the extra space", "Use one space after a sentence.", "Replace consecutive spaces with one space.", "formatting"],
+    "double-space": ["Formatting", "fix", "Remove the extra space", "Repeated visible spaces can leave unnecessary gaps between words or sentences.", "Use one visible space between words or sentences.", "formatting"],
     "non-breaking-space": ["Formatting", "review", "Check the non-breaking space", "A non-breaking space prevents text from wrapping at this point and may have been inserted accidentally.", "Keep it only when the words or values need to stay together; otherwise replace it with a regular space.", "formatting"],
     "text-alignment": ["Formatting", "check", "Left-align the text", "Centred, right-aligned and justified text is harder to read except in special cases such as table captions.", "Use left alignment for body content.", "formatting"],
     "bold-block": ["Formatting", "fix", "Remove unnecessary bold formatting", "Do not bold headings, links or large blocks of text.", "Use the correct heading style or reserve bold for short, selective emphasis.", "formatting"],
@@ -190,9 +195,9 @@
     "image-alt-prefix": ["Accessibility", "check", "Remove the redundant alt text opening", "Screen readers already announce an image, so alternative text does not need to begin with ‘image of’ or ‘photo of’.", "Start with the information or purpose communicated by the image.", "graphics"],
     "image-alt-meaningless": ["Accessibility", "check", "Write meaningful alternative text", "Generic alternative text such as ‘image’ or a filename does not communicate the image’s purpose.", "Describe the useful information or purpose of the image, or use alt=\"\" when it is purely decorative.", "graphics"],
     "linked-image-alt": ["Accessibility", "fix", "Describe the linked image destination", "The alt text of a linked image should say where the link goes or what it does.", "Replace empty or filename-based alt text with the destination or action.", "graphics"],
-    "form-label": ["Accessibility", "fix", "Label the form control", "People need a programmatic label to understand a form control.", "Associate a visible label or accessible name with the control.", "formatting"],
+    "form-label": ["Accessibility", "fix", "Label this field or button", "People need to know what to enter in a field or what a button does. Screen readers also need this information.", "Add a descriptive label that screen readers can identify. If a label is already visible, check that it is connected to the field or button.", "formatting"],
     "contrast": ["Accessibility", "check", "Increase the text contrast", "Text needs sufficient contrast against its background.", "Adjust the foreground or background colour so this text meets the required contrast ratio.", "contrast"],
-    "contrast-unverified": ["Accessibility", "review", "Check the text contrast manually", "The checker could not reliably measure this text against its background.", "Use a contrast checker to compare the text colour with the background where the text appears on the page.", "contrast"],
+    "contrast-unverified": ["Accessibility", "review", "Check the text contrast manually", "The checker cannot reliably measure this text against its background.", "Use a contrast checker to compare the text colour with the background behind it. If the background varies, check the areas where the text is hardest to read.", "contrast"],
     "proofreading-pubic": ["Proofreading", "check", "Check ‘pubic’", "‘Pubic’ is a valid anatomical word, but it is commonly typed when ‘public’ was intended in government content.", "Check whether you meant ‘public’. Keep ‘pubic’ if the anatomical wording is intentional.", "grammar"],
     "proofreading-repeat": ["Proofreading", "check", "Check the repeated word", "Some repeated function words are common typing errors.", "Remove the duplicate word if it was not intentional.", "grammar"],
     "moved-page-notice": ["Page information", "review", "Review the old moved-page notice", "A moved-content notice is usually temporary. If it remains long after the page was updated, people may still be reaching outdated content.", "Confirm whether the old page should now redirect to the replacement page, or update the notice if it still needs to remain available.", "plain"]
@@ -1569,7 +1574,7 @@
       const raw = sentenceStop ? match[0].slice(0, -1) : match[0];
       const minutes = match[2] && match[2] !== "00" ? ":" + match[2] : "";
       const replacement = match[1] + minutes + " " + match[4].toLowerCase() + "m";
-      results.push({ text: raw, index: match.index, replacement, reasons });
+      results.push({ text: raw, index: match.index, replacement, reasons, reason: reasons.join(" ") });
     }
     return results;
   }
@@ -1706,6 +1711,32 @@
     return Boolean(normalizeSpace(reviewText(cell)) || cell.querySelector("img,svg,input,button,select,textarea"));
   }
 
+  function formControlDescription(control) {
+    const tag = control.tagName.toLowerCase();
+    const type = String(control.getAttribute("type") || "text").toLowerCase();
+    const description = tag === "button" || (tag === "input" && /^(button|submit|reset)$/.test(type))
+      ? "Button" : tag === "select" ? "Dropdown field" : tag === "textarea" ? "Multi-line text field"
+        : type === "checkbox" ? "Checkbox" : type === "radio" ? "Radio button" : type === "search" ? "Search field" : "Input field";
+    return description;
+  }
+
+  function contrastReviewReason(reason) {
+    const descriptions = {
+      "background image": "The text appears over a background image.",
+      "gradient background": "The background uses a gradient.",
+      "element transparency": "Transparency affects the colours.",
+      "text shadow": "A shadow around the text affects its appearance.",
+      "background blending": "Blended background colours affect the measurement.",
+      "colour blending": "Blended colours affect the measurement.",
+      "filter effect": "A visual filter affects the colours.",
+      "backdrop filter": "A visual effect changes the background behind the text.",
+      "masking effect": "A visual effect hides parts of the text or background.",
+      "unsupported foreground colour format": "The checker cannot read the text colour.",
+      "unsupported background colour format": "The checker cannot read the background colour."
+    };
+    return [...new Set(String(reason || "").split(", ").map(item => descriptions[item] || "The colours could not be measured reliably."))].join(" ");
+  }
+
   function measurementDetails(value) {
     const text = String(value || "");
     const plural = /\b(\d+(?:\.\d+)?)\s*(kms|kgs|mLs|Ls|mms|cms|hs|ts)\b/g.exec(text);
@@ -1837,6 +1868,40 @@
       /\b(?:ID|identifier|number|no\.?|PIN|ISBN)[ \t\u00a0]*[:#-]?[ \t\u00a0]*[A-Z]{0,6}\d+(?:[-/]\d+)+\b/gi
     ]) for (const match of text.matchAll(expression)) ranges.push({ start: match.index, end: match.index + match[0].length, kind: "identifier" });
     return ranges;
+  }
+
+  function inlineIdentifierContext(node, include, cache, postal = false) {
+    const blockSelector = "p,li,dd,dt,td,th,h1,h2,h3,h4,h5,h6,blockquote,div,section,article,main,body,address,figcaption";
+    const root = (postal && node.parentElement.closest("address")) || node.parentElement.closest(blockSelector) || node.parentElement;
+    let context = cache.get(root);
+    if (!context) {
+      let text = "";
+      const offsets = new Map();
+      const preserveLines = /^(?:pre|pre-wrap|pre-line|break-spaces)$/.test(root.ownerDocument.defaultView.getComputedStyle(root).whiteSpace);
+      const visit = element => {
+        if (element.nodeType === 3) {
+          offsets.set(element, text.length);
+          // Collapsed source line breaks are spaces, while inserted block
+          // separators below must remain boundaries. Keep string offsets stable.
+          text += preserveLines ? element.nodeValue : element.nodeValue.replace(/[\r\n\f]/g, " ");
+          return;
+        }
+        if (element.nodeType !== 1) return;
+        if (element !== root && element.matches("br") && include(element)) { text += "\n"; return; }
+        const addressParagraph = postal && root.tagName === "ADDRESS" && element !== root && element.matches("p") && include(element);
+        if (element !== root && (!include(element) || element.matches("script,style,noscript,svg,code,pre,nav") || (element.matches(blockSelector) && !addressParagraph))) {
+          text += "\u2029";
+          return;
+        }
+        if (addressParagraph && text && !text.endsWith("\n")) text += "\n";
+        for (const child of element.childNodes) visit(child);
+        if (addressParagraph) text += "\n";
+      };
+      visit(root);
+      context = { root, text, offsets, ranges: numberIdentifierRanges(text, root) };
+      cache.set(root, context);
+    }
+    return { ...context, offset: context.offsets.get(node) };
   }
 
   function numberSeparatorOccurrences(value, element) {
@@ -2760,6 +2825,25 @@
     return longForm && words(longForm[1]).length >= 2 ? style : "";
   }
 
+  function alternativeAcronymCorrection(value, acronym) {
+    const text = normalizeSpace(value);
+    const expression = new RegExp(",\\s+or\\s+" + escapeRegExp(acronym) + "\\b", "i");
+    const match = expression.exec(text);
+    if (!match) return null;
+    const prefix = text.slice(0, match.index);
+    const tokens = [...prefix.matchAll(/[\p{L}][\p{L}\p{N}’'/-]*/gu)].slice(-12);
+    const target = acronymBase(acronym).toUpperCase();
+    for (let count = 2; count <= tokens.length; count += 1) {
+      const candidate = tokens.slice(-count);
+      const initials = candidate.filter(word => !/^(?:and|of|the|for|to|in)$/i.test(word[0])).map(word => word[0][0]).join("").toUpperCase();
+      if (initials !== target) continue;
+      const index = candidate[0].index;
+      const term = prefix.slice(index).trim();
+      return { text: text.slice(index, match.index + match[0].length), index, replacement: `${term} (${acronym})` };
+    }
+    return { text: match[0], index: match.index, replacement: ` (${acronym})` };
+  }
+
   function acronymDefinedInText(value, acronym) {
     return Boolean(acronymDefinitionStyleInText(value, acronym));
   }
@@ -2787,7 +2871,9 @@
     return !(earlierEditorTexts || []).some(text => acronymDefinedInText(text, token));
   }
 
-  function doubleSpaceOccurrences(value) {
+  // Without a rendering context, preserve the raw-text behaviour for callers
+  // inspecting source. Page scans pass the computed whitespace setting.
+  function doubleSpaceOccurrences(value, whiteSpace = "preserve") {
     const text = String(value || "");
     const lines = text.split(/\r?\n/);
     const occurrences = [];
@@ -2797,9 +2883,12 @@
       let match;
       while ((match = expression.exec(line))) {
         const spacesStart = offset + match.index + 1;
-        const count = match[1].length;
+        const sourceCount = match[1].length;
+        const preservesSpaces = /^(?:pre$|pre-wrap$|break-spaces$|preserve(?: |$)|preserve-spaces$)/.test(whiteSpace);
+        const count = preservesSpaces ? sourceCount : match[1].replace(/ +/g, " ").length;
+        if (count < 2) continue;
         const before = normalizeSpace(text.slice(Math.max(0, spacesStart - 70), spacesStart));
-        const after = normalizeSpace(text.slice(spacesStart + count, spacesStart + count + 70));
+        const after = normalizeSpace(text.slice(spacesStart + sourceCount, spacesStart + sourceCount + 70));
         occurrences.push({
           index: spacesStart,
           count,
@@ -3872,6 +3961,7 @@
         matchIndex: structure.colon.index
       });
 
+      const headingIdentifiers = labelledIdentifierRanges(text);
       const candidates = element.querySelector("br") ? textNodes(element, inScanArea).flatMap(node => [...node.nodeValue.matchAll(/\b[A-Z][A-Z0-9]{1,5}\b/g)].filter(match => englishToken(node, match.index, match[0])).map(match => {
         const index = occurrenceIndexInElement(element, node, match.index, match[0], text);
         return Object.assign([match[0]], { index });
@@ -3880,6 +3970,7 @@
         .filter(match => !rangeContains(protectedCaseRanges(text), match.index, match[0].length))
         .filter(match => !rangeOverlaps(languageSensitiveRanges(text), match.index, match[0].length))
         .filter(match => headingTokenIsEnglish(element, text, match.index, match[0].length))
+        .filter(match => !rangeContains(headingIdentifiers, match.index, match[0].length))
         .filter(match => !isWifiVariant(match[0]))
         .filter(match => !isWellKnownAcronym(match[0]))
         .filter(match => !(intranetProfile && INTRANET_HEADING_ACRONYMS.has(match[0])))
@@ -4193,6 +4284,8 @@
       }
     });
 
+    const identifierContextCache = new WeakMap();
+    const postalContextCache = new WeakMap();
     nodes.forEach(node => {
       const value = node.nodeValue;
       const parent = node.parentElement;
@@ -4245,7 +4338,7 @@
       let bcMatch;
       while ((bcMatch = bcExpression.exec(value))) {
         if (isInsideRange(bcMatch.index, approvedRanges)) continue;
-        if (isBcPostalAddressContext(value, bcMatch.index, parent, identifierContext)) continue;
+        if (isBcPostalAddressContext(value, bcMatch.index, parent, inlineIdentifierContext(node, inScanArea, postalContextCache, true))) continue;
         if (rangeContains(companyRanges, identifierContext.offset + bcMatch.index, bcMatch[0].length)) continue;
         const proposal = proposeExactPhrase(value, bcMatch.index, bcMatch[0]);
         nodeAdd("bc-abbreviation", parent, value, null, {
@@ -4445,10 +4538,13 @@
           contextText: value
         }));
       }
-      doubleSpaceOccurrences(value).forEach(doubleSpace => nodeAdd("double-space", parent, doubleSpace.evidence, null, {
-        matchText: `⟦${doubleSpace.count} spaces⟧`,
-        matchIndex: doubleSpace.index
-      }));
+      if (/[ \u00a0\u2007\u202f]{2}/.test(value)) {
+        const whitespaceStyle = doc.defaultView.getComputedStyle(parent);
+        doubleSpaceOccurrences(value, whitespaceStyle.whiteSpaceCollapse || whitespaceStyle.whiteSpace).forEach(doubleSpace => nodeAdd("double-space", parent, doubleSpace.evidence, null, {
+          matchText: `⟦${doubleSpace.count} spaces⟧`,
+          matchIndex: doubleSpace.index
+        }));
+      }
       if (optionalChecks.nonBreakingSpace && !parent.closest("code,pre")) nonBreakingSpaceOccurrences(value).forEach(space => nodeAdd("non-breaking-space", parent, space.evidence, null, {
         matchText: "⟦non-breaking space⟧",
         matchIndex: space.evidence.indexOf("⟦non-breaking space⟧")
@@ -4524,10 +4620,13 @@
       if (ordinalWord && !ordinalIsDate && !parent.closest("table,form")) nodeAdd("ordinal-word", parent, value, null, {
         matchText: ordinalWord[0], matchIndex: ordinalWord.index
       });
-      timeFormatOccurrences(value).forEach(time => nodeAdd("time-format", parent, value,
-        time.reasons.join(" ") + ` Write ‘${time.replacement}’.`, {
-          matchText: time.text, matchIndex: time.index, replacement: time.replacement, contextText: value
-        }));
+      localOccurrences(node, "timeOccurrences", timeFormatOccurrences).forEach(({ match: time, context }) => {
+        nodeAdd("time-format", context.root, context.text,
+          time.reasons.join(" ") + ` Write ‘${time.replacement}’.`, {
+            matchText: time.text, matchIndex: time.index, sourceMatchIndex: time.index - context.offset,
+            replacement: time.replacement, contextText: context.text
+          });
+      });
       const clockZone = /\b\d{1,2}(?::\d{2})?\s*(?:am|pm)\s+(PST|PDT|MST|MDT|CST|CDT|EST|EDT|AST|ADT|NST|NDT)\b/i.exec(value);
       const writtenZone = /\b(?:(?:Pacific|mountain|central|eastern|Atlantic|Newfoundland)\s+)?(?:standard|daylight)\s+time\b/i.exec(value);
       if (clockZone) nodeAdd("time-zone", parent, value, null, {
@@ -4654,6 +4753,9 @@
       if (/^[A-Z]\d[A-Z]$/.test(acronym)) return;
       if (/^[ABCEGHJKLMNPRSTVXY]\d[ABCEGHJKLMNPRSTVWXYZ]\d[ABCEGHJKLMNPRSTVWXYZ]\d$/i.test(acronym)) return;
       const parent = occurrence.node.parentElement;
+      const identifierContext = inlineIdentifierContext(occurrence.node, inScanArea, identifierContextCache);
+      const identifierPosition = identifierContext.offset + occurrence.index;
+      if (identifierContext.ranges.some(range => range.kind === "identifier" && identifierPosition >= range.start && identifierPosition + displayedAcronym.length <= range.end)) return;
       const element = parent.closest("h1,h2,h3,h4,h5,h6,p,li,dd,dt,figcaption,blockquote") || parent;
       const elementText = normalizeSpace(reviewText(element) || occurrence.node.nodeValue || displayedAcronym);
       if (isPostalAcronymContext(acronym, elementText, element)) return;
@@ -4662,13 +4764,13 @@
       const definitionStyle = acronymDefinitionStyleInText(elementText, displayedAcronym)
         || acronymDefinitionStyleAcrossParts(acronymTextParts, occurrence.nodeIndex, occurrence.index, displayedAcronym);
       if (definitionStyle === "alternative") {
-        const alternativePhrase = `, or ${displayedAcronym}`;
-        const alternativeIndex = elementText.toLowerCase().indexOf(alternativePhrase.toLowerCase());
+        const correction = alternativeAcronymCorrection(elementText, displayedAcronym);
         add("acronym-definition-format", element || root, elementText,
-          `Change “${alternativePhrase}” to “(${displayedAcronym})”.`, {
-          matchText: alternativePhrase,
+          correction ? `Write “${correction.replacement.trim()}”.` : `Write the full term followed by (${displayedAcronym}).`, {
+          matchText: correction ? correction.text : displayedAcronym,
+          replacement: correction ? correction.replacement : "",
           contextText: elementText,
-          matchIndex: Math.max(0, alternativeIndex)
+          matchIndex: correction ? correction.index : termIndex
         });
         return;
       }
@@ -5076,11 +5178,17 @@
     Array.from(root.querySelectorAll("em,i")).filter(inScanArea).filter(element => !element.closest("h1,h2,h3,h4,h5,h6")).forEach(element => add("italics", element, reviewText(element)));
     Array.from(root.querySelectorAll("s,strike,del")).filter(inScanArea).forEach(element => add("strikethrough", element, reviewText(element)));
     Array.from(root.querySelectorAll("u")).filter(inScanArea).forEach(element => {
-      if (!element.closest("a,h1,h2,h3,h4,h5,h6")) add("underline", element, reviewText(element));
+      if (element.closest("a[href],h1,h2,h3,h4,h5,h6")) return;
+      const unlinkedText = textNodes(element, inScanArea)
+        .filter(node => !node.parentElement.closest("a[href]"))
+        .map(node => node.nodeValue).join("");
+      if (normalizeSpace(unlinkedText)) add("underline", element, unlinkedText);
     });
 
     const aligned = new Set();
     Array.from(root.querySelectorAll("p,li,h1,h2,h3,h4,blockquote")).filter(inScanArea).forEach(element => {
+      const text = normalizeSpace(reviewText(element));
+      if (!text) return;
       const alignment = doc.defaultView.getComputedStyle(element).textAlign;
       if ((alignment === "center" || alignment === "right" || alignment === "justify") && !element.closest("th,td,caption")) {
         const key = alignment + ":" + normalizeSpace(reviewText(element)).slice(0, 30);
@@ -5126,7 +5234,7 @@
 
     if (scope === "whole" || profile !== "cms-lite") {
       Array.from(root.querySelectorAll("input:not([type='hidden']),select,textarea,button")).filter(inScanArea).forEach(control => {
-        if (!accessibleName(control)) add("form-label", control, control.outerHTML.slice(0, 180));
+        if (!accessibleName(control)) add("form-label", control, formControlDescription(control));
       });
     }
 
@@ -5159,7 +5267,7 @@
             reason
           };
           unsupportedContrast.signature = ["text", "unverified", unsupportedContrast.foreground, unsupportedContrast.background, required, displayState, responsibility, reason].join("/");
-          add("contrast-unverified", element, text, null, { contrast: unsupportedContrast });
+          add("contrast-unverified", element, text, null, { contrast: unsupportedContrast, diagnostics: [contrastReviewReason(reason)] });
           return;
         }
         const effectiveForeground = composite(foreground, background);
@@ -5184,7 +5292,7 @@
           const reasons = Array.from(new Set(backgroundResult.reasons));
           baseContrast.reason = reasons.join(", ");
           baseContrast.signature = ["text", "unverified", colourKey(effectiveForeground), colourKey(background), required, displayState, responsibility, reasons.join("|")].join("/");
-          add("contrast-unverified", element, text, null, { contrast: baseContrast });
+          add("contrast-unverified", element, text, null, { contrast: baseContrast, diagnostics: [contrastReviewReason(reasons.join(", "))] });
           return;
         }
         baseContrast.signature = ["text", "confirmed", colourKey(effectiveForeground), colourKey(background), required, displayState, responsibility].join("/");
@@ -5318,6 +5426,8 @@
       timeFormatOccurrences,
       measurementDetails,
       imperialUnitOccurrences,
+      formControlDescription,
+      contrastReviewReason,
       educationContext,
       academicDegreeDetails,
       canadianSpellingContextDetails,
@@ -5325,6 +5435,8 @@
       assetTypeFromUrl,
       endsStylePunctuation,
       linkPunctuationIssue,
+      emailLinkComparison,
+      emailComparisonEvidence,
       listEndingNeedsRemoval,
       acronymDefinitionStyleInText,
       acronymDefinedInText,
@@ -5337,12 +5449,13 @@
       isCommonRomanNumeral,
       isPostalAcronymContext,
       isBcPostalAddressContext,
+      numberIdentifierRanges,
+      labelledIdentifierRanges,
+      streetAddressOccurrences,
+      alternativeAcronymCorrection,
+      inlineIdentifierContext,
       numberSeparatorOccurrences,
       numberedCompanyRanges,
-      numberIdentifierRanges,
-      streetAddressOccurrences,
-      labelledIdentifierRanges,
-      emailLinkComparison,
       singleCellLayoutCandidate,
       missingSpaceAfterSentencePunctuationOccurrences,
       doubleSpaceDetails,

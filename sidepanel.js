@@ -32,6 +32,7 @@ const FEEDBACK_TYPES = {
 // Keep a healthy buffer below Outlook/Windows URL hand-off limits. The full
 // encoded mailto URI (not the unencoded report text) is measured against this.
 const MAILTO_SAFE_URI_LIMIT = 7000;
+const FEEDBACK_EMAIL_RESERVE = 850;
 const surfaceParams = new URLSearchParams(location.search);
 const workspaceSurface = surfaceParams.get("workspace") === "1";
 
@@ -102,6 +103,8 @@ const state = {
   pendingFeedbackId: "",
   pendingFeedbackContext: null,
   preparedFeedbackIds: [],
+  feedbackCapacityPromptKey: "",
+  feedbackCapacityReturnFocus: null,
   feedbackCopyMode: "",
   feedbackPreviousView: "current",
   feedbackPreviousScroll: 0,
@@ -289,6 +292,7 @@ function cacheElements() {
     "note-dialog", "note-form", "note-finding-name", "note-important", "note-text", "note-cancel", "toast", "review-toast",
     "feedback-view", "feedback-back-button", "feedback-ready-count", "add-feedback-button", "feedback-empty", "feedback-list", "feedback-send-panel", "feedback-send-status", "pending-feedback-count",
     "create-feedback-email", "copy-feedback-report", "export-feedback-csv", "archived-feedback", "archived-feedback-count", "archived-feedback-list",
+    "feedback-capacity-dialog", "feedback-capacity-message", "feedback-capacity-send", "feedback-capacity-later",
     "feedback-dialog", "feedback-form", "feedback-dialog-heading", "feedback-dialog-close", "feedback-type", "feedback-text", "feedback-important",
     "feedback-context-section", "feedback-include-context", "feedback-context-preview", "feedback-cancel", "feedback-email-dialog", "feedback-email-message", "feedback-email-close",
     "archive-prepared-feedback", "keep-prepared-feedback", "feedback-copy-dialog", "feedback-copy-close", "feedback-copy-options", "feedback-copy-selection",
@@ -4777,6 +4781,14 @@ function metadataDefinition(label, value) {
   return `<dt>${escapeHtml(label)}</dt><dd class="${present ? "" : "metadata-empty"}">${present ? escapeHtml(value) : "Not published"}</dd>`;
 }
 
+function headingSummaryText(authoredHeadings, generatedHeadings = []) {
+  const flagged = authoredHeadings.filter(heading => heading.flags && heading.flags.length).length;
+  const summary = !authoredHeadings.length
+    ? generatedHeadings.length ? "No authored headings found" : "No headings found"
+    : flagged ? `${flagged} heading${flagged === 1 ? "" : "s"} flagged` : "No heading issues detected";
+  return summary + (generatedHeadings.length ? ` · ${generatedHeadings.length} accordion heading${generatedHeadings.length === 1 ? "" : "s"}` : "");
+}
+
 function renderPageDetails(section = "overview") {
   const report = state.activeReport;
   const details = report && report.pageDetails;
@@ -4794,9 +4806,9 @@ function renderPageDetails(section = "overview") {
   const assetBySelector = new Map((report.assets || []).map(asset => [assetKey(asset), asset]));
   const authoredHeadings = report.settings.profile === "cms-lite" ? details.headings.filter(heading => !heading.component) : details.headings;
   const generatedHeadings = report.settings.profile === "cms-lite" ? details.headings.filter(heading => heading.component) : [];
-  const headingIssues = authoredHeadings.filter(heading => heading.flags && heading.flags.length).length;
+
   const open = report.issues.filter(finding => effectiveStatus(finding) === "open");
-  const headingRows = headings => headings.length ? headings.map(heading => `<li class="heading-outline-row heading-level-${heading.level}${heading.component ? " cms-generated-heading" : ""}"><button class="detail-jump" type="button" data-selector="${escapeHtml(heading.selector)}" ${editorDataAttributes(heading)}><span class="detail-level level-h${heading.level}">H${heading.level}</span><span class="heading-outline-text">${escapeHtml(heading.text)}</span>${(heading.flags || []).map(flag => `<span class="detail-flag">${escapeHtml(flag)}</span>`).join("")}</button></li>`).join("") : `<li class="detail-empty-row">No visible headings found.</li>`;
+  const headingRows = headings => headings.length ? headings.map(heading => `<li class="heading-outline-row heading-level-${heading.level}${heading.component ? " cms-generated-heading" : ""}"><button class="detail-jump" type="button" data-selector="${escapeHtml(heading.selector)}" ${editorDataAttributes(heading)}><span class="detail-level level-h${heading.level}">H${heading.level}</span><span class="heading-outline-text">${escapeHtml(heading.text)}</span>${(heading.flags || []).map(flag => `<span class="detail-flag">${escapeHtml(flag)}</span>`).join("")}</button></li>`).join("") : `<li class="detail-empty-row">No headings were found in the content reviewed.</li>`;
   const linkCheck = report.linkCheck || null;
   const resultCategoryCounts = linkResultCategoryCounts(linkCheck && linkCheck.results);
   const linkCheckText = linkCheck
@@ -4847,7 +4859,7 @@ function renderPageDetails(section = "overview") {
         : `Estimated grade ${report.stats.readingGrade}`;
     elements["page-details"].innerHTML = `
       <div class="details-landing">
-        <button class="detail-card" type="button" data-detail-section="headings">${detailCardIcon("headings")}<span><strong>Headings</strong><span>${headingIssues} heading issue${headingIssues === 1 ? "" : "s"}${generatedHeadings.length ? ` · ${generatedHeadings.length} accordion heading${generatedHeadings.length === 1 ? "" : "s"}` : ""}</span></span><span class="detail-card-count">${authoredHeadings.length}</span></button>
+        <button class="detail-card" type="button" data-detail-section="headings">${detailCardIcon("headings")}<span><strong>Headings</strong><span>${escapeHtml(headingSummaryText(authoredHeadings, generatedHeadings))}</span></span><span class="detail-card-count">${authoredHeadings.length}</span></button>
         <button class="detail-card" type="button" data-detail-section="images">${detailCardIcon("images")}<span><strong>Images and alt text</strong><span>${details.counts.imagesMissingAlt} missing alt · ${details.counts.imagesEmptyAlt} empty alt</span></span><span class="detail-card-count">${details.counts.images}</span></button>
         <button class="detail-card" type="button" data-detail-section="links">${detailCardIcon("links")}<span><strong>Links and assets</strong><span>${brokenSummary}</span></span><span class="detail-card-count">${details.counts.links}</span></button>
         <button class="detail-card" type="button" data-detail-section="metadata">${detailCardIcon("metadata")}<span><strong>Metadata and SEO</strong><span>${metadataUnavailable ? "Not checked in editor mode" : metadata.description ? "Description published" : "Meta description missing"}</span></span><span class="detail-card-count">›</span></button>
@@ -5881,12 +5893,6 @@ function feedbackContextPreview(context) {
 }
 
 async function openFeedbackDialog(finding = null, existingNote = null) {
-  if (!existingNote && feedbackEmailBatchPlan().blocked) {
-    renderFeedback();
-    switchView("feedback");
-    showToast("Send the current feedback batch before adding another note.");
-    return;
-  }
   state.feedbackReturnFocus = document.activeElement;
   state.pendingFeedbackId = existingNote ? existingNote.id : "";
   state.pendingFeedbackContext = existingNote ? existingNote.context : await captureFeedbackContext(finding);
@@ -5934,18 +5940,24 @@ async function saveFeedbackNote(event) {
     updatedAt: now,
     archivedAt: existing ? existing.archivedAt || "" : ""
   };
-  if (existing) state.feedbackNotes = state.feedbackNotes.map(item => item.id === note.id ? note : item);
-  else state.feedbackNotes.push(note);
-  await saveKey(STORAGE_KEYS.feedback, state.feedbackNotes);
+  const notes = existing
+    ? state.feedbackNotes.map(item => item.id === note.id ? note : item)
+    : [...state.feedbackNotes, note];
+  try {
+    await saveKey(STORAGE_KEYS.feedback, notes);
+  } catch (_) {
+    showToast("Your note could not be saved. Keep this form open and try saving again.");
+    return;
+  }
+  state.feedbackNotes = notes;
   state.pendingFeedbackId = "";
   state.pendingFeedbackContext = null;
+  const returnFocus = state.feedbackReturnFocus;
   closeFeedbackDialog();
   renderFeedback();
   if (state.reviewMode === "detail") renderReviewView();
-  const plan = feedbackEmailBatchPlan();
-  showToast(plan.blocked
-    ? "Feedback note saved. Send the current feedback batch to continue adding notes."
-    : `Feedback note saved. ${readyFeedbackNotes().length} unsent.`);
+  showToast(`Feedback note saved. ${readyFeedbackNotes().length} unsent.`);
+  maybePromptFeedbackCapacity(returnFocus);
 }
 
 function feedbackCard(note, archived = false) {
@@ -6004,6 +6016,19 @@ function feedbackEmailBatchPlan(notes = readyFeedbackNotes()) {
   };
 }
 
+// The first queued note identifies the current batch. Prompt once per batch
+// during this panel session; sending it exposes the next batch automatically.
+function feedbackCapacityPromptKey(plan) {
+  return plan.batch.length && (plan.blocked || MAILTO_SAFE_URI_LIMIT - plan.uriLength < FEEDBACK_EMAIL_RESERVE)
+    ? plan.batch[0].id
+    : plan.oversized && plan.overflow.length ? plan.overflow[0].id : "";
+  const key = feedbackCapacityPromptKey(plan);
+  if (!key || key === state.feedbackCapacityPromptKey) return;
+  state.feedbackCapacityPromptKey = key;
+  state.feedbackCapacityReturnFocus = returnFocus || document.activeElement;
+  elements["feedback-capacity-message"].textContent = plan.oversized
+    ? "One saved note is too large for an email draft. You can copy your feedback into an email. Your notes will stay saved while you keep reviewing."
+    : plan.blocked
 function renderFeedback() {
   const ready = readyFeedbackNotes();
   const archived = archivedFeedbackNotes();
@@ -6016,15 +6041,15 @@ function renderFeedback() {
   elements["pending-feedback-count"].textContent = `(${readyCount})`;
   elements["feedback-list"].innerHTML = feedbackGroups(ready);
   if (plan.oversized) {
-    elements["feedback-send-status"].innerHTML = `<strong>Send feedback before continuing.</strong> The first unsent note is too large to fit safely in one complete email. Edit that note to shorten it.`;
+    elements["feedback-send-status"].innerHTML = `<strong>One note is too large for an email draft.</strong> Copy your feedback into an email, or shorten that note. You can keep recording notes.`;
   } else if (plan.blocked) {
-    elements["feedback-send-status"].innerHTML = `<strong>Send feedback to continue recording notes.</strong> ${plan.batch.length} of ${readyCount} unsent note${readyCount === 1 ? "" : "s"} fit safely in the next complete email. ${plan.overflow.length} newer note${plan.overflow.length === 1 ? " stays" : "s stay"} saved for the next batch.`;
+    elements["feedback-send-status"].innerHTML = `<strong>Your feedback will be sent in separate emails.</strong> ${plan.batch.length} of ${readyCount} unsent note${readyCount === 1 ? "" : "s"} fit safely in the next complete email. ${plan.overflow.length} newer note${plan.overflow.length === 1 ? " stays" : "s stay"} saved for the next batch.`;
   } else if (readyCount) {
     elements["feedback-send-status"].innerHTML = `<strong>${readyCount} unsent feedback note${readyCount === 1 ? " is" : "s are"} saved on this device.</strong> The next email will include all of them.`;
   } else {
     elements["feedback-send-status"].innerHTML = `<strong>No unsent feedback.</strong>${archived.length ? ` ${archived.length} sent note${archived.length === 1 ? " remains" : "s remain"} available in the archive.` : ""}`;
   }
-  elements["add-feedback-button"].disabled = plan.blocked;
+  elements["add-feedback-button"].disabled = false;
   elements["create-feedback-email"].disabled = readyCount === 0 || plan.oversized;
   elements["create-feedback-email"].textContent = plan.blocked && plan.batch.length
     ? `Create email with ${plan.batch.length} note${plan.batch.length === 1 ? "" : "s"}`
@@ -6220,6 +6245,7 @@ async function archivePreparedFeedback() {
   elements["feedback-email-dialog"].close();
   renderFeedback();
   showToast(`${prepared.size} feedback note${prepared.size === 1 ? "" : "s"} marked sent.`);
+  maybePromptFeedbackCapacity();
 }
 
 async function restoreFeedbackNote(id) {
@@ -8528,6 +8554,14 @@ function bindEvents() {
   elements["note-cancel"].addEventListener("click", () => elements["note-dialog"].close());
   elements["add-feedback-button"].addEventListener("click", () => openFeedbackDialog());
   elements["feedback-form"].addEventListener("submit", saveFeedbackNote);
+  elements["feedback-capacity-dialog"].addEventListener("cancel", event => {
+    event.preventDefault();
+    closeFeedbackCapacityPrompt();
+  });
+  elements["feedback-capacity-send"].addEventListener("click", async () => {
+    closeFeedbackCapacityPrompt();
+    if (feedbackEmailBatchPlan().oversized) openFeedbackView();
+  });
   elements["feedback-dialog-close"].addEventListener("click", closeFeedbackDialog);
   elements["feedback-cancel"].addEventListener("click", closeFeedbackDialog);
   elements["copy-feedback-report"].addEventListener("click", openFeedbackCopyDialog);

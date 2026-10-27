@@ -319,4 +319,146 @@ assert.deepEqual(helpers.imperialUnitOccurrences("100 Mile Houses; 1100 Mile Hou
 assert.equal(helpers.imperialUnitOccurrences("See https://example.com/100miles").length, 0);
 assert.equal(helpers.indigenousNameRanges("100 Mile House").length, 0, "A numbered municipality must not be classified as an Indigenous name");
 
+// Identifier exceptions must preserve quantities elsewhere in the same content.
+for (const address of [
+  "2225 Acadia Rd.", "2225 Acadia Rd", "5800 University Boulevard",
+  "5800 WEST UNIVERSITY BOULEVARD", "5800 West University Blvd.",
+  "Suite 200, 5800 University Boulevard", "5800 16th Avenue", "5800 Côte-des-Neiges Road"
+]) {
+  assert.equal(helpers.numberSeparatorOccurrences(address).length, 0, address);
+}
+const mixedAddresses = "2225 Acadia Rd. and 5800 University Boulevard received 15000 applications.";
+assert.deepEqual(helpers.numberSeparatorOccurrences(mixedAddresses).map(item => item.text), ["15000"]);
+for (const company of ["1075683 BC Ltd.", "1075683 BC Ltd", "1075683 B.C. LTD.", "1075683\u00a0BC\u00a0Ltd."]) {
+  assert.equal(helpers.numberSeparatorOccurrences(company).length, 0, company);
+  assert.equal(helpers.numberIdentifierRanges(company).some(range => range.kind === "company"), true);
+}
+for (const text of ["15000 BC residents", "15000 BC Limitedness", "15000 Main applications", "15000 BC residents on Main Street", "5800 University benefits", "1075683 BC\nLtd.", "5800 University\nBoulevard"]) {
+  assert.equal(helpers.numberSeparatorOccurrences(text).length, 1, text);
+}
+const mixedCompany = "1075683 BC Ltd. received 15000 applications from BC residents.";
+assert.deepEqual(helpers.numberSeparatorOccurrences(mixedCompany).map(item => item.text), ["15000"]);
+const companyRange = helpers.numberIdentifierRanges(mixedCompany).find(range => range.kind === "company");
+assert.equal(mixedCompany.slice(companyRange.start, companyRange.end), "1075683 BC Ltd.");
+assert.ok(mixedCompany.lastIndexOf("BC") >= companyRange.end);
+
+// Original UEL email examples plus encoded, malformed and misleading cases.
+for (const [href, label] of [
+  ["mailto: PlanUEL@gov.bc.ca", "PlanUEL@gov.bc.ca"],
+  [" MAILTO:PlanUEL%40gov.bc.ca%20?subject=Question%3F", "planuel@gov.bc.ca"],
+  ["mailto:service+help@gov.bc.ca", "service+help@gov.bc.ca"],
+  ["mailto:service%2Bhelp@gov.bc.ca", "service+help@gov.bc.ca"],
+  ["mailto:first@example.ca, second@example.ca", "first@example.ca,second@example.ca"]
+]) {
+  const result = helpers.emailLinkComparison(href, label);
+  assert.equal(result.invalid, false, href);
+  assert.equal(result.matches, true, href);
+}
+for (const punctuation of [".", ",", ";", ":", "!"]) {
+  const result = helpers.emailLinkComparison("mailto:PlanUEL@gov.bc.ca", "PlanUEL@gov.bc.ca" + punctuation);
+  assert.equal(result.matches, false);
+  assert.equal(result.punctuationOnly, true);
+}
+for (const [href, label] of [
+  ["mailto:other@gov.bc.ca", "PlanUEL@gov.bc.ca."],
+  ["mailto:service+help@gov.bc.ca", "service@gov.bc.ca"],
+  ["mailto:service%252Bhelp@gov.bc.ca", "service+help@gov.bc.ca"],
+  ["mailto:PlanUEL@gov.bc.ca", "PlanUEL\u200b@gov.bc.ca"],
+  ["mailto:first@example.ca,second@example.ca", "first@example.ca"]
+]) {
+  const result = helpers.emailLinkComparison(href, label);
+  assert.equal(result.matches, false, href);
+  assert.equal(result.punctuationOnly, false, href);
+}
+for (const href of ["mailto:broken%ZZ@example.ca", "mailto:PlanUEL@gov.bc.ca%0D%0ABcc:other@example.ca", "mailto:%00service@example.ca"]) {
+  assert.equal(helpers.emailLinkComparison(href, "service@example.ca").invalid, true, href);
+}
+assert.match(helpers.emailComparisonEvidence("PlanUEL\u200b@gov.bc.ca"), /U\+200B/);
+for (const mode of ["normal", "nowrap", "pre-line", "collapse", "preserve-breaks"]) {
+  assert.equal(helpers.doubleSpaceOccurrences("For  more information", mode).length, 0, mode);
+  assert.equal(helpers.doubleSpaceOccurrences("For\u00a0\u00a0more information", mode).length, 1, mode);
+  const mixed = helpers.doubleSpaceOccurrences("For   \u00a0more information", mode)[0];
+  assert.equal(mixed.count, 2);
+  assert.match(mixed.evidence, /For ⟦2 spaces⟧ more information/);
+}
+for (const mode of ["pre", "pre-wrap", "break-spaces", "preserve", "preserve nowrap", "preserve-spaces"]) {
+  assert.equal(helpers.doubleSpaceOccurrences("For  more information", mode)[0].count, 2, mode);
+}
+
+
+// Time guidance is specific to each occurrence, with stable source offsets.
+for (const [source, replacement, reason] of [
+  ["8:30am", "8:30 am", "Add a space"],
+  ["12:00 pm", "12 pm", "Remove :00"],
+  ["1:00 PM", "1 pm", "lower case"],
+  ["4 p.m.", "4 pm", "Remove the periods"],
+  ["4:00PM", "4 pm", "Add a space"]
+]) {
+  const issue = helpers.timeFormatOccurrences(source)[0];
+  assert.equal(issue.text, source === "4 p.m." ? "4 p.m" : source, "Keep sentence punctuation outside the replacement");
+  assert.equal(issue.replacement, replacement);
+  assert.ok(issue.reason.includes(reason));
+}
+for (const source of ["8:30 am to 4:30 pm", "4\u00a0pm", "9 am.", "13 pm", "9:75 am", "0 am", "2019am", "9 amperes"]) {
+  assert.equal(helpers.timeFormatOccurrences(source).length, 0, source);
+}
+const times = "8:30 am to 12:00 pm and 1:00 pm to 4:30 pm";
+const timeIssues = helpers.timeFormatOccurrences(times);
+assert.deepEqual(timeIssues.map(issue => issue.text), ["12:00 pm", "1:00 pm"]);
+for (const issue of timeIssues) {
+  assert.equal(times.slice(issue.index, issue.index + issue.text.length), issue.text);
+  assert.equal(issue.reason.includes("Add a space"), false);
+}
+const repeatedTimes = helpers.timeFormatOccurrences("9AM and 9AM");
+assert.equal(repeatedTimes.length, 2);
+assert.notEqual(repeatedTimes[0].index, repeatedTimes[1].index);
+assert.equal(helpers.contrastReviewReason("background image"), "The text appears over a background image.");
+assert.equal(helpers.contrastReviewReason("element transparency"), "Transparency affects the colours.");
+assert.equal(helpers.contrastReviewReason("unknown future effect"), "The colours could not be measured reliably.");
+const privateField = { tagName: "INPUT", value: "PRIVATE DATA", getAttribute: name => name === "type" ? "search" : "PRIVATE ATTRIBUTE" };
+assert.equal(helpers.formControlDescription(privateField), "Search field");
+
+
+// Contextual identifiers: protect the reference, never nearby quantities.
+for (const text of [
+  "Ministerial order number M294", "ministerial order M294", "Order No. M294",
+  "PLAN 5449", "Plan No. 5449", "Plan: 5449", "Plan #5449",
+  "Explanatory Plan 3423", "See Plan 5449 for details", "Shown on Order M294",
+  "Refer to the plan 5449", "Plan\u00a0No.\u00a05449"
+]) {
+  const ranges = helpers.labelledIdentifierRanges(text);
+  assert.ok(ranges.length, text);
+  for (const range of ranges) assert.match(text.slice(range.start, range.end), /^(?:[A-Z]*\d+[A-Z]?)$/i);
+  assert.equal(helpers.numberSeparatorOccurrences(text).length, 0, text);
+}
+for (const text of ["Plan 15000 new homes", "Order 15000 copies", "The plan received 15000 responses", "See the plan for 15000 new homes"]) {
+  assert.equal(helpers.numberSeparatorOccurrences(text).length, 1, text);
+  assert.equal(helpers.labelledIdentifierRanges(text).length, 0, text);
+}
+const legalDescription = "THE NORTH 1/2 OF LOT A (EXPLANATORY PLAN 3423) BLOCK 99 DISTRICT LOT 140 PLAN 5449";
+assert.equal(helpers.numberSeparatorOccurrences(legalDescription).length, 0);
+assert.deepEqual(helpers.numberSeparatorOccurrences("See Plan 5449 for details. It received 15000 responses.").map(item => item.text), ["15000"]);
+assert.equal(helpers.labelledIdentifierRanges("An unfamiliar X294 term").length, 0, "Digits alone do not establish an identifier");
+for (const text of [
+  "5800 University Boulevard, Vancouver BC V6T 24",
+  "5800 University Blvd., Vancouver BC",
+  "123 Main Street\nNorth Vancouver BC",
+  "Suite 200, 5800 University Boulevard\nVancouver BC V6T 24"
+]) assert.equal(helpers.isBcPostalAddressContext(text, text.indexOf("BC")), true, text);
+for (const text of [
+  "People in BC can apply", "Visit 5800 University Boulevard and discuss BC policy",
+  "5800 University Boulevard\u2029Vancouver BC V6T 24",
+  "5800 University Boulevard\n\nVancouver BC V6T 24",
+  "5800 University Boulevard, Vancouver BC residents can apply"
+]) assert.equal(helpers.isBcPostalAddressContext(text, text.indexOf("BC")), false, text);
+const addressAndProse = "Visit 5800 University Boulevard, Vancouver BC. Services are available to BC residents.";
+assert.equal(helpers.isBcPostalAddressContext(addressAndProse, addressAndProse.indexOf("BC")), true);
+assert.equal(helpers.isBcPostalAddressContext(addressAndProse, addressAndProse.lastIndexOf("BC")), false);
+assert.equal(helpers.isBcPostalAddressContext("BC\u2029V8W 9M8", 0), false, "Excluded content is a hard boundary");
+const correction = helpers.alternativeAcronymCorrection("B.C. resident newborns must be enrolled in the Medical Services Plan, or MSP.", "MSP");
+assert.equal(correction.text, "Medical Services Plan, or MSP");
+assert.equal(correction.replacement, "Medical Services Plan (MSP)");
+assert.equal(helpers.acronymDefinedInText("Medical Services Plan, or MSP. MSP is used later.", "MSP"), true);
+assert.equal(helpers.alternativeAcronymCorrection("No definition here", "MSP"), null);
+
 console.log("Helper tests passed");

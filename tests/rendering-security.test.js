@@ -129,3 +129,12 @@ const innerHtmlSinks = source.match(/\.innerHTML\s*=/g) || [];
 assert.equal(innerHtmlSinks.length, 30, "A new innerHTML sink requires an explicit rendering-security review and updated hostile-text coverage");
 
 console.log("Rendering security tests passed");
+
+// Heading summaries must distinguish an empty outline from clean findings.
+const headingSummarySource = sourceBetween('function headingSummaryText(', 'function renderPageDetails(');
+const headingContext = {};
+vm.runInNewContext(headingSummarySource + '\nthis.summary = headingSummaryText;', headingContext);
+assert.equal(headingContext.summary([], []), 'No headings found');
+assert.equal(headingContext.summary([{ flags: [] }]), 'No heading issues detected');
+assert.equal(headingContext.summary([{ flags: ['Skipped level'] }]), '1 heading flagged');
+assert.equal(headingContext.summary([], [{}, {}]), 'No authored headings found · 2 accordion headings');

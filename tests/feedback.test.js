@@ -38,7 +38,7 @@ const context = {
 };
 context.globalThis = context;
 vm.createContext(context);
-vm.runInContext(`${source.slice(typeStart, typeEnd)}\n${source.slice(labelStart, labelEnd)}\n${source.slice(browserStart, browserEnd)}\n${source.slice(reportStart, reportEnd)}\n${source.slice(batchStart, batchEnd)}\n${source.slice(csvStart, csvEnd)}\n${source.slice(captureStart, captureEnd)}\n;globalThis.feedbackTest = { feedbackSubject, feedbackReportText, feedbackMailtoHref, feedbackEmailBatchPlan, feedbackCsvRows, captureFeedbackContext, csvHeader: FEEDBACK_CSV_HEADER };`, context);
+vm.runInContext(`${source.slice(typeStart, typeEnd)}\n${source.slice(labelStart, labelEnd)}\n${source.slice(browserStart, browserEnd)}\n${source.slice(reportStart, reportEnd)}\n${source.slice(batchStart, batchEnd)}\n${source.slice(csvStart, csvEnd)}\n${source.slice(captureStart, captureEnd)}\n;globalThis.feedbackTest = { feedbackSubject, feedbackReportText, feedbackMailtoHref, feedbackEmailBatchPlan, feedbackCsvRows, captureFeedbackContext, feedbackCapacityPromptKey, maybePromptFeedbackCapacity, csvHeader: FEEDBACK_CSV_HEADER };`, context);
 
 function note(id, text, includeContext = true) {
   return {
@@ -107,5 +107,65 @@ context.state = { activeReport: { page: { title: "Old scan", url: "https://examp
   assert.equal((await context.feedbackTest.captureFeedbackContext()).rulesBuild, "", "Unrecorded scan builds must remain unknown");
   context.state.activeReport = null;
   assert.equal((await context.feedbackTest.captureFeedbackContext()).rulesBuild, "test-current-build");
+  const capacity = context.feedbackTest.feedbackCapacityPromptKey;
+  const boundaryPlan = { batch: [included], overflow: [], blocked: false, oversized: false, uriLength: 6150 };
+  assert.equal(capacity(boundaryPlan), "", "Exactly 850 encoded characters remaining must not trigger the prompt");
+  assert.equal(capacity({ ...boundaryPlan, uriLength: 6151 }), included.id, "849 characters remaining must trigger the prompt");
+  assert.equal(capacity(plan), plan.batch[0].id, "A note crossing the email limit must still trigger the prompt");
+  assert.equal(capacity(context.feedbackTest.feedbackEmailBatchPlan([])), "");
+  const oversizedPlan = context.feedbackTest.feedbackEmailBatchPlan([note("huge", "漢字".repeat(2000))]);
+  assert.equal(oversizedPlan.oversized, true);
+  assert.equal(capacity(oversizedPlan), "huge", "Oversized individual notes must get an actionable prompt");
+
+  let prompts = 0;
+  context.state = { feedbackCapacityPromptKey: "" };
+  context.document = { activeElement: null };
+  context.requestAnimationFrame = callback => callback();
+  context.elements = {
+    "feedback-capacity-message": {},
+    "feedback-capacity-send": {},
+    "feedback-capacity-later": { focus() {} },
+    "feedback-capacity-dialog": { showModal() { prompts += 1; } }
+  };
+  context.readyFeedbackNotes = () => verbose;
+  context.feedbackTest.maybePromptFeedbackCapacity();
+  context.feedbackTest.maybePromptFeedbackCapacity();
+  assert.equal(prompts, 1, "Further saves in the same batch must not repeat the prompt");
+  context.readyFeedbackNotes = () => plan.overflow;
+  context.feedbackTest.maybePromptFeedbackCapacity();
+  assert.equal(prompts, 2, "The next batch must be eligible for a prompt");
+  context.readyFeedbackNotes = () => [note("huge", "漢字".repeat(2000))];
+  context.feedbackTest.maybePromptFeedbackCapacity();
+  assert.equal(context.elements["feedback-capacity-send"].textContent, "View saved feedback");
+
+  // Exercise the save workflow: persistence must finish before closing or prompting.
+  const saveStart = source.indexOf("async function saveFeedbackNote(event)");
+  const saveEnd = source.indexOf("function feedbackCard", saveStart);
+  vm.runInContext(source.slice(saveStart, saveEnd) + "\nglobalThis.saveFeedbackNoteForTest = saveFeedbackNote;", context);
+  const events = [];
+  let finishSave;
+  context.state = { feedbackNotes: [], pendingFeedbackContext: included.context, reviewMode: "list" };
+  Object.assign(context.elements, {
+    "feedback-type": { value: "incorrect" }, "feedback-text": { value: "Preserve this note" },
+    "feedback-important": { checked: false }, "feedback-context-section": { hidden: false },
+    "feedback-include-context": { checked: true }
+  });
+  context.STORAGE_KEYS = { feedback: "feedback" };
+  context.saveKey = () => new Promise(resolve => { finishSave = resolve; });
+  context.closeFeedbackDialog = () => events.push("close");
+  context.renderFeedback = () => {};
+  context.showToast = () => {};
+  context.maybePromptFeedbackCapacity = () => events.push("prompt");
+  const saving = context.saveFeedbackNoteForTest({ preventDefault() {} });
+  assert.equal(events.length, 0, "Do not close or prompt while storage is pending");
+  finishSave();
+  await saving;
+  assert.deepEqual(events, ["close", "prompt"]);
+  assert.equal(context.state.feedbackNotes[0].text, "Preserve this note");
+  events.length = 0;
+  context.saveKey = async () => { throw new Error("Storage unavailable"); };
+  await context.saveFeedbackNoteForTest({ preventDefault() {} });
+  assert.equal(context.state.feedbackNotes.length, 1, "Failed saves must not create phantom notes");
+  assert.equal(events.length, 0, "A failed save must keep the form open without a capacity prompt");
   console.log("Feedback tests passed");
 })().catch(error => { console.error(error); process.exitCode = 1; });
