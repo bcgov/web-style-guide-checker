@@ -30,7 +30,6 @@
     <main>
       <section id="preview-lifecycle-banner" class="preview-lifecycle-banner" hidden tabindex="-1" role="status" aria-live="polite">
         <div class="preview-lifecycle-copy">
-          <p class="eyebrow">Preview</p>
           <strong id="preview-lifecycle-title">Preview status</strong>
           <p id="preview-lifecycle-message"></p>
           <div id="preview-removal-instructions" class="preview-removal-instructions" hidden>
@@ -63,7 +62,7 @@
             <span>Checks the page title and editable body content.</span>
             <details id="cms-more-scan-options">
               <summary>More scan options</summary>
-              <label class="check-row"><input id="cms-whole-scan" type="checkbox"><span>Include the page template and controls</span></label>
+              <label class="check-row"><input id="cms-whole-scan" type="checkbox"><span>Also check navigation, the footer and page controls</span></label>
               <div id="cms-exclusion-slot"></div>
             </details>
           </div>
@@ -82,13 +81,13 @@
 
           <label id="colour-control-row" class="check-row scan-colour-control">
             <input id="colour-control" type="checkbox" checked>
-            <span><strong>Check colour contrast</strong><small>Include when editors can change colours and styling.</small></span>
+            <span><strong>Check colour contrast</strong><small>Use this when you can change text or background colours.</small></span>
           </label>
           <div id="standard-exclusion-slot">
             <div id="exclusion-scan-control">
               <label class="check-row scan-colour-control scan-exclude-control">
                 <input id="exclude-areas" type="checkbox" aria-controls="exclusion-scan-options" aria-expanded="false">
-                <span><strong>Exclude areas</strong><small>Skip selected areas (like the page footer) when reviewing this page.</small></span>
+                <span><strong>Exclude areas</strong><small>Skip selected areas (such as page footer) when reviewing this page.</small></span>
               </label>
               <div id="exclusion-scan-options" class="exclusion-scan-options" hidden>
                 <p id="exclusion-settings-summary" class="hint">No areas selected</p>
@@ -100,7 +99,7 @@
           <p id="scope-note" class="hint"></p>
 
           <div class="section-scan-control">
-            <div><strong>Specific section</strong><small id="section-scope-label">Entire editable content</small></div>
+            <div><strong>Specific section</strong><small id="section-scope-label">All editable content</small></div>
             <div class="inline-actions"><button id="choose-section-button" class="button secondary compact" type="button">Choose section</button><button id="clear-section-button" class="text-button" type="button" hidden>Clear</button></div>
           </div>
 
@@ -248,8 +247,8 @@
 
       <section id="batch-view" class="app-view workspace-view" role="tabpanel" aria-labelledby="batch-mode-tab" hidden>
         <header class="workspace-heading">
-          <div><p class="eyebrow">Multiple pages</p><h1>Batch scans</h1><p>Check a list of pages and download one organized report.</p></div>
-          <button id="batch-csv-button" class="button secondary" type="button" disabled>Download workbook</button>
+          <div><p class="eyebrow">Multiple pages</p><h1>Batch scans</h1><p>Check several pages and download one report.</p></div>
+          <button id="batch-csv-button" class="button secondary" type="button" disabled>Download report</button>
         </header>
 
         <section class="workspace-card batch-setup">
@@ -266,7 +265,7 @@
                   <option value="whole">Whole page</option>
                 </select>
               </label>
-              <label class="check-row"><input id="batch-colour-control" type="checkbox" checked> Include content colour contrast outside CMS Lite</label>
+              <label class="check-row"><input id="batch-colour-control" type="checkbox" checked> Check colour contrast on pages outside CMS Lite</label>
               <label class="check-row"><input id="batch-check-links" type="checkbox"> Check whether links work</label>
               <p class="hint batch-option-note">Checks links after each page. This takes longer and may ask for access to linked websites. CMS Lite links are checked in QA and live when applicable. Some internal links may use your current browser access.</p>
               <p id="batch-link-access-note" class="hint batch-option-note" hidden>After scanning the pages, the checker asks only for access to linked websites found in this batch.</p>
@@ -275,15 +274,15 @@
                 <p id="batch-exclusion-summary" class="hint batch-option-note">Skip saved areas where they are found. Pages without matching areas are reviewed normally.</p>
                 <button id="manage-batch-exclusions" class="text-button" type="button">Choose or edit areas</button>
               </div>
-              <label>Workbook type
+              <label>Report type
                 <select id="batch-export-preset">
-                  <option value="full" selected>Full audit</option>
-                  <option value="custom">Customize workbook</option>
+                  <option value="full" selected>Full report</option>
+                  <option value="custom">Customize report</option>
                 </select>
               </label>
               <p id="batch-export-description" class="hint batch-option-note">Includes the summary, findings, links, metadata and scan log.</p>
               <fieldset id="batch-export-custom" class="custom-export-options" hidden>
-                <legend>Workbook sheets</legend>
+                <legend>Report sheets</legend>
                 <label class="check-row"><input id="batch-custom-summary" type="checkbox" data-sheet="Summary" checked> Summary</label>
                 <label class="check-row"><input id="batch-custom-pages" type="checkbox" data-sheet="Pages" checked> Pages</label>
                 <label class="check-row"><input id="batch-custom-site-wide" type="checkbox" data-sheet="Site-wide findings" checked> Site-wide findings</label>
@@ -325,7 +324,7 @@
 
         <section class="workspace-card" aria-labelledby="optional-checks-heading">
           <h2 id="optional-checks-heading">Optional review checks</h2>
-          <p>These contextual checks are included by default. Turn one off only when it is not useful for the content you review.</p>
+          <p>These checks are on by default. Turn one off only when it is not useful for the content you review.</p>
           <label class="check-row optional-check-row"><input id="optional-non-breaking-space" type="checkbox" checked><span><strong>Non-breaking spaces</strong><small>Review spaces that may intentionally keep words or values together.</small></span></label>
           <label class="check-row optional-check-row"><input id="optional-passive-voice" type="checkbox" checked><span><strong>Passive voice</strong><small>Review wording that may make responsibility unclear.</small></span></label>
           <p id="optional-checks-status" class="hint" aria-live="polite"></p>
@@ -345,7 +344,7 @@
 
         <section class="workspace-card" aria-labelledby="saved-data-heading">
           <h2 id="saved-data-heading">Delete saved data</h2>
-          <p>Delete or reset information stored by the checker on this device. Each action affects only the named data.</p>
+          <p>Choose which saved information to delete or reset. Other saved information won't be affected.</p>
           <div class="data-management-list">
             <div class="data-management-row">
               <div><strong>Page reviews</strong><span id="page-review-data-count"></span><small>Reports, decisions, audit notes and saved review positions expire after 7 days.</small></div>
@@ -364,7 +363,7 @@
               <button id="clear-sent-feedback" class="button danger compact" type="button">Delete</button>
             </div>
             <div class="data-management-row">
-              <div><strong>Allowed terms</strong><span id="allowed-terms-data-count"></span><small>Exact rule-specific exceptions remain until you remove them.</small></div>
+              <div><strong>Allowed terms</strong><span id="allowed-terms-data-count"></span><small>Terms allowed for specific rules remain until you remove them.</small></div>
               <button id="clear-allowed-terms" class="button danger compact" type="button">Delete</button>
             </div>
             <div class="data-management-row">
@@ -372,7 +371,7 @@
               <button id="clear-excluded-areas" class="button danger compact" type="button">Delete</button>
             </div>
             <div class="data-management-row">
-              <div><strong>Page preferences</strong><span id="page-preferences-data-count"></span><small>Saved review scope, colour-control and optional-review choices remain until reset.</small></div>
+              <div><strong>Page preferences</strong><span id="page-preferences-data-count"></span><small>Your choices about what to review and optional checks stay saved until you reset them.</small></div>
               <button id="clear-page-preferences" class="button danger compact" type="button">Reset</button>
             </div>
           </div>
@@ -420,12 +419,12 @@
 
     <dialog id="export-dialog" class="sheet-dialog export-dialog">
       <form method="dialog">
-        <div class="dialog-heading"><div><p class="eyebrow">Use the results elsewhere</p><h2>Export this page</h2></div><button id="export-close" class="icon-button" type="button" aria-label="Close export options">×</button></div>
+        <div class="dialog-heading"><div><h2>Export this page</h2></div><button id="export-close" class="icon-button" type="button" aria-label="Close export options">×</button></div>
         <div class="export-choices">
-          <label for="current-export-preset" class="field-label">Workbook type</label>
+          <label for="current-export-preset" class="field-label">Report type</label>
           <select id="current-export-preset">
-            <option value="full" selected>Full audit</option>
-            <option value="custom">Customize workbook</option>
+            <option value="full" selected>Full report</option>
+            <option value="custom">Customize report</option>
           </select>
           <p id="current-export-preset-description" class="hint">Complete workbook with the review summary, grouped issues, every finding, page details, links and metadata.</p>
           <fieldset id="current-export-custom" class="custom-export-options" hidden>
@@ -443,8 +442,8 @@
         <div id="current-export-confirmation" class="export-copy-confirmation" role="status" aria-live="polite" hidden></div>
         <div class="export-actions">
           <button id="check-links-and-download-current" class="button primary" type="button">Check links and download</button>
-          <button id="download-current-workbook" class="button secondary" type="button">Download without checking</button>
-          <button id="download-current-action-csv" class="button tertiary" type="button">Download findings CSV</button>
+          <button id="download-current-workbook" class="button secondary" type="button">Download without checking links</button>
+          <button id="download-current-action-csv" class="button tertiary" type="button">Download findings only (.CSV)</button>
           <button id="copy-detailed-findings" class="button tertiary" type="button">Copy detailed findings</button>
         </div>
       </form>
@@ -474,7 +473,7 @@
       <details class="exclusions-help">
         <summary>How excluded areas work</summary>
         <p>Links continue to be checked in the link checker, unless you choose to skip those checks.</p>
-        <p>Changes take effect when you rescan. A running or saved batch keeps the settings it started with.</p>
+        <p>Your changes apply the next time you scan. They won't change a batch you've already started or saved.</p>
         <p class="exclusions-page"><strong>Review page:</strong> <span id="exclusions-page-address"></span></p>
       </details>
       <div class="exclusions-main-actions"><button id="choose-exclusion" class="button primary" type="button">Choose an area on the page</button><button id="show-all-exclusions" class="button secondary" type="button">Show all on page</button></div>
@@ -499,7 +498,7 @@
           <p id="exclusion-page-address" class="hint exclusion-address"></p>
         </fieldset>
         <label class="check-row exclusion-link-choice"><input id="exclusion-skip-links" type="checkbox"> Skip link checks in this area too</label>
-        <p class="hint">Links always remain in the links inventory.</p>
+        <p class="hint">Links in excluded areas still appear in the list of links.</p>
         <p id="exclusion-stability-note" class="hint"></p>
         <p id="exclusion-save-status" class="hint error-text" role="alert"></p>
         <div class="dialog-actions exclusion-save-actions"><button id="exclusion-save-button" class="button primary" type="submit" value="close">Save and close</button><button id="exclusion-save-add" class="button secondary" type="submit" value="add">Save and add another</button><button id="exclusion-save-rescan" class="text-button" type="submit" value="rescan" hidden>Save and rescan</button><button id="exclusion-save-cancel" class="text-button" type="button">Cancel</button></div>
@@ -509,7 +508,7 @@
     <dialog id="section-dialog">
       <form method="dialog">
         <h2>Choose a page section</h2>
-        <p>Select a heading to check that heading and its content up to the next heading at the same or higher level.</p>
+        <p>Choose a heading to check its section of the page. The checker includes everything beneath it until the next heading at the same level or higher.</p>
         <div id="section-list" class="section-list"></div>
         <div class="dialog-actions"><button id="section-cancel" class="button secondary" type="button">Cancel</button></div>
       </form>
@@ -571,7 +570,7 @@
 
     <dialog id="feedback-dialog">
       <form id="feedback-form" method="dialog">
-        <div class="dialog-heading"><div><p class="eyebrow">Saved on this device</p><h2 id="feedback-dialog-heading">Add feedback</h2></div><button id="feedback-dialog-close" class="icon-button" type="button" aria-label="Close feedback form">×</button></div>
+        <div class="dialog-heading"><div><h2 id="feedback-dialog-heading">Add feedback</h2></div><button id="feedback-dialog-close" class="icon-button" type="button" aria-label="Close feedback form">×</button></div>
         <label for="feedback-type" class="field-label">Feedback type</label>
         <select id="feedback-type" required>
           <option value="" disabled>Choose a feedback type</option>
@@ -607,9 +606,9 @@
 
     <dialog id="feedback-email-dialog">
       <form method="dialog">
-        <div class="dialog-heading"><div><p class="eyebrow">Next step</p><h2>Email draft opened</h2></div><button id="feedback-email-close" class="icon-button" type="button" aria-label="Close email confirmation">×</button></div>
+        <div class="dialog-heading"><div><h2>Email draft opened</h2></div><button id="feedback-email-close" class="icon-button" type="button" aria-label="Close email confirmation">×</button></div>
         <p id="feedback-email-message">Review the draft in your email app, then select <strong>Send</strong>.</p>
-        <p>The extension cannot tell whether your email app actually sent the message. Confirm below only after you send it.</p>
+        <p>The checker can't confirm whether you've sent the email. Select 'I sent it' only after sending it.</p>
         <div class="email-confirm-actions">
           <button id="archive-prepared-feedback" class="button primary" type="button">I sent it</button>
           <button id="keep-prepared-feedback" class="button secondary" type="button">I didn’t send it</button>
@@ -619,7 +618,7 @@
 
     <dialog id="feedback-copy-dialog">
       <form method="dialog">
-        <div class="dialog-heading"><div><p class="eyebrow">Copy feedback</p><h2>What do you want to copy?</h2></div><button id="feedback-copy-close" class="icon-button" type="button" aria-label="Close copy feedback options">×</button></div>
+        <div class="dialog-heading"><div><h2>What do you want to copy?</h2></div><button id="feedback-copy-close" class="icon-button" type="button" aria-label="Close copy feedback options">×</button></div>
         <div id="feedback-copy-options" class="feedback-copy-options">
           <button class="menu-action" type="button" data-feedback-copy-mode="unsent"><strong>Unsent feedback</strong><span>Copy only notes waiting to be emailed</span></button>
           <button class="menu-action" type="button" data-feedback-copy-mode="all"><strong>All feedback</strong><span>Copy unsent and sent notes together</span></button>

@@ -42,7 +42,11 @@ assert.equal(exactBlock.kind, "version-blocked");
 assert.equal(exactBlock.blocksUse, true);
 
 assert.equal(lifecycle.evaluatePolicy(policy({ pilotStatus: "ended" }), "1.3.4", "2026-09-01").kind, "pilot-ended");
-assert.equal(lifecycle.evaluatePolicy(policy(), "1.3.4", "2026-11-01").kind, "build-expired");
+assert.equal(lifecycle.builtInExpiry, "2027-01-31");
+assert.equal(lifecycle.evaluatePolicy(policy(), "1.3.4", "2026-11-01").blocksUse, false);
+assert.equal(lifecycle.evaluatePolicy(policy(), "1.3.4", "2027-01-31").blocksUse, false);
+assert.equal(lifecycle.evaluatePolicy(policy(), "1.3.4", "2027-02-01").kind, "build-expired");
+assert.equal(lifecycle.evaluatePolicy(policy(), "1.3.4", "2027-02-01").blocksUse, true);
 assert.equal(lifecycle.validatePolicy(policy({ downloadUrl: "http://github.com/bcgov/web-style-guide-checker/releases/latest" })), null);
 assert.equal(lifecycle.validatePolicy(policy({ downloadUrl: "https://example.com/fake-download" })), null);
 assert.equal(lifecycle.validatePolicy(policy({ latestVersion: "1.3.4", minimumSupportedVersion: "99.0.0" })), null);
