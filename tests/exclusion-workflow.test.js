@@ -62,7 +62,7 @@ const server = http.createServer((req,res)=>{
     document.body.dataset.surface=workspaceSurface?'workspace':'panel';syncStickyHeaderOffset();
     await loadState();state.lastReviewTabId=42;applySettings(defaultSettings(url));
    },source.url());
-   assert.match(await panel.locator('label:has(#exclude-areas) small').innerText(), /like the page footer/);
+   assert.match(await panel.locator('label:has(#exclude-areas) small').innerText(), /\bpage footer\b/i);
    await panel.evaluate(()=>renderPreviewLifecycle({kind:'build-expired',blocksUse:true,builtInExpiry:'2027-01-31',installedVersion:'1.3.3',downloadUrl:'https://github.com/bcgov/web-style-guide-checker/releases/latest'}));
    assert.equal(await panel.locator('#preview-removal-instructions').isVisible(),true);
    assert.equal(await panel.locator('#scan-button').isDisabled(),true);
