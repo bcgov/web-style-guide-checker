@@ -6022,6 +6022,10 @@ function feedbackCapacityPromptKey(plan) {
   return plan.batch.length && (plan.blocked || MAILTO_SAFE_URI_LIMIT - plan.uriLength < FEEDBACK_EMAIL_RESERVE)
     ? plan.batch[0].id
     : plan.oversized && plan.overflow.length ? plan.overflow[0].id : "";
+}
+
+function maybePromptFeedbackCapacity(returnFocus = null) {
+  const plan = feedbackEmailBatchPlan();
   const key = feedbackCapacityPromptKey(plan);
   if (!key || key === state.feedbackCapacityPromptKey) return;
   state.feedbackCapacityPromptKey = key;
@@ -6029,11 +6033,26 @@ function feedbackCapacityPromptKey(plan) {
   elements["feedback-capacity-message"].textContent = plan.oversized
     ? "One saved note is too large for an email draft. You can copy your feedback into an email. Your notes will stay saved while you keep reviewing."
     : plan.blocked
+      ? "Your saved feedback needs more than one email. You can send a batch now or keep reviewing. All your notes will stay saved until you mark them as sent."
+      : "This feedback email is nearly full. You can send it now or keep reviewing. Additional notes will stay saved for the next email if needed.";
+  elements["feedback-capacity-send"].textContent = plan.oversized ? "View saved feedback" : "Create email";
+  elements["feedback-capacity-dialog"].showModal();
+  requestAnimationFrame(() => elements["feedback-capacity-later"].focus());
+}
+
+function closeFeedbackCapacityPrompt() {
+  elements["feedback-capacity-dialog"].close();
+  const target = state.feedbackCapacityReturnFocus;
+  state.feedbackCapacityReturnFocus = null;
+  if (target && target.isConnected) requestAnimationFrame(() => target.focus());
+}
+
 function renderFeedback() {
   const ready = readyFeedbackNotes();
   const archived = archivedFeedbackNotes();
   const readyCount = ready.length;
   const plan = feedbackEmailBatchPlan(ready);
+  if (!feedbackCapacityPromptKey(plan)) state.feedbackCapacityPromptKey = "";
   elements["feedback-header-count"].textContent = String(readyCount);
   elements["feedback-header-count"].hidden = readyCount === 0;
   elements["feedback-ready-count"].textContent = `${readyCount} unsent${archived.length ? ` · ${archived.length} sent` : ""}`;
@@ -6514,7 +6533,7 @@ const PLAIN_LANGUAGE_RULES = new Set([
 
 const ACCESSIBILITY_REVIEW_FIRST = new Set([
   "document-language", "main-landmark", "skip-link-target", "disclosure-state", "image-alt-missing",
-  "linked-image-alt", "form-label", "table-headers", "table-accordion"
+  "linked-image-alt", "form-label", "table-headers", "table-caption", "table-accordion", "table-supplemental", "table-right-column"
 ]);
 const ACCESSIBILITY_NEEDS = new Set(["contrast", "contrast-unverified", "broken-image", "image-alt-meaningless"]);
 const ACCESSIBILITY_CONTEXTUAL_ALT = new Set(["image-alt-empty", "image-alt-length", "image-alt-prefix"]);
@@ -8554,6 +8573,7 @@ function bindEvents() {
   elements["note-cancel"].addEventListener("click", () => elements["note-dialog"].close());
   elements["add-feedback-button"].addEventListener("click", () => openFeedbackDialog());
   elements["feedback-form"].addEventListener("submit", saveFeedbackNote);
+  elements["feedback-capacity-later"].addEventListener("click", closeFeedbackCapacityPrompt);
   elements["feedback-capacity-dialog"].addEventListener("cancel", event => {
     event.preventDefault();
     closeFeedbackCapacityPrompt();
@@ -8561,6 +8581,7 @@ function bindEvents() {
   elements["feedback-capacity-send"].addEventListener("click", async () => {
     closeFeedbackCapacityPrompt();
     if (feedbackEmailBatchPlan().oversized) openFeedbackView();
+    else await createFeedbackEmail();
   });
   elements["feedback-dialog-close"].addEventListener("click", closeFeedbackDialog);
   elements["feedback-cancel"].addEventListener("click", closeFeedbackDialog);
