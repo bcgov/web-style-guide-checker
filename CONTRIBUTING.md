@@ -25,6 +25,20 @@ npm test
 
 Pull-request checks run `npm run test:ci`. Strict test mode requires all browser suites to run and fails when Playwright or Chromium is unavailable.
 
+## Maintain name recognition
+
+Edit approved literal forms in `data/indigenous-name-catalogue.json`, retaining their source references and recognition decisions. Only entries marked `Official page read` can contribute new automatic forms. Keep standalone acronyms and ambiguous short forms held for normal contextual checks. Store research commentary separately from extension files.
+
+Regenerate the embedded snapshot and run its checks:
+
+```bash
+npm run sync:indigenous-names
+node scripts/sync-indigenous-names.js --check
+node tests/indigenous-name-catalogue.test.js
+```
+
+The generator validates the metadata fields and embeds approved forms in `checker-core.js`. Scans do not load the source JSON or visit its URLs. See [recognition boundaries](docs/design-decisions.md#name-and-language-recognition) before changing the matching behaviour.
+
 ## Test the extension manually
 
 1. Open `chrome://extensions` or `edge://extensions`.
@@ -34,3 +48,7 @@ Pull-request checks run `npm run test:ci`. Strict test mode requires all browser
 5. Test the side panel, full-page workspace and any affected scan profiles.
 
 Do not commit generated ZIP files. Release packages are created from reviewed repository files.
+
+## Maintain documentation
+
+Keep repository documentation focused on current usage, design and maintenance. Put patch ordering, working-session summaries and one-off verification reports in pull-request descriptions or delivery messages.

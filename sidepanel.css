@@ -614,6 +614,7 @@ mark { padding: 0 2px; color: var(--ink); background: #ffe19b; }
 dialog { width: min(520px, calc(100vw - 24px)); max-height: calc(100vh - 32px); padding: 0; color: var(--ink); background: var(--white); border: 1px solid var(--line-strong); border-radius: var(--radius-md); box-shadow: var(--shadow-overlay); }
 dialog::backdrop { background: rgba(21, 36, 65, .44); }
 dialog form { padding: 18px; }
+#feedback-capacity-dialog { padding: 18px; }
 .sheet-dialog { margin: auto auto 12px; }
 .dialog-heading { align-items: center; margin-bottom: 12px; }
 .dialog-heading h2 { margin: 0; }
@@ -825,6 +826,11 @@ body[data-surface="workspace"] dialog { margin: auto; }
 .preview-lifecycle-copy .eyebrow { margin-bottom: 2px; }
 .preview-lifecycle-copy > strong { display: block; color: var(--navy); }
 .preview-lifecycle-copy > p:not(.eyebrow) { margin: 3px 0 0; }
+.preview-removal-instructions { margin-top: 12px; }
+.preview-removal-instructions ol { margin: 8px 0; padding-left: 22px; }
+.preview-removal-instructions li + li { margin-top: 6px; }
+.preview-removal-instructions p { margin: 8px 0 0; }
+.preview-removal-instructions code { overflow-wrap: anywhere; }
 .preview-lifecycle-version {
   display: block;
   margin-top: 5px;

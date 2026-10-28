@@ -34,6 +34,24 @@ function has(report, ruleId) {
   const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage();
 
+  // Feedback regressions: linked file labels, nested underlining and empty alignment.
+  for (const [body, rule, expected] of [
+    ['<h2><a href="/process.pdf">Appointment process (PDF, 34KB)</a></h2>', 'heading-parentheses', false],
+    ['<h2><a href="/process.pdf">Appointment process (PDF, 34 KB)</a></h2>', 'heading-parentheses', false],
+    ['<h2>Appointment process (PDF, 34KB)</h2>', 'heading-parentheses', true],
+    ['<h2><a href="/process.pdf">Appointment process (updated) (PDF, 34KB)</a></h2>', 'heading-parentheses', true],
+    ['<p><u><a href="/apply"><span>Apply online</span></a></u></p>', 'underline', false],
+    ['<p><a href="/apply"><u>Apply online</u></a></p>', 'underline', false],
+    ['<p><u>Read <a href="/apply">the application</a></u></p>', 'underline', true],
+    ['<p><u><a>Unlinked text</a></u></p>', 'underline', true],
+    ['<p style="text-align:center"><img src="test.jpg" alt="Landscape"></p>', 'text-alignment', false],
+    ['<p style="text-align:right"> &nbsp; </p>', 'text-alignment', false],
+    ['<p style="text-align:center">Visible body text</p>', 'text-alignment', true]
+  ]) {
+    const result = await scan(page, body);
+    assert.equal(has(result, rule), expected, body);
+  }
+
   let report = await scan(page, "<p>The Government introduced a new service.</p>");
   assert.equal(has(report, "government-capitalization"), true);
   report = await scan(page, "<p>The Government of British Columbia introduced a new service.</p>");
@@ -88,6 +106,89 @@ function has(report, ruleId) {
   assert.equal(has(report, "bc-abbreviation"), false, "BC in a Canadian postal address must not be rewritten");
   report = await scan(page, "<p>People in BC can apply.</p>");
   assert.equal(has(report, "bc-abbreviation"), true, "BC outside a postal or approved-name context must still be checked");
+
+  report = await scan(page, '<p>2225 <span>Acadia</span> Rd. and <a href="/office">5800 University Boulevard</a> received 15000 applications.</p>');
+  assert.deepEqual(report.issues.filter(issue => issue.ruleId === "number-comma").map(issue => issue.matchText), ["15000"]);
+  report = await scan(page, '<p><span>1075683</span> <strong>BC</strong> <span>Ltd.</span> received 15000 applications from BC residents.</p>');
+  assert.deepEqual(report.issues.filter(issue => issue.ruleId === "number-comma").map(issue => issue.matchText), ["15000"]);
+  assert.equal(report.issues.filter(issue => issue.ruleId === "bc-abbreviation").length, 1, "Only BC outside the company name must be flagged");
+  report = await scan(page, '<p>1075683\n<span>BC</span> Ltd.</p><p>5800\n<span>University</span> Boulevard</p>');
+  assert.equal(has(report, "number-comma"), false, "Collapsed source newlines must not break an identifier");
+  assert.equal(has(report, "bc-abbreviation"), false);
+  report = await scan(page, '<p>1075683 BC</p><p>Ltd.</p><p>5800 University</p><p>Boulevard</p>');
+  assert.equal(report.issues.filter(issue => issue.ruleId === "number-comma").length, 2, "Do not infer identifiers across paragraphs");
+  assert.equal(has(report, "bc-abbreviation"), true);
+  report = await scan(page, '<p>1075683 BC<br>Ltd.</p><p>5800 University<br>Boulevard</p>');
+  assert.equal(report.issues.filter(issue => issue.ruleId === "number-comma").length, 2, "Line breaks must separate identifier context");
+  report = await scan(page, '<p>1075683 BC <span hidden>Ltd.</span></p><p>5800 University <span hidden>Boulevard</span></p>');
+  assert.equal(report.issues.filter(issue => issue.ruleId === "number-comma").length, 2, "Hidden text must not supply identifier context");
+
+  // Table classification and CMS Lite placement are independent checks.
+  const boxTable = '<table><tbody><tr><td>A notice inside a content box.</td></tr></tbody></table>';
+  report = await scan(page, boxTable);
+  assert.equal(has(report, "table-layout"), true);
+  assert.equal(has(report, "table-caption"), false);
+  assert.equal(has(report, "table-headers"), false);
+  report = await scan(page, '<table><caption>A title</caption><tr><th>A single heading cell</th></tr></table>');
+  assert.equal(has(report, "table-layout"), true, "A caption or th does not prove one-cell content is tabular data");
+  const dataTable = '<table><tr><th>English</th><th>French</th></tr><tr><td>Green</td><td>Vert</td></tr></table>';
+  report = await scan(page, '<h2>Colour names</h2>' + dataTable);
+  assert.equal(has(report, "table-caption"), true, "A nearby heading cannot replace the required caption");
+  report = await scan(page, dataTable.replace('<table>', '<table><caption>Colour names</caption>'));
+  assert.equal(has(report, "table-caption"), false);
+  assert.equal(has(report, "table-layout"), false);
+  report = await scan(page, '<table><tr><td></td></tr></table>');
+  assert.equal(has(report, "table-layout"), false, "An empty table needs different guidance");
+  report = await scan(page, '<table><tr><td>First cell</td><td hidden>Hidden second cell</td></tr></table>');
+  assert.equal(has(report, "table-layout"), false, "Hidden cells must not change the structural count");
+  report = await scan(page, '<table><tr><td colspan="2">Merged cell</td></tr></table>');
+  assert.equal(has(report, "table-layout"), false);
+  report = await scan(page, '<table><tr><td>' + dataTable + '</td></tr></table>');
+  assert.equal(has(report, "table-layout"), false, "Do not classify nested tables by a flattened cell count");
+  report = await scan(page, '<div class="accordion">' + boxTable + '</div>');
+  assert.equal(has(report, "table-accordion"), false, "CMS Lite placement policy does not apply to standard sites");
+  report = await scan(page, '<div class="accordion">' + boxTable + '</div>', { profile: "cms-lite" });
+  assert.equal(has(report, "table-accordion"), true);
+  assert.equal(has(report, "table-layout"), true, "Placement and possible layout use need separate decisions");
+  report = await scan(page, '<section id="cmf-ui-supplementary-content">' + boxTable + '</section>', { profile: "cms-lite" });
+  assert.equal(has(report, "table-supplemental"), true);
+  report = await scan(page, '<aside class="sidebar">' + boxTable + '</aside>', { profile: "cms-lite" });
+  assert.equal(has(report, "table-supplemental"), false, "A generic sidebar is insufficient evidence");
+  report = await scan(page, '<section id="cmf-ui-supplementary-content">' + boxTable + '</section>', { profile: "cms-lite", pageUrlOverride: "https://intranet.gov.bc.ca/example" });
+  assert.equal(has(report, "table-right-column"), true);
+  assert.equal(has(report, "table-supplemental"), false);
+  report = await scan(page, '<p>Open 8:30 am to 12:<!-- inline comment --><span>00</span> pm and 1:00 pm to 4:30 pm.</p>');
+  const specificTimes = report.issues.filter(issue => issue.ruleId === "time-format");
+  assert.deepEqual(specificTimes.map(issue => issue.matchText).sort(), ["12:00 pm", "1:00 pm"]);
+  assert.equal(specificTimes.some(issue => issue.suggestion.includes("Add a space")), false);
+  report = await scan(page, '<input type="search" value="PRIVATE DATA" placeholder="Search">');
+  const labelIssue = report.issues.find(issue => issue.ruleId === "form-label");
+  assert.ok(labelIssue);
+  assert.equal(labelIssue.evidence, "Search field");
+  assert.equal(JSON.stringify(labelIssue).includes("PRIVATE DATA"), false);
+  report = await scan(page, '<label for="search">Search this site</label><input id="search" type="search">');
+  assert.equal(has(report, "form-label"), false);
+
+  report = await scan(page, '<p>The signed Ministerial order number <a href="/order.pdf">M294</a> can be found here.</p>');
+  assert.equal(report.issues.some(issue => issue.ruleId === "undefined-acronym" && issue.flaggedToken === "M294"), false);
+  report = await scan(page, '<h2>Ministerial order M294</h2><p>Order details.</p>');
+  assert.equal(report.issues.some(issue => ["undefined-acronym", "acronym-in-heading"].includes(issue.ruleId) && issue.flaggedToken === "M294"), false);
+  report = await scan(page, '<p>An unfamiliar X294 term needs review.</p>');
+  assert.equal(report.issues.some(issue => issue.ruleId === "undefined-acronym" && issue.flaggedToken === "X294"), true);
+  report = await scan(page, '<p>THE NORTH 1/2 OF LOT A (EXPLANATORY PLAN <strong>3423</strong>) BLOCK 99 DISTRICT LOT 140 PLAN <a href="/plan.pdf">5449</a></p><p>Plan 15000 new homes. Order 16000 copies.</p>');
+  assert.deepEqual(report.issues.filter(issue => issue.ruleId === "number-comma").map(issue => issue.matchText).sort(), ["15000", "16000"]);
+  report = await scan(page, '<p>5800 University Boulevard,<br>Vancouver <strong>BC</strong> V6T 24. Services are available to BC residents.</p>');
+  assert.equal(report.issues.filter(issue => issue.ruleId === "bc-abbreviation").length, 1);
+  report = await scan(page, '<address><p>5800 University Boulevard</p><p>Vancouver <strong>BC</strong> V6T 24</p></address>');
+  assert.equal(has(report, "bc-abbreviation"), false);
+  report = await scan(page, '<p>5800 University Boulevard</p><p>Vancouver BC V6T 24</p>');
+  assert.equal(has(report, "bc-abbreviation"), true, "Unrelated paragraphs must not be joined into an address");
+  report = await scan(page, '<p>5800 University Boulevard<span hidden>Hidden context</span> Vancouver BC V6T 24</p>');
+  assert.equal(has(report, "bc-abbreviation"), true, "Excluded or hidden content must stop recognition");
+  report = await scan(page, '<p>Medical Services Plan, or <strong>MSP</strong>.</p><p>MSP is used later.</p>');
+  assert.equal(has(report, "undefined-acronym"), false);
+  assert.equal(report.issues.filter(issue => issue.ruleId === "acronym-definition-format").length, 1);
+  assert.equal(report.issues.find(issue => issue.ruleId === "acronym-definition-format").suggestion, "Write “Medical Services Plan (MSP)”.");
 
   report = await scan(page, "<p>The fee is $0.75.</p>");
   assert.equal(has(report, "currency-cents"), true);
@@ -167,6 +268,48 @@ function has(report, ruleId) {
   assert.equal(has(report, "ordinal-superscript"), true, "Larger ordinal endings must not be superscripted");
   report = await scan(page, "<p>The meeting begins at 9am.</p>");
   assert.equal(has(report, "time-format"), true);
+  for (const profile of ["standard", "cms-lite"]) {
+    report = await scan(page, '<h2>100 Mile House</h2><p>Visit 100 Mile House.</p><p>Visit <span>100 Mile</span> House.</p><p>Visit 100 <strong>Mile House</strong>.</p><p>100&nbsp;Mile&nbsp;House’s services</p>', { profile });
+    assert.equal(has(report, "imperial-unit"), false, profile);
+    assert.equal(has(report, "heading-title-case"), false, profile);
+    report = await scan(page, '<p>Drive 5 miles from 100 Mile House, then carry 20 pounds.</p><p>From <span>100 Mile House</span>, drive <strong>7</strong> miles.</p>', { profile });
+    const measurements = report.issues.filter(issue => issue.ruleId === "imperial-unit");
+    assert.deepEqual(measurements.map(issue => issue.matchText), ["5 miles", "20 pounds", "7 miles"], profile);
+    for (const issue of measurements) assert.equal(issue.evidence.slice(issue.evidenceMatchIndex, issue.evidenceMatchIndex + issue.matchText.length), issue.matchText);
+    assert.doesNotMatch(measurements[2].selector, /strong/, "A measurement split across markup must be located in its containing passage");
+  }
+  report = await scan(page, '<h2>Walk A Mile Today</h2><p>Drive 100 miles from the house.</p><p>It is 5 feet wide and weighs 20 pounds.</p>');
+  assert.equal(has(report, "heading-title-case"), true, "Do not allow the individual words Mile or House globally");
+  assert.deepEqual(report.issues.filter(issue => issue.ruleId === "imperial-unit").map(issue => issue.matchText), ["100 miles", "5 feet", "20 pounds"]);
+  report = await scan(page, '<p>“5 miles” is quoted. Drive 7 miles from 100 Mile House.</p><p lang="crk">5 miles</p><p><span lang="en">6 </span><span lang="crk">miles</span></p>');
+  assert.deepEqual(report.issues.filter(issue => issue.ruleId === "imperial-unit").map(issue => issue.matchText), ["7 miles"]);
+  report = await scan(page, "<p>The office opens from 8:30 am to 12:00 pm and 1:00 pm to 4:30 pm.</p>");
+  const timeFindings = report.issues.filter(issue => issue.ruleId === "time-format");
+  assert.deepEqual(timeFindings.map(issue => issue.matchText), ["12:00 pm", "1:00 pm"]);
+  for (const issue of timeFindings) {
+    assert.match(issue.suggestion, /Remove :00/);
+    assert.doesNotMatch(issue.suggestion, /Add a space|Use lower case|Remove the periods/);
+    assert.equal(issue.evidence.slice(issue.evidenceMatchIndex, issue.evidenceMatchIndex + issue.matchText.length), issue.matchText);
+  }
+  report = await scan(page, "<p>Seek and/or obtain consent.</p><p>Use https://example.com/and/or for this service.</p>");
+  assert.equal(report.issues.filter(issue => issue.ruleId === "slash").length, 1);
+  assert.match(report.issues.find(issue => issue.ruleId === "slash").suggestion, /‘and’.*‘or’.*or both/);
+  assert.equal(report.issues.find(issue => issue.ruleId === "slash").replacement, "", "Do not choose a legal or policy meaning automatically");
+
+  const accordionRow = (id, content) => `<li class="accordion-group__row"><div><button aria-expanded="true" aria-controls="${id}">Organizational Data</button><div id="${id}" class="accordion__content">${content}</div></div></li>`;
+  report = await scan(page, `<ul id="layout">${accordionRow('panel', '<p>The Government provides services. People can apply.</p>')}${accordionRow('panel', '<p>Another complete paragraph.</p>')}</ul>`);
+  for (const rule of ["list-punctuation", "list-multiple-sentences", "list-introduction", "list-repetition"]) assert.equal(has(report, rule), false, rule);
+  assert.equal(report.pageDetails.counts.lists, 0, "Layout-only accordion wrappers are not authored lists");
+  assert.equal(has(report, "government-capitalization"), true, "Continue reviewing the accordion's actual content");
+  report = await scan(page, `<ul id="layout">${accordionRow('panel', '<p>Choose an option:</p><ul id="real-list"><li>First option.</li><li>Second option</li></ul>')}</ul>`);
+  assert.equal(report.pageDetails.counts.lists, 1);
+  assert.deepEqual(report.issues.filter(issue => issue.ruleId === "list-punctuation").map(issue => issue.evidence), ["First option."]);
+  report = await scan(page, '<ul><li><details open><summary>Services</summary><p>First sentence. Second sentence.</p></details></li></ul>');
+  assert.equal(has(report, "list-multiple-sentences"), false);
+  report = await scan(page, `<ul><li>Ordinary list item.</li>${accordionRow('panel', '<p>First sentence. Second sentence.</p>')}</ul>`);
+  assert.deepEqual(report.issues.filter(issue => issue.ruleId === "list-punctuation").map(issue => issue.evidence), ["Ordinary list item."]);
+  report = await scan(page, '<ul class="accordion"><li>Ordinary list item.</li><li>Another ordinary item.</li></ul>');
+  assert.equal(has(report, "list-punctuation"), true, "A class name alone must not exempt real list content");
 
   report = await scan(page, "<p>Choose the service that applies</p><ul><li>Apply online</li><li>Call the office</li></ul>");
   assert.equal(has(report, "list-introduction"), true);
@@ -335,9 +478,9 @@ function has(report, ruleId) {
   assert.equal(has(report, "acronym-definition-format"), true, "A defined acronym using comma-or wording should receive the specific format finding");
   const acronymFormat = report.issues.find(issue => issue.ruleId === "acronym-definition-format");
   assert.equal(acronymFormat.severity, "check");
-  assert.equal(acronymFormat.matchText, ", or MSP");
+  assert.equal(acronymFormat.matchText, "Medical Services Plan, or MSP");
   assert.deepEqual(acronymFormat.diagnostics, [], "The evidence and exact correction are sufficient without a repetitive diagnostic");
-  assert.equal(acronymFormat.suggestion, "Change “, or MSP” to “(MSP)”.");
+  assert.equal(acronymFormat.suggestion, "Write “Medical Services Plan (MSP)”.");
   report = await scan(page, '<p>B.C. resident newborns must be enrolled in the Medical Services Plan (MSP).</p>');
   assert.equal(has(report, "undefined-acronym"), false);
   assert.equal(has(report, "acronym-definition-format"), false, "The recommended parenthetical format must pass");
@@ -415,8 +558,30 @@ function has(report, ruleId) {
   report = await scan(page, '<ul><li>First item;</li><li>Second item</li></ul>');
   assert.deepEqual(report.issues.find(issue => issue.ruleId === "list-punctuation").diagnostics, [], "List punctuation does not need a duplicate semicolon explanation");
 
-  report = await scan(page, '<p>First sentence.  Second sentence.</p>');
-  assert.deepEqual(report.issues.find(issue => issue.ruleId === "double-space").diagnostics, [], "The double-space evidence marker is sufficient");
+  report = await scan(page, '<p>For  more information on Small-scale Multi-unit Housing and Transit-oriented Areas  within the UEL</p>');
+  assert.equal(has(report, "double-space"), false, "Collapsed source spaces are not visible spacing defects");
+  for (const style of ["pre-wrap", "break-spaces"]) {
+    report = await scan(page, `<p style="white-space:${style}">First sentence.  Second sentence.</p>`);
+    assert.deepEqual(report.issues.find(issue => issue.ruleId === "double-space").diagnostics, []);
+  }
+  report = await scan(page, '<p style="white-space:pre-line">First sentence.  Second sentence.</p>');
+  assert.equal(has(report, "double-space"), false);
+  report = await scan(page, '<p>For&nbsp;&nbsp;more information</p>');
+  assert.equal(has(report, "double-space"), true, "Repeated non-breaking spaces remain visible");
+  report = await scan(page, '<p><a href="mailto: PlanUEL@gov.bc.ca">PlanUEL@gov.bc.ca</a></p>');
+  assert.equal(has(report, "email-link-text"), false);
+  report = await scan(page, '<p><a href="mailto:PlanUEL@gov.bc.ca">PlanUEL@gov.bc.ca.</a></p>');
+  assert.equal(has(report, "email-link-text"), false);
+  assert.equal(has(report, "linked-period"), true, "Keep the specific punctuation finding");
+  report = await scan(page, '<p><a href="mailto:other@gov.bc.ca">PlanUEL@gov.bc.ca.</a></p>');
+  assert.equal(has(report, "email-link-text"), true, "Punctuation must not hide a different recipient");
+  report = await scan(page, '<p><a href="mailto:service%2Bhelp%40gov.bc.ca?subject=Question">service+help@gov.bc.ca</a></p>');
+  assert.equal(has(report, "email-link-text"), false);
+  report = await scan(page, '<p><a href="mailto:broken%ZZ@example.ca">service@example.ca</a></p><p>15000 applications</p>');
+  assert.equal(has(report, "email-link-destination"), true);
+  assert.equal(has(report, "number-comma"), true, "A malformed email must not interrupt the scan");
+  report = await scan(page, '<p><a href="mailto:PlanUEL@gov.bc.ca">PlanUEL&#8203;@gov.bc.ca</a></p>');
+  assert.match(report.issues.find(issue => issue.ruleId === "email-link-text").evidence, /U\+200B/);
 
   report = await scan(page, '<img src="one.png" alt="image"><a href="/apply"><img src="two.png" alt="photo"></a>');
   assert.equal(report.issues.filter(issue => issue.ruleId === "image-alt-meaningless").length, 1);
@@ -676,6 +841,7 @@ function has(report, ruleId) {
   report = await scan(page, `<div style="background:linear-gradient(#fff,#000)"><p id="gradient-text" style="color:#777">Text over a gradient</p></div>`, { canControlColour: true });
   const gradientContrast = report.issues.find(issue => issue.ruleId === "contrast-unverified" && issue.selector === "#gradient-text");
   assert.ok(gradientContrast, "Gradient backgrounds must produce a manual verification finding instead of being skipped");
+  assert.equal(gradientContrast.evidence, "Text over a gradient");
   assert.match(gradientContrast.contrast.reason, /gradient background/);
   assert.equal(report.issues.some(issue => issue.ruleId === "contrast" && issue.selector === "#gradient-text"), false, "An unreliable background must not be reported as a confirmed ratio");
 

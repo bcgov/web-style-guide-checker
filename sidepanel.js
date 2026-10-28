@@ -32,6 +32,7 @@ const FEEDBACK_TYPES = {
 // Keep a healthy buffer below Outlook/Windows URL hand-off limits. The full
 // encoded mailto URI (not the unencoded report text) is measured against this.
 const MAILTO_SAFE_URI_LIMIT = 7000;
+const FEEDBACK_EMAIL_RESERVE = 850;
 const surfaceParams = new URLSearchParams(location.search);
 const workspaceSurface = surfaceParams.get("workspace") === "1";
 
@@ -102,6 +103,8 @@ const state = {
   pendingFeedbackId: "",
   pendingFeedbackContext: null,
   preparedFeedbackIds: [],
+  feedbackCapacityPromptKey: "",
+  feedbackCapacityReturnFocus: null,
   feedbackCopyMode: "",
   feedbackPreviousView: "current",
   feedbackPreviousScroll: 0,
@@ -162,7 +165,7 @@ function lifecycleDisplayContent(result) {
     },
     "build-expired": {
       title: "This preview has expired",
-      message: customMessage || `This preview build expired on ${result && result.builtInExpiry ? result.builtInExpiry : "its configured expiry date"}. Get a current preview before continuing.`,
+      message: customMessage || `This pilot build expired on ${result && result.builtInExpiry ? result.builtInExpiry : "its configured expiry date"} and can no longer scan pages. Remove it using the steps below.`,
       warning: false
     }
   };
@@ -189,6 +192,9 @@ function renderPreviewLifecycle(result) {
   const content = lifecycleDisplayContent(result);
   const blocked = Boolean(result && result.blocksUse);
   const current = !result || result.kind === "current";
+  const showRemoval = Boolean(result && ["build-expired", "pilot-ended"].includes(result.kind));
+  const removal = elements["preview-removal-instructions"];
+  if (removal) removal.hidden = !showRemoval;
 
   [
     "scan-button",
@@ -219,7 +225,7 @@ function renderPreviewLifecycle(result) {
       : `Preview v${installed}`;
 
   const downloadLink = elements["preview-download-link"];
-  downloadLink.hidden = !result.downloadUrl;
+  downloadLink.hidden = !result.downloadUrl || showRemoval;
   if (result.downloadUrl) downloadLink.href = result.downloadUrl;
 
   elements["preview-continue-button"].hidden = result.kind !== "update-recommended";
@@ -261,7 +267,7 @@ function cacheElements() {
     "excluded-areas-data-count", "clear-excluded-areas", "exclusion-settings-summary", "manage-exclusions", "exclude-areas", "exclusion-scan-options", "exclusion-settings-areas", "exclusion-report-summary", "exclusion-report-text", "manage-report-exclusions", "optional-exclusions-summary", "page-scan-coverage", "exclusion-scan-control", "standard-exclusion-slot", "cms-exclusion-slot", "cms-more-scan-options", "batch-exclusion-summary", "batch-use-exclusions", "manage-batch-exclusions", "menu-exclusions",
     "exclusions-dialog", "exclusions-close", "exclusions-page-address", "show-all-exclusions", "exclusion-save-heading", "exclusion-save-close", "exclusion-duplicate-notice", "exclusion-enabled-choice", "exclusion-enabled", "choose-exclusion", "exclusions-status", "exclusions-list", "exclusion-save-dialog", "exclusion-save-form", "exclusion-selection-description", "exclusion-name", "exclusion-page-address", "exclusion-site-radio", "exclusion-site-address", "exclusion-stability-note", "exclusion-save-status", "exclusion-save-cancel", "exclusion-save-button", "exclusion-save-add", "exclusion-save-rescan", "exclusion-reselect", "exclusion-skip-links",
     "active-page-label", "return-review-button", "feedback-header-button", "feedback-header-count", "profile-badge", "colour-control-row", "colour-control", "scope-note", "scan-button", "scan-permission-button", "cache-note",
-    "preview-lifecycle-banner", "preview-lifecycle-title", "preview-lifecycle-message", "preview-lifecycle-version", "preview-download-link", "preview-continue-button", "preview-check-again-button",
+    "preview-lifecycle-banner", "preview-lifecycle-title", "preview-lifecycle-message", "preview-lifecycle-version", "preview-removal-instructions", "preview-download-link", "preview-continue-button", "preview-check-again-button",
     "scan-settings", "cancel-settings-button", "stale-report-banner", "stale-report-title", "stale-report-message", "stale-rescan-button",
     "cms-lite-settings", "cms-whole-scan", "standard-scope-settings", "choose-section-button", "clear-section-button", "section-scope-label",
     "current-loading", "current-error", "current-error-message", "current-results", "export-page-button",
@@ -286,6 +292,7 @@ function cacheElements() {
     "note-dialog", "note-form", "note-finding-name", "note-important", "note-text", "note-cancel", "toast", "review-toast",
     "feedback-view", "feedback-back-button", "feedback-ready-count", "add-feedback-button", "feedback-empty", "feedback-list", "feedback-send-panel", "feedback-send-status", "pending-feedback-count",
     "create-feedback-email", "copy-feedback-report", "export-feedback-csv", "archived-feedback", "archived-feedback-count", "archived-feedback-list",
+    "feedback-capacity-dialog", "feedback-capacity-message", "feedback-capacity-send", "feedback-capacity-later",
     "feedback-dialog", "feedback-form", "feedback-dialog-heading", "feedback-dialog-close", "feedback-type", "feedback-text", "feedback-important",
     "feedback-context-section", "feedback-include-context", "feedback-context-preview", "feedback-cancel", "feedback-email-dialog", "feedback-email-message", "feedback-email-close",
     "archive-prepared-feedback", "keep-prepared-feedback", "feedback-copy-dialog", "feedback-copy-close", "feedback-copy-options", "feedback-copy-selection",
@@ -1296,7 +1303,8 @@ async function cachedPageChanged(tab, report) {
 }
 
 function showStaleState(report, pageChanged) {
-  const rulesChanged = Boolean(report && report.ruleVersion !== globalThis.BCWebStyleGuideChecker.ruleVersion);
+  const rulesChanged = Boolean(report && (report.ruleVersion !== globalThis.BCWebStyleGuideChecker.ruleVersion
+    || (report.ruleBuild || "") !== (globalThis.BCWebStyleGuideChecker.ruleBuild || "")));
   elements["stale-report-banner"].hidden = !rulesChanged && !pageChanged;
   elements["stale-rescan-button"].hidden = false;
   if (pageChanged) {
@@ -1570,7 +1578,7 @@ async function injectScanner(tabId, options) {
 
           report.editorRegion = index + 1;
           report.editorSource = editorSource;
-          editorTextByReport.set(report, text);
+          editorTextByReport.set(report, globalThis.BCWebStyleGuideChecker.helpers.englishAcronymText(frameBody));
 
           return report;
         })
@@ -4430,9 +4438,10 @@ function renderedEvidence(finding) {
 function renderedContrastDetails(finding) {
   const contrast = finding && finding.contrast;
   if (!contrast) return "";
-  const measurement = contrast.status === "confirmed"
-    ? `<strong>${escapeHtml(Number(contrast.ratio).toFixed(2))}:1</strong> measured · ${escapeHtml(Number(contrast.required).toFixed(1))}:1 minimum`
-    : `<strong>Manual verification needed</strong>${contrast.reason ? ` · ${escapeHtml(contrast.reason)}` : ""}`;
+  if (contrast.status !== "confirmed") {
+    return contrast.reason ? `<div class="contrast-details"><span>Background or effect:</span> ${escapeHtml(contrast.reason)}</div>` : "";
+  }
+  const measurement = `<strong>${escapeHtml(Number(contrast.ratio).toFixed(2))}:1</strong> measured · ${escapeHtml(Number(contrast.required).toFixed(1))}:1 minimum`;
   return `<div class="contrast-details">
     <div>${measurement}</div>
   </div>`;
@@ -4772,6 +4781,14 @@ function metadataDefinition(label, value) {
   return `<dt>${escapeHtml(label)}</dt><dd class="${present ? "" : "metadata-empty"}">${present ? escapeHtml(value) : "Not published"}</dd>`;
 }
 
+function headingSummaryText(authoredHeadings, generatedHeadings = []) {
+  const flagged = authoredHeadings.filter(heading => heading.flags && heading.flags.length).length;
+  const summary = !authoredHeadings.length
+    ? generatedHeadings.length ? "No authored headings found" : "No headings found"
+    : flagged ? `${flagged} heading${flagged === 1 ? "" : "s"} flagged` : "No heading issues detected";
+  return summary + (generatedHeadings.length ? ` · ${generatedHeadings.length} accordion heading${generatedHeadings.length === 1 ? "" : "s"}` : "");
+}
+
 function renderPageDetails(section = "overview") {
   const report = state.activeReport;
   const details = report && report.pageDetails;
@@ -4789,9 +4806,9 @@ function renderPageDetails(section = "overview") {
   const assetBySelector = new Map((report.assets || []).map(asset => [assetKey(asset), asset]));
   const authoredHeadings = report.settings.profile === "cms-lite" ? details.headings.filter(heading => !heading.component) : details.headings;
   const generatedHeadings = report.settings.profile === "cms-lite" ? details.headings.filter(heading => heading.component) : [];
-  const headingIssues = authoredHeadings.filter(heading => heading.flags && heading.flags.length).length;
+
   const open = report.issues.filter(finding => effectiveStatus(finding) === "open");
-  const headingRows = headings => headings.length ? headings.map(heading => `<li class="heading-outline-row heading-level-${heading.level}${heading.component ? " cms-generated-heading" : ""}"><button class="detail-jump" type="button" data-selector="${escapeHtml(heading.selector)}" ${editorDataAttributes(heading)}><span class="detail-level level-h${heading.level}">H${heading.level}</span><span class="heading-outline-text">${escapeHtml(heading.text)}</span>${(heading.flags || []).map(flag => `<span class="detail-flag">${escapeHtml(flag)}</span>`).join("")}</button></li>`).join("") : `<li class="detail-empty-row">No visible headings found.</li>`;
+  const headingRows = headings => headings.length ? headings.map(heading => `<li class="heading-outline-row heading-level-${heading.level}${heading.component ? " cms-generated-heading" : ""}"><button class="detail-jump" type="button" data-selector="${escapeHtml(heading.selector)}" ${editorDataAttributes(heading)}><span class="detail-level level-h${heading.level}">H${heading.level}</span><span class="heading-outline-text">${escapeHtml(heading.text)}</span>${(heading.flags || []).map(flag => `<span class="detail-flag">${escapeHtml(flag)}</span>`).join("")}</button></li>`).join("") : `<li class="detail-empty-row">No headings were found in the content reviewed.</li>`;
   const linkCheck = report.linkCheck || null;
   const resultCategoryCounts = linkResultCategoryCounts(linkCheck && linkCheck.results);
   const linkCheckText = linkCheck
@@ -4838,11 +4855,11 @@ function renderPageDetails(section = "overview") {
     const grade = cmsEditorMode
       ? "Reading grade unavailable across multiple CMS Lite fields"
       : report.stats.readingGrade === null
-        ? "Not enough prose"
+        ? "Reading grade not available"
         : `Estimated grade ${report.stats.readingGrade}`;
     elements["page-details"].innerHTML = `
       <div class="details-landing">
-        <button class="detail-card" type="button" data-detail-section="headings">${detailCardIcon("headings")}<span><strong>Headings</strong><span>${headingIssues} heading issue${headingIssues === 1 ? "" : "s"}${generatedHeadings.length ? ` · ${generatedHeadings.length} accordion heading${generatedHeadings.length === 1 ? "" : "s"}` : ""}</span></span><span class="detail-card-count">${authoredHeadings.length}</span></button>
+        <button class="detail-card" type="button" data-detail-section="headings">${detailCardIcon("headings")}<span><strong>Headings</strong><span>${escapeHtml(headingSummaryText(authoredHeadings, generatedHeadings))}</span></span><span class="detail-card-count">${authoredHeadings.length}</span></button>
         <button class="detail-card" type="button" data-detail-section="images">${detailCardIcon("images")}<span><strong>Images and alt text</strong><span>${details.counts.imagesMissingAlt} missing alt · ${details.counts.imagesEmptyAlt} empty alt</span></span><span class="detail-card-count">${details.counts.images}</span></button>
         <button class="detail-card" type="button" data-detail-section="links">${detailCardIcon("links")}<span><strong>Links and assets</strong><span>${brokenSummary}</span></span><span class="detail-card-count">${details.counts.links}</span></button>
         <button class="detail-card" type="button" data-detail-section="metadata">${detailCardIcon("metadata")}<span><strong>Metadata and SEO</strong><span>${metadataUnavailable ? "Not checked in editor mode" : metadata.description ? "Description published" : "Meta description missing"}</span></span><span class="detail-card-count">›</span></button>
@@ -5849,7 +5866,8 @@ async function captureFeedbackContext(finding = null) {
     selectedText: (live.selection && live.selection.selectedText) || "",
     finding: findingContext,
     extensionVersion: chrome.runtime.getManifest().version,
-    rulesVersion: globalThis.BCWebStyleGuideChecker.ruleVersion,
+    rulesVersion: (report && report.ruleVersion) || globalThis.BCWebStyleGuideChecker.ruleVersion,
+    rulesBuild: report ? report.ruleBuild || "" : globalThis.BCWebStyleGuideChecker.ruleBuild || "",
     browser: browserLabel(),
     capturedAt: new Date().toISOString()
   };
@@ -5869,17 +5887,12 @@ function feedbackContextPreview(context) {
     finding && finding.evidence ? metadataDefinition("Finding evidence", finding.evidence) : "",
     metadataDefinition("Extension version", context && context.extensionVersion),
     metadataDefinition("Rules version", context && context.rulesVersion),
+    context && context.rulesBuild ? metadataDefinition("Rules build", context.rulesBuild) : "",
     metadataDefinition("Browser", context && context.browser)
   ].join("");
 }
 
 async function openFeedbackDialog(finding = null, existingNote = null) {
-  if (!existingNote && feedbackEmailBatchPlan().blocked) {
-    renderFeedback();
-    switchView("feedback");
-    showToast("Send the current feedback batch before adding another note.");
-    return;
-  }
   state.feedbackReturnFocus = document.activeElement;
   state.pendingFeedbackId = existingNote ? existingNote.id : "";
   state.pendingFeedbackContext = existingNote ? existingNote.context : await captureFeedbackContext(finding);
@@ -5927,18 +5940,24 @@ async function saveFeedbackNote(event) {
     updatedAt: now,
     archivedAt: existing ? existing.archivedAt || "" : ""
   };
-  if (existing) state.feedbackNotes = state.feedbackNotes.map(item => item.id === note.id ? note : item);
-  else state.feedbackNotes.push(note);
-  await saveKey(STORAGE_KEYS.feedback, state.feedbackNotes);
+  const notes = existing
+    ? state.feedbackNotes.map(item => item.id === note.id ? note : item)
+    : [...state.feedbackNotes, note];
+  try {
+    await saveKey(STORAGE_KEYS.feedback, notes);
+  } catch (_) {
+    showToast("Your note could not be saved. Keep this form open and try saving again.");
+    return;
+  }
+  state.feedbackNotes = notes;
   state.pendingFeedbackId = "";
   state.pendingFeedbackContext = null;
+  const returnFocus = state.feedbackReturnFocus;
   closeFeedbackDialog();
   renderFeedback();
   if (state.reviewMode === "detail") renderReviewView();
-  const plan = feedbackEmailBatchPlan();
-  showToast(plan.blocked
-    ? "Feedback note saved. Send the current feedback batch to continue adding notes."
-    : `Feedback note saved. ${readyFeedbackNotes().length} unsent.`);
+  showToast(`Feedback note saved. ${readyFeedbackNotes().length} unsent.`);
+  maybePromptFeedbackCapacity(returnFocus);
 }
 
 function feedbackCard(note, archived = false) {
@@ -5997,11 +6016,43 @@ function feedbackEmailBatchPlan(notes = readyFeedbackNotes()) {
   };
 }
 
+// The first queued note identifies the current batch. Prompt once per batch
+// during this panel session; sending it exposes the next batch automatically.
+function feedbackCapacityPromptKey(plan) {
+  return plan.batch.length && (plan.blocked || MAILTO_SAFE_URI_LIMIT - plan.uriLength < FEEDBACK_EMAIL_RESERVE)
+    ? plan.batch[0].id
+    : plan.oversized && plan.overflow.length ? plan.overflow[0].id : "";
+}
+
+function maybePromptFeedbackCapacity(returnFocus = null) {
+  const plan = feedbackEmailBatchPlan();
+  const key = feedbackCapacityPromptKey(plan);
+  if (!key || key === state.feedbackCapacityPromptKey) return;
+  state.feedbackCapacityPromptKey = key;
+  state.feedbackCapacityReturnFocus = returnFocus || document.activeElement;
+  elements["feedback-capacity-message"].textContent = plan.oversized
+    ? "One saved note is too large for an email draft. You can copy your feedback into an email. Your notes will stay saved while you keep reviewing."
+    : plan.blocked
+      ? "Your saved feedback needs more than one email. You can send a batch now or keep reviewing. All your notes will stay saved until you mark them as sent."
+      : "This feedback email is nearly full. You can send it now or keep reviewing. Additional notes will stay saved for the next email if needed.";
+  elements["feedback-capacity-send"].textContent = plan.oversized ? "View saved feedback" : "Create email";
+  elements["feedback-capacity-dialog"].showModal();
+  requestAnimationFrame(() => elements["feedback-capacity-later"].focus());
+}
+
+function closeFeedbackCapacityPrompt() {
+  elements["feedback-capacity-dialog"].close();
+  const target = state.feedbackCapacityReturnFocus;
+  state.feedbackCapacityReturnFocus = null;
+  if (target && target.isConnected) requestAnimationFrame(() => target.focus());
+}
+
 function renderFeedback() {
   const ready = readyFeedbackNotes();
   const archived = archivedFeedbackNotes();
   const readyCount = ready.length;
   const plan = feedbackEmailBatchPlan(ready);
+  if (!feedbackCapacityPromptKey(plan)) state.feedbackCapacityPromptKey = "";
   elements["feedback-header-count"].textContent = String(readyCount);
   elements["feedback-header-count"].hidden = readyCount === 0;
   elements["feedback-ready-count"].textContent = `${readyCount} unsent${archived.length ? ` · ${archived.length} sent` : ""}`;
@@ -6009,15 +6060,15 @@ function renderFeedback() {
   elements["pending-feedback-count"].textContent = `(${readyCount})`;
   elements["feedback-list"].innerHTML = feedbackGroups(ready);
   if (plan.oversized) {
-    elements["feedback-send-status"].innerHTML = `<strong>Send feedback before continuing.</strong> The first unsent note is too large to fit safely in one complete email. Edit that note to shorten it.`;
+    elements["feedback-send-status"].innerHTML = `<strong>One note is too large for an email draft.</strong> Copy your feedback into an email, or shorten that note. You can keep recording notes.`;
   } else if (plan.blocked) {
-    elements["feedback-send-status"].innerHTML = `<strong>Send feedback to continue recording notes.</strong> ${plan.batch.length} of ${readyCount} unsent note${readyCount === 1 ? "" : "s"} fit safely in the next complete email. ${plan.overflow.length} newer note${plan.overflow.length === 1 ? " stays" : "s stay"} saved for the next batch.`;
+    elements["feedback-send-status"].innerHTML = `<strong>Your feedback will be sent in separate emails.</strong> ${plan.batch.length} of ${readyCount} unsent note${readyCount === 1 ? "" : "s"} fit safely in the next complete email. ${plan.overflow.length} newer note${plan.overflow.length === 1 ? " stays" : "s stay"} saved for the next batch.`;
   } else if (readyCount) {
     elements["feedback-send-status"].innerHTML = `<strong>${readyCount} unsent feedback note${readyCount === 1 ? " is" : "s are"} saved on this device.</strong> The next email will include all of them.`;
   } else {
     elements["feedback-send-status"].innerHTML = `<strong>No unsent feedback.</strong>${archived.length ? ` ${archived.length} sent note${archived.length === 1 ? " remains" : "s remain"} available in the archive.` : ""}`;
   }
-  elements["add-feedback-button"].disabled = plan.blocked;
+  elements["add-feedback-button"].disabled = false;
   elements["create-feedback-email"].disabled = readyCount === 0 || plan.oversized;
   elements["create-feedback-email"].textContent = plan.blocked && plan.batch.length
     ? `Create email with ${plan.batch.length} note${plan.batch.length === 1 ? "" : "s"}`
@@ -6052,6 +6103,7 @@ function feedbackReportText(notes = readyFeedbackNotes()) {
     `Created: ${formatDate(new Date().toISOString())}`,
     `Extension version: ${version}`,
     `Rules version: ${globalThis.BCWebStyleGuideChecker.ruleVersion}`,
+    `Report build: ${globalThis.BCWebStyleGuideChecker.ruleBuild || "Not recorded"}`,
     `Browser: ${browserLabel()}`,
     `Notes included: ${notes.length}`,
     `Pages represented: ${includedPages.size}`,
@@ -6083,6 +6135,7 @@ function feedbackReportText(notes = readyFeedbackNotes()) {
       }
     }
     lines.push(`Captured: ${formatDate(context.capturedAt || note.createdAt)}`, `Captured with extension v${context.extensionVersion || version} · rules v${context.rulesVersion || globalThis.BCWebStyleGuideChecker.ruleVersion}`);
+    lines.push(`Rules build when captured: ${context.rulesBuild || "Not recorded"}`);
   });
   return lines.join("\n");
 }
@@ -6153,7 +6206,7 @@ async function handleFeedbackCopyMode(mode) {
 
 const FEEDBACK_CSV_HEADER = [
   "Note ID", "Created", "Sent", "Sent at", "Feedback type", "Important", "Feedback note", "Include page context", "Page title", "Page URL", "Domain", "Site type", "Review area", "Page section",
-  "Selected page text", "Finding", "Rule ID", "Category", "Review level", "Flagged wording", "Finding evidence", "Extension version", "Rules version", "Browser"
+  "Selected page text", "Finding", "Rule ID", "Category", "Review level", "Flagged wording", "Finding evidence", "Extension version", "Rules version", "Browser", "Rules build"
 ];
 
 function feedbackCsvRows(notes = state.feedbackNotes) {
@@ -6166,7 +6219,7 @@ function feedbackCsvRows(notes = state.feedbackNotes) {
       included ? context.pageTitle || "" : "", included ? context.pageUrl || "" : "", included ? context.domain || "" : "", included ? context.detectedProfile || "" : "",
       included ? context.scanScope || "" : "", included ? context.pageSection || "" : "", included ? context.selectedText || "" : "", included ? finding.title || "" : "",
       included ? finding.ruleId || "" : "", included ? finding.category || "" : "", included ? finding.severity || "" : "", included ? finding.flaggedWording || "" : "",
-      included ? finding.evidence || "" : "", context.extensionVersion || chrome.runtime.getManifest().version, context.rulesVersion || globalThis.BCWebStyleGuideChecker.ruleVersion, context.browser || ""
+      included ? finding.evidence || "" : "", context.extensionVersion || chrome.runtime.getManifest().version, context.rulesVersion || globalThis.BCWebStyleGuideChecker.ruleVersion, context.browser || "", context.rulesBuild || ""
     ];
   });
 }
@@ -6211,6 +6264,7 @@ async function archivePreparedFeedback() {
   elements["feedback-email-dialog"].close();
   renderFeedback();
   showToast(`${prepared.size} feedback note${prepared.size === 1 ? "" : "s"} marked sent.`);
+  maybePromptFeedbackCapacity();
 }
 
 async function restoreFeedbackNote(id) {
@@ -6479,7 +6533,7 @@ const PLAIN_LANGUAGE_RULES = new Set([
 
 const ACCESSIBILITY_REVIEW_FIRST = new Set([
   "document-language", "main-landmark", "skip-link-target", "disclosure-state", "image-alt-missing",
-  "linked-image-alt", "form-label", "table-headers", "table-accordion"
+  "linked-image-alt", "form-label", "table-headers", "table-caption", "table-accordion", "table-supplemental", "table-right-column"
 ]);
 const ACCESSIBILITY_NEEDS = new Set(["contrast", "contrast-unverified", "broken-image", "image-alt-meaningless"]);
 const ACCESSIBILITY_CONTEXTUAL_ALT = new Set(["image-alt-empty", "image-alt-length", "image-alt-prefix"]);
@@ -8519,6 +8573,16 @@ function bindEvents() {
   elements["note-cancel"].addEventListener("click", () => elements["note-dialog"].close());
   elements["add-feedback-button"].addEventListener("click", () => openFeedbackDialog());
   elements["feedback-form"].addEventListener("submit", saveFeedbackNote);
+  elements["feedback-capacity-later"].addEventListener("click", closeFeedbackCapacityPrompt);
+  elements["feedback-capacity-dialog"].addEventListener("cancel", event => {
+    event.preventDefault();
+    closeFeedbackCapacityPrompt();
+  });
+  elements["feedback-capacity-send"].addEventListener("click", async () => {
+    closeFeedbackCapacityPrompt();
+    if (feedbackEmailBatchPlan().oversized) openFeedbackView();
+    else await createFeedbackEmail();
+  });
   elements["feedback-dialog-close"].addEventListener("click", closeFeedbackDialog);
   elements["feedback-cancel"].addEventListener("click", closeFeedbackDialog);
   elements["copy-feedback-report"].addEventListener("click", openFeedbackCopyDialog);

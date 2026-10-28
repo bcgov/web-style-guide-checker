@@ -10,10 +10,10 @@ const server = http.createServer((req,res)=>{
   const pathname = new URL(req.url,'http://localhost').pathname;
   if(pathname.startsWith('/services/') || pathname.startsWith('/other/')) {res.setHeader('Content-Type','text/html');res.end(pathname === '/services/no-shared-areas' ? fixtureHtml.replace('id="shared"','id="different-sidebar"').replace('id="other-area"','id="different-advice"') : fixtureHtml);return;}
   const file = path.join(root,pathname);
-  if(!file.startsWith(root+'/')) {res.writeHead(403);res.end();return;}
+  if(!file.startsWith(root+path.sep)) {res.writeHead(403);res.end();return;}
   try {
     let data=fs.readFileSync(file);
-    if(file.endsWith('/sidepanel.js')) data=data.toString().replace(/\ninit\(\)\.catch\([\s\S]*$/,'');
+    if(path.basename(file)==='sidepanel.js') data=data.toString().replace(/\ninit\(\)\.catch\([\s\S]*$/,'');
     res.setHeader('Content-Type',({'.js':'text/javascript','.html':'text/html','.css':'text/css','.png':'image/png','.woff2':'font/woff2'})[path.extname(file)]||'application/octet-stream');res.end(data);
   } catch {res.writeHead(404);res.end();}
 });
@@ -62,6 +62,20 @@ const server = http.createServer((req,res)=>{
     document.body.dataset.surface=workspaceSurface?'workspace':'panel';syncStickyHeaderOffset();
     await loadState();state.lastReviewTabId=42;applySettings(defaultSettings(url));
    },source.url());
+   assert.match(await panel.locator('label:has(#exclude-areas) small').innerText(), /\bpage footer\b/i);
+   await panel.evaluate(()=>renderPreviewLifecycle({kind:'build-expired',blocksUse:true,builtInExpiry:'2027-01-31',installedVersion:'1.3.3',downloadUrl:'https://github.com/bcgov/web-style-guide-checker/releases/latest'}));
+   assert.equal(await panel.locator('#preview-removal-instructions').isVisible(),true);
+   assert.equal(await panel.locator('#scan-button').isDisabled(),true);
+   assert.equal(await panel.locator('#preview-download-link').isVisible(),false);
+   assert.match(await panel.locator('#preview-removal-instructions').innerText(),/chrome:\/\/extensions[\s\S]*edge:\/\/extensions[\s\S]*Developer mode[\s\S]*Remove/);
+   assert.equal(await panel.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'Expiry instructions must fit the side panel and full tab');
+   if(process.env.FEEDBACK_QA_SCREENSHOTS==='1'&&(width===320||workspace)) {
+    fs.mkdirSync(path.join(root,'.work'),{recursive:true});
+    await panel.screenshot({path:path.join(root,'.work',`expiry-${width}.png`),fullPage:true});
+   }
+   await panel.evaluate(()=>renderPreviewLifecycle({kind:'current',blocksUse:false,installedVersion:'1.3.3'}));
+   assert.equal(await panel.locator('#preview-removal-instructions').isVisible(),false);
+   assert.equal(await panel.locator('#scan-button').isEnabled(),true);
    const originalUrl=source.url();
    if (!await panel.locator('#exclude-areas').isChecked()) await panel.locator('#exclude-areas').check();
    await panel.locator('#manage-exclusions').click();
