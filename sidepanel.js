@@ -829,6 +829,21 @@ async function requestPagePermission(url) {
   return chrome.permissions.request({ origins });
 }
 
+
+function isWordOnlineTab(url) {
+  try {
+    const parsed = new URL(url);
+
+    return (
+      parsed.hostname === "bcgov-my.sharepoint.com" &&
+      parsed.pathname.startsWith("/:w:/")
+    );
+  } catch (_) {
+    return false;
+  }
+}
+
+
 function showToast(message) {
   const reviewToast = elements["review-toast"];
   const target = reviewToast && reviewToast.parentElement.getClientRects().length ? reviewToast : elements.toast;
@@ -3285,11 +3300,69 @@ async function enrichAssetChecks(report) {
   return report;
 }
 
+async function scanWordOnlineTab(tabId, options) {
+  const frames = await chrome.scripting.executeScript({
+    target: { tabId, allFrames: true },
+    func: () => location.hostname
+  });
+
+  const editorFrame = frames.find(
+    frame => frame.result === "cac-word-edit.officeapps.live.com"
+  );
+
+  if (!editorFrame) {
+    throw new Error(
+      "Word editor not found. Wait for the document to load and try again."
+    );
+  }
+
+  await chrome.scripting.executeScript({
+    target: {
+      tabId,
+      frameIds: [editorFrame.frameId]
+    },
+    files: [
+      "review-exclusions.js",
+      "checker-core.js",
+      "word-online-adapter.js"
+    ]
+  });
+
+  const results = await chrome.scripting.executeScript({
+    target: {
+      tabId,
+      frameIds: [editorFrame.frameId]
+    },
+    func: settings => {
+      return globalThis.BCWordOnlineAdapter.scanWordContent(settings);
+    },
+    args: [options]
+  });
+
+  const report = results[0]?.result;
+
+  if (!report || report.error) {
+    throw new Error(
+      report?.error || "The Word document could not be scanned."
+    );
+  }
+
+  return report;
+}
+
+
+
 async function scanTab(tabId, options) {
-  const report = await injectScanner(tabId, options);
+  const tab = await chrome.tabs.get(tabId);
+
+  const report = isWordOnlineTab(tab.url)
+    ? await scanWordOnlineTab(tabId, options)
+    : await injectScanner(tabId, options);
+
   await enrichAssetChecks(report);
   return report;
 }
+
 
 function publicQaLiveRemoteResult(link, qaResult, liveResult) {
   const qaUrl = link.qaUrl || link.href;
@@ -3956,6 +4029,20 @@ async function scanCurrentPage(suppliedOptions) {
     state.activeTab = await currentReviewTab();
     if (!state.activeTab || !state.activeTab.id) throw new Error("No active browser tab was found.");
     if (!isScannableUrl(state.activeTab.url)) throw new Error(unsupportedScanUrlMessage(state.activeTab.url));
+    
+    // Word for the web uses a separate editor iframe
+    if (isWordOnlineTab(state.activeTab.url)) {
+      const wordEditorGranted = await requestPagePermission(
+        "https://cac-word-edit.officeapps.live.com/"
+      );
+
+      if (!wordEditorGranted) {
+        throw new Error(
+          "Access to the Word editor was not granted."
+        );
+      }
+    }
+
     const granted = await requestPagePermission(state.activeTab.url);
     if (!granted) throw new Error("Access to this site was not granted. The checker needs permission to inspect the page.");
     const settings = selectedSettings();
