@@ -2086,9 +2086,11 @@
     if ([
       "www2.gov.bc.ca",
       "www2.qa.gov.bc.ca",
+      "training.www2.qa.gov.bc.ca",
       "intranet.gov.bc.ca",
       "intranet.qa.gov.bc.ca",
-      "cmslite.gov.bc.ca"
+      "cmslite.gov.bc.ca",
+      "training.cmslite.gov.bc.ca"
     ].includes(hostname)) {
       return "cms-lite";
     }
