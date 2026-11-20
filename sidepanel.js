@@ -1010,7 +1010,10 @@ function detectProfile(url) {
 }
 
 function isCmsLiteEditorUrl(url) {
-  return hostnameFor(url) === "cmslite.gov.bc.ca";
+  return [
+    "cmslite.gov.bc.ca",
+    "training.cmslite.gov.bc.ca"
+  ].includes(hostnameFor(url));
 }
 
 function defaultSettings(url) {
@@ -1497,8 +1500,11 @@ async function injectScanner(tabId, options) {
       );
 
       const isCmsLiteEditor =
-        hostname === "cmslite.gov.bc.ca" &&
-        editorFrames.length > 0;
+      [
+        "cmslite.gov.bc.ca",
+        "training.cmslite.gov.bc.ca"
+      ].includes(hostname) &&
+      editorFrames.length > 0;
 
       // Normal websites and CMS Lite QA continue using the existing scan.
       if (!isCmsLiteEditor) {
